@@ -1,0 +1,34 @@
+version: '3.8'
+
+# For full config see .env.example; override with .env.
+# Key vars: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY, ALLOWED_ORIGINS, RESUME_PATH
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+      - RESUME_PATH=${RESUME_PATH:-resume/resume.pdf}
+    volumes:
+      - ./data:/app/data
+      - ./resume:/app/resume
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped

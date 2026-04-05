@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+scratch
+data
+resume
+
+.DS_Store
+Thumbs.db
+
+.env
+.env.local
+.env.*.local
+
+# Debug session logs
+debug-*.log
+
+# IDE
+.cursor/
+
+# Notebook analysis outputs (local only, not for git)
+notebooks/*.png
+notebooks/.ipynb_checkpoints/
+notebooks/experience_clustering.ipynb

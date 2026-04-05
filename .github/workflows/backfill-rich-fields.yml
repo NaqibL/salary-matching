@@ -1,0 +1,49 @@
+name: Backfill Rich Fields
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max jobs per run (batched; leave empty for no limit)'
+        required: false
+        default: '5000'
+      rate_limit:
+        description: 'API requests per second'
+        required: false
+        default: '4'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run backfill
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '' }}"
+          RATE="${{ github.event.inputs.rate_limit || '4' }}"
+          if [ -n "$LIMIT" ]; then
+            uv run mcf backfill-rich-fields --limit "$LIMIT" --rate-limit "$RATE"
+          else
+            uv run mcf backfill-rich-fields --rate-limit "$RATE"
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Print summary
+        if: always()
+        run: echo "Backfill finished at $(date -u)"

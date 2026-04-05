@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[oc]
+.venv
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Data and local files (not needed in API image)
+data/
+resume/
+scratch/
+
+# Environment and secrets
+.env
+.env.*
+
+# IDE and OS
+.cursor
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Frontend (API image doesn't need it)
+frontend/
+
+# Docs and scripts not needed at runtime
+*.md
+!README.md
+
+# GitHub
+.github/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

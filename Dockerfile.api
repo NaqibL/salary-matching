@@ -1,0 +1,27 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install CPU-only PyTorch first (~400 MB vs ~2.5 GB CUDA). Must run before requirements
+# so pip won't pull the full CUDA build. Satisfies torch requirement for sentence-transformers.
+RUN pip install --no-cache-dir torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+# Install remaining dependencies (torch already satisfied)
+COPY pyproject.toml requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/ ./src/
+
+# Make mcf package importable (it lives in src/mcf/)
+ENV PYTHONPATH=/app/src
+
+# Note: The embedding model (BAAI/bge-small-en-v1.5, ~130 MB) is downloaded on first
+# use at runtime, not during build. This avoids Railway build timeouts. The first
+# request that needs embeddings may take 30-60s; subsequent requests are fast.
+
+# Expose port
+EXPOSE 8000
+
+# Run API server
+CMD ["uvicorn", "mcf.api.server:app", "--host", "0.0.0.0", "--port", "8000"]
