@@ -296,6 +296,8 @@ class MatchingService:
                     "role_name": _role_name(rc) if rc is not None else None,
                     "predicted_tier": job.get("predicted_tier"),
                     "role_clusters": job.get("role_clusters"),
+                    "salary_min": job.get("salary_min"),
+                    "salary_max": job.get("salary_max"),
                 }
             )
 
@@ -446,6 +448,8 @@ class MatchingService:
                     "role_name": _role_name(rc) if rc is not None else None,
                     "predicted_tier": job.get("predicted_tier"),
                     "role_clusters": job.get("role_clusters"),
+                    "salary_min": job.get("salary_min"),
+                    "salary_max": job.get("salary_max"),
                 }
             )
 

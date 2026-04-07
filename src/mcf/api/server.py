@@ -176,6 +176,35 @@ class LowballResult(BaseModel):
     similar_jobs: list[dict]
 
 
+class SalarySearchRequest(BaseModel):
+    job_description: str
+    salary_min: int | None = None
+    salary_max: int | None = None
+    top_k: int = 25
+    offset: int = 0
+
+
+class SalarySearchJob(BaseModel):
+    job_uuid: str
+    title: str
+    company_name: str | None
+    location: str | None
+    job_url: str | None
+    salary_min: int | None
+    salary_max: int | None
+    similarity_score: float
+    last_seen_at: str | None
+
+
+class SalarySearchResult(BaseModel):
+    jobs: list[SalarySearchJob]
+    total: int
+    market_p25: int | None
+    market_p50: int | None
+    market_p75: int | None
+    salary_coverage: int
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -989,4 +1018,71 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
         market_p25=p25, market_p50=p50, market_p75=p75,
         salary_coverage=len(salary_jobs), total_matched=len(jobs),
         similar_jobs=similar,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Salary search
+# ---------------------------------------------------------------------------
+
+
+@app.post("/api/salary/search")
+def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optional_user)):
+    """Semantic job search filtered by salary range."""
+    store = get_store()
+    embeddings_cache_inst = EmbeddingsCache(store=store) if settings.enable_embeddings_cache else None
+    embedder: EmbedderProtocol = Embedder(EmbedderConfig(), embeddings_cache=embeddings_cache_inst)
+    vector = embedder.embed_text(body.job_description)
+
+    if settings.enable_active_jobs_pool_cache:
+        from mcf.api.active_jobs_pool_cache import get_pool_or_fetch, compute_ranked_from_pool
+        pool, matrix = get_pool_or_fetch(store)
+        ranked = compute_ranked_from_pool(pool, vector, matrix=matrix)
+    else:
+        ranked = store.get_active_job_ids_ranked(vector, limit=50_000)
+
+    # Apply salary filter as an allowlist
+    salary_allowed = store.get_job_uuids_with_salary_filter(body.salary_min, body.salary_max)
+    if salary_allowed is not None:
+        filtered = [(uuid, dist, last_seen) for uuid, dist, last_seen in ranked if uuid in salary_allowed]
+    else:
+        filtered = list(ranked)
+
+    total = len(filtered)
+    page_slice = filtered[body.offset : body.offset + body.top_k]
+    uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in page_slice}
+
+    jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()))
+
+    # Compute market percentiles from top-500 semantically similar salary-bearing jobs
+    top_500_uuids = [uuid for uuid, _, _ in filtered[:500]]
+    salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids)
+    salary_values = sorted(j["salary_min"] for j in salary_pool if j.get("salary_min") is not None)
+
+    p25 = p50 = p75 = None
+    if len(salary_values) >= 5:
+        p25, p50, p75 = _salary_percentiles(salary_values)
+
+    result_jobs = [
+        SalarySearchJob(
+            job_uuid=j["job_uuid"],
+            title=j.get("title") or "",
+            company_name=j.get("company_name"),
+            location=j.get("location"),
+            job_url=j.get("job_url"),
+            salary_min=j.get("salary_min"),
+            salary_max=j.get("salary_max"),
+            similarity_score=uuid_to_score.get(j["job_uuid"], 0.0),
+            last_seen_at=str(j["last_seen_at"]) if j.get("last_seen_at") else None,
+        )
+        for j in jobs
+    ]
+
+    return SalarySearchResult(
+        jobs=result_jobs,
+        total=total,
+        market_p25=p25,
+        market_p50=p50,
+        market_p75=p75,
+        salary_coverage=len(salary_values),
     )

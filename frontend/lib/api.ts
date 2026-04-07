@@ -1,8 +1,8 @@
 import axios from 'axios'
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult } from './types'
 import { supabase } from './supabase'
 
-export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob }
+export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -320,6 +320,38 @@ export const lowballApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.detail || 'Lowball check failed')
+    }
+    return res.json()
+  },
+}
+
+export const salaryApi = {
+  search: async (
+    jobDescription: string,
+    salaryMin?: number,
+    salaryMax?: number,
+    topK = 25,
+    offset = 0,
+  ): Promise<SalarySearchResult> => {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const res = await fetch(`${API_BASE_URL}/api/salary/search`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        job_description: jobDescription,
+        salary_min: salaryMin ?? null,
+        salary_max: salaryMax ?? null,
+        top_k: topK,
+        offset,
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || 'Salary search failed')
     }
     return res.json()
   },

@@ -11,7 +11,8 @@ interface NavProps {
 }
 
 const navLinks = [
-  { href: '/', label: 'Resume Matching' },
+  { href: '/lowball', label: 'Salary Search' },
+  { href: '/matches', label: 'Job Matches' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/admin', label: 'Admin' },

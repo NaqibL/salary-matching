@@ -38,6 +38,22 @@ interface MatchCardProps {
   mode: 'resume' | 'taste' | 'saved'
 }
 
+function SalaryBadge({ salaryMin, salaryMax }: { salaryMin?: number | null; salaryMax?: number | null }) {
+  if (!salaryMin && !salaryMax) return null
+  const fmt = (v: number) => `$${(v / 1000).toFixed(0)}k`
+  const label =
+    salaryMin && salaryMax
+      ? `${fmt(salaryMin)}–${fmt(salaryMax)}/mo`
+      : salaryMin
+        ? `From ${fmt(salaryMin)}/mo`
+        : `Up to ${fmt(salaryMax!)}/mo`
+  return (
+    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+      {label}
+    </span>
+  )
+}
+
 function ScoreBadge({ score }: { score: number }) {
   const pct = (score * 100).toFixed(0)
   const cls =
@@ -98,6 +114,7 @@ export const MatchCard = React.memo(function MatchCard({ match, onInteraction, l
                 </span>
               )}
               <RecencyBadge daysAgo={daysAgo} />
+              <SalaryBadge salaryMin={match.salary_min} salaryMax={match.salary_max} />
               {match.role_name && (
                 <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
                   {match.role_name}

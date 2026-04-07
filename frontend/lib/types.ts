@@ -38,6 +38,8 @@ export interface Match {
   role_name?: string | null
   predicted_tier?: string | null
   role_clusters?: number[] | null
+  salary_min?: number | null
+  salary_max?: number | null
 }
 
 export interface Profile {
@@ -72,6 +74,27 @@ export interface SimilarJob {
   salary_min: number | null
   salary_max: number | null
   similarity_score: number
+}
+
+export interface SalarySearchJob {
+  job_uuid: string
+  title: string
+  company_name: string | null
+  location: string | null
+  job_url: string | null
+  salary_min: number | null
+  salary_max: number | null
+  similarity_score: number
+  last_seen_at?: string | null
+}
+
+export interface SalarySearchResult {
+  jobs: SalarySearchJob[]
+  total: number
+  market_p25: number | null
+  market_p50: number | null
+  market_p75: number | null
+  salary_coverage: number
 }
 
 export interface LowballResult {

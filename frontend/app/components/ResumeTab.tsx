@@ -34,6 +34,8 @@ interface Filters {
   maxDaysOld: number | null
   roleClusters: number[]
   predictedTiers: string[]
+  salaryMin: number | null
+  salaryMax: number | null
 }
 
 export default function ResumeTab() {
@@ -47,7 +49,7 @@ export default function ResumeTab() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [computing, setComputing] = useState(false)
   const [ratingUuids, setRatingUuids] = useState<Set<string>>(new Set())
-  const [localFilters, setLocalFilters] = useState<Filters>({ minSimilarity: 0, maxDaysOld: null, roleClusters: [], predictedTiers: [] })
+  const [localFilters, setLocalFilters] = useState<Filters>({ minSimilarity: 0, maxDaysOld: null, roleClusters: [], predictedTiers: [], salaryMin: null, salaryMax: null })
   const debouncedFilters = useDebouncedValue(localFilters, 300)
   const [roleTaxonomy, setRoleTaxonomy] = useState<Array<{ id: number; name: string }>>([])
 
@@ -182,6 +184,13 @@ export default function ResumeTab() {
   const interested = stats?.interested ?? 0
   const hasEnoughRatings = interested >= 3
 
+  const displayedJobs = jobs.filter((j) => {
+    if (localFilters.salaryMin != null && (j.salary_min == null || j.salary_min < localFilters.salaryMin)) return false
+    if (localFilters.salaryMax != null && (j.salary_min == null || j.salary_min > localFilters.salaryMax)) return false
+    return true
+  })
+  const salaryFilterActive = localFilters.salaryMin != null || localFilters.salaryMax != null
+
   return (
     <div className="space-y-6">
       <Card className="border-slate-200 dark:border-slate-700">
@@ -286,6 +295,40 @@ export default function ResumeTab() {
                     ...localFilters,
                     maxDaysOld: parsed != null && !Number.isNaN(parsed) && parsed > 0 ? parsed : null,
                   })
+                }}
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
+            <div className="w-36">
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Min Salary (SGD/mo)
+              </label>
+              <input
+                type="number"
+                placeholder="No limit"
+                min={0}
+                value={localFilters.salaryMin ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const parsed = val ? parseInt(val, 10) : null
+                  setLocalFilters({ ...localFilters, salaryMin: parsed != null && !Number.isNaN(parsed) ? parsed : null })
+                }}
+                className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
+            <div className="w-36">
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Max Salary (SGD/mo)
+              </label>
+              <input
+                type="number"
+                placeholder="No limit"
+                min={0}
+                value={localFilters.salaryMax ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const parsed = val ? parseInt(val, 10) : null
+                  setLocalFilters({ ...localFilters, salaryMax: parsed != null && !Number.isNaN(parsed) ? parsed : null })
                 }}
                 className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
@@ -404,9 +447,12 @@ export default function ResumeTab() {
           )}
           <div className="space-y-4">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Showing <strong className="text-slate-700 dark:text-slate-300">{jobs.length}</strong> unrated {jobs.length === 1 ? 'job' : 'jobs'}
+              Showing <strong className="text-slate-700 dark:text-slate-300">{displayedJobs.length}</strong> unrated {displayedJobs.length === 1 ? 'job' : 'jobs'}
+              {salaryFilterActive && (
+                <span className="ml-2 text-violet-600 dark:text-violet-400">(salary filter active — only jobs with disclosed salary in range)</span>
+              )}
             </p>
-            {jobs.map((job) => (
+            {displayedJobs.map((job) => (
               <div
                 key={job.job_uuid}
                 className="transition-shadow hover:shadow-md"

@@ -585,7 +585,7 @@ class DuckDBStore(Storage):
         placeholders = ", ".join("?" * len(uuids))
         rows = self._con.execute(
             f"SELECT job_uuid, title, company_name, location, job_url, last_seen_at, skills_json, "
-            f"role_cluster, predicted_tier, role_clusters_json "
+            f"role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max "
             f"FROM jobs WHERE job_uuid IN ({placeholders})",
             uuids,
         ).fetchall()
@@ -601,6 +601,8 @@ class DuckDBStore(Storage):
                 "role_cluster": r[7],
                 "predicted_tier": r[8],
                 "role_clusters": json.loads(r[9]) if r[9] else None,
+                "salary_min": r[10],
+                "salary_max": r[11],
             }
             for r in rows
         }
@@ -624,6 +626,27 @@ class DuckDBStore(Storage):
             placeholders = ", ".join("?" * len(predicted_tiers))
             conditions.append(f"predicted_tier IN ({placeholders})")
             params.extend(predicted_tiers)
+        rows = self._con.execute(
+            f"SELECT job_uuid FROM jobs WHERE {' AND '.join(conditions)}",
+            params,
+        ).fetchall()
+        return {r[0] for r in rows}
+
+    def get_job_uuids_with_salary_filter(
+        self,
+        salary_min: int | None = None,
+        salary_max: int | None = None,
+    ) -> set[str] | None:
+        if salary_min is None and salary_max is None:
+            return None
+        conditions = ["is_active = TRUE", "salary_min IS NOT NULL"]
+        params: list = []
+        if salary_min is not None:
+            conditions.append("salary_min >= ?")
+            params.append(salary_min)
+        if salary_max is not None:
+            conditions.append("salary_min <= ?")
+            params.append(salary_max)
         rows = self._con.execute(
             f"SELECT job_uuid FROM jobs WHERE {' AND '.join(conditions)}",
             params,
@@ -1647,11 +1670,11 @@ class DuckDBStore(Storage):
             return []
         placeholders = ", ".join("?" * len(job_uuids))
         rows = self._con.execute(
-            f"SELECT job_uuid, title, company_name, job_url, salary_min, salary_max "
+            f"SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at "
             f"FROM jobs WHERE job_uuid IN ({placeholders})",
             job_uuids,
         ).fetchall()
-        cols = ["job_uuid", "title", "company_name", "job_url", "salary_min", "salary_max"]
+        cols = ["job_uuid", "title", "company_name", "location", "job_url", "salary_min", "salary_max", "last_seen_at"]
         return [dict(zip(cols, row)) for row in rows]
 
     def upsert_taste_embedding(self, *, profile_id: str, model_name: str, embedding: Sequence[float]) -> None:

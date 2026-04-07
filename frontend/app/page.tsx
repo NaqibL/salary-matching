@@ -11,8 +11,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { BarChart2, Scale, Briefcase, ArrowRight } from 'lucide-react'
-import { dashboardApi } from '@/lib/api'
+import { BarChart2, Scale, Briefcase, ArrowRight, Loader2 } from 'lucide-react'
+import { dashboardApi, lowballApi } from '@/lib/api'
+import type { LowballResult } from '@/lib/types'
 import { Layout } from './components/layout'
 import NavUserActions from './components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
@@ -27,6 +28,17 @@ function formatDate(d: string) {
 
 const tools = [
   {
+    icon: Scale,
+    title: 'Salary Search',
+    description:
+      'See the pay range for any role in Singapore — instantly, from live MCF data. Check if an offer is competitive.',
+    href: '/lowball',
+    auth: false,
+    iconColor: 'text-violet-600 dark:text-violet-400',
+    iconBg: 'bg-violet-50 dark:bg-violet-950/50',
+    accentBorder: 'border-t-violet-500 dark:border-t-violet-400',
+  },
+  {
     icon: BarChart2,
     title: 'Market Dashboard',
     description:
@@ -36,17 +48,6 @@ const tools = [
     iconColor: 'text-indigo-600 dark:text-indigo-400',
     iconBg: 'bg-indigo-50 dark:bg-indigo-950/50',
     accentBorder: 'border-t-indigo-500 dark:border-t-indigo-400',
-  },
-  {
-    icon: Scale,
-    title: 'Lowball Checker',
-    description:
-      'Paste a job description and salary offer to instantly see where it sits in the market — ranked by percentile against similar roles.',
-    href: '/lowball',
-    auth: false,
-    iconColor: 'text-violet-600 dark:text-violet-400',
-    iconBg: 'bg-violet-50 dark:bg-violet-950/50',
-    accentBorder: 'border-t-violet-500 dark:border-t-violet-400',
   },
   {
     icon: Briefcase,
@@ -60,6 +61,142 @@ const tools = [
     accentBorder: 'border-t-emerald-500 dark:border-t-emerald-400',
   },
 ]
+
+function HeroSalaryChecker() {
+  const [jobDesc, setJobDesc] = useState('')
+  const [salary, setSalary] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<LowballResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const fmt = (v: number) => `$${v.toLocaleString()}`
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const salaryValue = salary ? parseInt(salary, 10) : undefined
+      const data = await lowballApi.check(jobDesc, salaryValue)
+      setResult(data)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const VERDICT_LABELS: Record<string, string> = {
+    lowballed: 'You may be lowballed',
+    below_median: 'Below market median',
+    at_median: 'Around market median',
+    above_median: 'Above market rate',
+    insufficient_data: 'Not enough data',
+    market_data: 'Pay range for similar roles',
+  }
+  const VERDICT_COLORS: Record<string, string> = {
+    lowballed: 'text-red-600 dark:text-red-400',
+    below_median: 'text-amber-600 dark:text-amber-400',
+    at_median: 'text-green-600 dark:text-green-400',
+    above_median: 'text-green-600 dark:text-green-400',
+    insufficient_data: 'text-slate-500 dark:text-slate-400',
+    market_data: 'text-violet-600 dark:text-violet-400',
+  }
+
+  return (
+    <section className="-mx-4 lg:-mx-8 px-4 lg:px-8 pt-10 pb-10 bg-gradient-to-br from-violet-50/60 via-white to-slate-50 dark:from-violet-950/15 dark:via-slate-900 dark:to-slate-900 border-b border-slate-200/70 dark:border-slate-800 mb-8">
+      <div className="max-w-2xl">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-950/50">
+            <Scale className="size-5 text-violet-600 dark:text-violet-400" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Know your market value
+          </h1>
+        </div>
+        <p className="mb-6 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+          Paste a job description to see the pay range from live Singapore listings. Optionally enter an offer to see where you stand.
+        </p>
+
+        {!result ? (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <textarea
+              value={jobDesc}
+              onChange={(e) => setJobDesc(e.target.value)}
+              rows={3}
+              required
+              minLength={20}
+              placeholder="e.g. Senior Software Engineer — We are looking for…"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
+            />
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                type="number"
+                value={salary}
+                onChange={(e) => setSalary(e.target.value)}
+                min={100}
+                placeholder="Offered salary (SGD/mo, optional)"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 w-64"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white px-5 py-2 text-sm font-semibold transition-all shadow-sm"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Scale className="w-4 h-4" />}
+                {salary ? 'Check my offer' : 'Get market rates'}
+              </button>
+            </div>
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
+          </form>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className={`text-lg font-bold ${VERDICT_COLORS[result.verdict]}`}>
+                {VERDICT_LABELS[result.verdict]}
+              </span>
+              {result.offered_salary != null && result.percentile != null && (
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  {fmt(result.offered_salary)}/mo · {result.percentile}th percentile
+                </span>
+              )}
+            </div>
+            {result.market_p25 != null && (
+              <div className="flex gap-6">
+                {[
+                  { label: 'P25', value: result.market_p25 },
+                  { label: 'Median', value: result.market_p50 },
+                  { label: 'P75', value: result.market_p75 },
+                ].map(({ label, value }) => value != null && (
+                  <div key={label} className="text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</p>
+                    <p className="text-base font-bold text-slate-800 dark:text-slate-200">{fmt(value)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-4">
+              <Link
+                href="/lowball"
+                className="text-sm font-semibold text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
+              >
+                See full analysis <ArrowRight className="size-3" />
+              </Link>
+              <button
+                onClick={() => { setResult(null); setSalary('') }}
+                className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                ← Check another
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
 
 export default function HomePage() {
   const [activeJobs, setActiveJobs] = useState<ActiveJobsPoint[]>([])
@@ -77,25 +214,8 @@ export default function HomePage() {
     <Layout userSlot={<NavUserActions />}>
       <div className="flex flex-col gap-10">
 
-        {/* ── Page title ───────────────────────────────────────────────────── */}
-        <section>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            MCF Job Matcher
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
-            A set of tools built on live{' '}
-            <a
-              href="https://www.mycareersfuture.gov.sg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-600 dark:text-slate-400 underline underline-offset-2 hover:text-slate-900 dark:hover:text-slate-200"
-            >
-              MyCareersFuture
-            </a>{' '}
-            data to help you understand the Singapore job market — explore hiring trends,
-            check whether a salary offer is competitive, or match your resume to active roles.
-          </p>
-        </section>
+        {/* ── Hero salary checker ──────────────────────────────────────────── */}
+        <HeroSalaryChecker />
 
         {/* ── Tools ────────────────────────────────────────────────────────── */}
         <section>

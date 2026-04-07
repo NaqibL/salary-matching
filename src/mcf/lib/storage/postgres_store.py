@@ -572,7 +572,7 @@ class PostgresStore(Storage):
             cur.execute(
                 """
                 SELECT job_uuid, title, company_name, location, job_url, last_seen_at, skills_json,
-                       role_cluster, predicted_tier, role_clusters_json
+                       role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max
                   FROM jobs WHERE job_uuid = ANY(%s)
                 """,
                 [uuids],
@@ -590,6 +590,8 @@ class PostgresStore(Storage):
                 "role_cluster": r[7],
                 "predicted_tier": r[8],
                 "role_clusters": list(r[9]) if r[9] else None,
+                "salary_min": r[10],
+                "salary_max": r[11],
             }
             for r in rows
         }
@@ -612,6 +614,28 @@ class PostgresStore(Storage):
         if predicted_tiers:
             conditions.append("predicted_tier = ANY(%s)")
             params.append(predicted_tiers)
+        with self._cur() as cur:
+            cur.execute(
+                f"SELECT job_uuid FROM jobs WHERE {' AND '.join(conditions)}",
+                params,
+            )
+            return {r[0] for r in cur.fetchall()}
+
+    def get_job_uuids_with_salary_filter(
+        self,
+        salary_min: int | None = None,
+        salary_max: int | None = None,
+    ) -> set[str] | None:
+        if salary_min is None and salary_max is None:
+            return None
+        conditions = ["is_active = TRUE", "salary_min IS NOT NULL"]
+        params: list = []
+        if salary_min is not None:
+            conditions.append("salary_min >= %s")
+            params.append(salary_min)
+        if salary_max is not None:
+            conditions.append("salary_min <= %s")
+            params.append(salary_max)
         with self._cur() as cur:
             cur.execute(
                 f"SELECT job_uuid FROM jobs WHERE {' AND '.join(conditions)}",
@@ -1657,7 +1681,7 @@ class PostgresStore(Storage):
             return []
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid, title, company_name, job_url, salary_min, salary_max "
+                "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at "
                 "FROM jobs WHERE job_uuid = ANY(%s)",
                 (job_uuids,),
             )

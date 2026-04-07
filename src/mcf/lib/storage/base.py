@@ -201,6 +201,16 @@ class Storage(ABC):
         Returns None if no filters are specified (caller should skip filtering)."""
         raise NotImplementedError
 
+    def get_job_uuids_with_salary_filter(
+        self,
+        salary_min: int | None = None,
+        salary_max: int | None = None,
+    ) -> set[str] | None:
+        """Return UUIDs of active jobs whose salary_min is within [salary_min, salary_max].
+        Returns None if no salary bounds are specified (caller skips filtering).
+        Only jobs with non-null salary_min are included when any bound is given."""
+        raise NotImplementedError
+
     @abstractmethod
     def create_match_session(
         self,

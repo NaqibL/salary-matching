@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { lowballApi } from '@/lib/api'
-import type { LowballResult, SimilarJob } from '@/lib/types'
+import { lowballApi, salaryApi } from '@/lib/api'
+import type { LowballResult, SimilarJob, SalarySearchJob } from '@/lib/types'
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
@@ -17,6 +17,8 @@ import {
   FileText,
   TrendingUp,
   Search,
+  MapPin,
+  Building2,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -150,6 +152,100 @@ function SimilarJobsTable({ jobs }: { jobs: SimilarJob[] }) {
         </div>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Jobs in salary range panel
+// ---------------------------------------------------------------------------
+
+function JobsInRangePanel({
+  jobDesc,
+  salaryMin,
+  salaryMax,
+}: {
+  jobDesc: string
+  salaryMin: number
+  salaryMax: number
+}) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [jobs, setJobs] = useState<SalarySearchJob[]>([])
+  const [fetched, setFetched] = useState(false)
+  const fmt = (v: number | null) => (v != null ? `$${v.toLocaleString()}` : '—')
+
+  const load = async () => {
+    if (fetched) { setOpen(true); return }
+    setOpen(true)
+    setLoading(true)
+    try {
+      const res = await salaryApi.search(jobDesc, salaryMin, salaryMax, 10)
+      setJobs(res.jobs)
+      setFetched(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardBody>
+        <button
+          onClick={open ? () => setOpen(false) : load}
+          className="flex items-center gap-2 text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300"
+        >
+          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          Find jobs in this salary range ({fmt(salaryMin)}–{fmt(salaryMax)})
+        </button>
+
+        {open && (
+          <div className="mt-4">
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
+                <Loader2 className="w-4 h-4 animate-spin" /> Searching similar active listings…
+              </div>
+            ) : jobs.length === 0 ? (
+              <p className="text-sm text-slate-500 py-4">No active jobs found in this salary range.</p>
+            ) : (
+              <div className="space-y-3">
+                {jobs.map((j) => (
+                  <div key={j.job_uuid} className="flex items-start justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      {j.job_url ? (
+                        <a
+                          href={j.job_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline truncate"
+                        >
+                          {j.title} <ExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate block">{j.title}</span>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                        {j.company_name && (
+                          <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{j.company_name}</span>
+                        )}
+                        {j.location && (
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{j.location}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                      <div className="font-medium text-violet-700 dark:text-violet-300">
+                        {j.salary_min != null ? (j.salary_max != null ? `${fmt(j.salary_min)}–${fmt(j.salary_max)}` : fmt(j.salary_min)) : '—'}
+                      </div>
+                      <div className="text-slate-400">{(j.similarity_score * 100).toFixed(0)}% match</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 
@@ -311,12 +407,12 @@ export function LowballContent() {
             <Scale className="size-5 text-violet-600 dark:text-violet-400" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Salary Checker
+            Salary Insights
           </h1>
         </div>
         <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
-          Paste a job title and description to see the market pay range for similar active roles
-          in Singapore. Optionally enter an offered salary to see where it sits.
+          Explore the pay range for any role in Singapore — powered by live MCF data.
+          Enter a job description to see market rates, or add an offered salary to check if you're being lowballed.
         </p>
       </div>
 
@@ -485,6 +581,15 @@ export function LowballContent() {
                 Based on {result.salary_coverage} of {result.total_matched} matched jobs with
                 disclosed salary
               </p>
+            )}
+
+            {/* Jobs in salary range */}
+            {hasMarketData && result.market_p25 != null && result.market_p75 != null && (
+              <JobsInRangePanel
+                jobDesc={jobDesc}
+                salaryMin={result.market_p25}
+                salaryMax={result.market_p75}
+              />
             )}
 
             {/* Similar jobs */}
