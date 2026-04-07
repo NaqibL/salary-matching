@@ -34,6 +34,7 @@ from mcf.api.services.matching_service import MatchingService
 from mcf.lib.embeddings.base import EmbedderProtocol
 from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
+from mcf.lib.embeddings.job_text import structure_salary_query
 from mcf.lib.embeddings.resume import extract_resume_text, preprocess_resume_text
 from mcf.lib.storage.base import Storage
 
@@ -182,6 +183,7 @@ class SalarySearchRequest(BaseModel):
     salary_max: int | None = None
     top_k: int = 25
     offset: int = 0
+    structured_query: bool = True
 
 
 class SalarySearchJob(BaseModel):
@@ -965,12 +967,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
     embedder: EmbedderProtocol = Embedder(EmbedderConfig(), embeddings_cache=embeddings_cache_inst)
     vector = embedder.embed_text(body.job_description)
 
-    if settings.enable_active_jobs_pool_cache:
-        from mcf.api.active_jobs_pool_cache import get_pool_or_fetch, compute_ranked_from_pool
-        pool = get_pool_or_fetch(store)
-        ranked = compute_ranked_from_pool(pool, vector, limit=500)
-    else:
-        ranked = store.get_active_job_ids_ranked(vector, limit=500)
+    ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
     top_slice = ranked[: body.top_k * 5]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
@@ -1032,21 +1029,21 @@ def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optiona
     store = get_store()
     embeddings_cache_inst = EmbeddingsCache(store=store) if settings.enable_embeddings_cache else None
     embedder: EmbedderProtocol = Embedder(EmbedderConfig(), embeddings_cache=embeddings_cache_inst)
-    vector = embedder.embed_text(body.job_description)
+    query_text = structure_salary_query(body.job_description) if body.structured_query else body.job_description
+    vector = embedder.embed_text(query_text)
 
-    if settings.enable_active_jobs_pool_cache:
-        from mcf.api.active_jobs_pool_cache import get_pool_or_fetch, compute_ranked_from_pool
-        pool, matrix = get_pool_or_fetch(store)
-        ranked = compute_ranked_from_pool(pool, vector, matrix=matrix)
-    else:
-        ranked = store.get_active_job_ids_ranked(vector, limit=50_000)
+    # All embedded jobs (active + inactive) — for richer percentile calculation
+    ranked_all = store.get_all_embedded_job_ids_ranked(vector)
 
-    # Apply salary filter as an allowlist
+    # Active-only gate for displayed results (users are browsing to apply)
+    active_uuids = store.active_job_uuids()
+
+    # Salary range filter (active-only) — only applied when the user specified a range
     salary_allowed = store.get_job_uuids_with_salary_filter(body.salary_min, body.salary_max)
-    if salary_allowed is not None:
-        filtered = [(uuid, dist, last_seen) for uuid, dist, last_seen in ranked if uuid in salary_allowed]
-    else:
-        filtered = list(ranked)
+
+    # Displayed jobs: active AND in salary range (if specified)
+    display_gate = salary_allowed if salary_allowed is not None else active_uuids
+    filtered = [(uuid, dist, last_seen) for uuid, dist, last_seen in ranked_all if uuid in display_gate]
 
     total = len(filtered)
     page_slice = filtered[body.offset : body.offset + body.top_k]
@@ -1054,8 +1051,8 @@ def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optiona
 
     jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()))
 
-    # Compute market percentiles from top-500 semantically similar salary-bearing jobs
-    top_500_uuids = [uuid for uuid, _, _ in filtered[:500]]
+    # Percentile pool: top-500 from ALL embedded, regardless of active/salary range
+    top_500_uuids = [uuid for uuid, _, _ in ranked_all[:500]]
     salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids)
     salary_values = sorted(j["salary_min"] for j in salary_pool if j.get("salary_min") is not None)
 

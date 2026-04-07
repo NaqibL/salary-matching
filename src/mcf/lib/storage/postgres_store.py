@@ -168,6 +168,27 @@ class PostgresStore(Storage):
                 )
             return {r[0] for r in cur.fetchall()}
 
+    def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
+        """Return active MCF job UUIDs where description is NULL."""
+        with self._cur() as cur:
+            sql = """
+                SELECT job_uuid FROM jobs
+                WHERE is_active = TRUE
+                  AND (job_source = 'mcf' OR job_source IS NULL)
+                  AND description IS NULL
+                ORDER BY job_uuid
+            """
+            if limit is not None:
+                sql += " LIMIT %s"
+                cur.execute(sql, [limit])
+            else:
+                cur.execute(sql)
+            return [r[0] for r in cur.fetchall()]
+
+    def update_job_description(self, job_uuid: str, description: str) -> None:
+        with self._cur() as cur:
+            cur.execute("UPDATE jobs SET description = %s WHERE job_uuid = %s", [description, job_uuid])
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return MCF job UUIDs where categories_json is NULL or empty."""
         with self._cur() as cur:
@@ -250,6 +271,7 @@ class PostgresStore(Storage):
         posted_date: str | None = None,
         expiry_date: str | None = None,
         min_years_experience: int | None = None,
+        description: str | None = None,
     ) -> None:
         now = _utcnow()
         skills_json_str = json.dumps(skills) if skills else None
@@ -263,8 +285,9 @@ class PostgresStore(Storage):
                                  is_active, first_seen_at, last_seen_at,
                                  title, company_name, location, job_url, skills_json,
                                  categories_json, employment_types_json, position_levels_json,
-                                 salary_min, salary_max, posted_date, expiry_date, min_years_experience)
-                VALUES (%s, %s, %s, %s, TRUE, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                 salary_min, salary_max, posted_date, expiry_date, min_years_experience,
+                                 description)
+                VALUES (%s, %s, %s, %s, TRUE, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (job_uuid) DO UPDATE SET
                   job_source            = COALESCE(EXCLUDED.job_source, jobs.job_source),
                   last_seen_run_id      = EXCLUDED.last_seen_run_id,
@@ -282,13 +305,15 @@ class PostgresStore(Storage):
                   salary_max            = COALESCE(EXCLUDED.salary_max, jobs.salary_max),
                   posted_date           = COALESCE(EXCLUDED.posted_date, jobs.posted_date),
                   expiry_date           = COALESCE(EXCLUDED.expiry_date, jobs.expiry_date),
-                  min_years_experience  = COALESCE(EXCLUDED.min_years_experience, jobs.min_years_experience)
+                  min_years_experience  = COALESCE(EXCLUDED.min_years_experience, jobs.min_years_experience),
+                  description           = COALESCE(EXCLUDED.description, jobs.description)
                 """,
                 [
                     job_uuid, job_source, run_id, run_id,
                     now, now, title, company_name, location, job_url, skills_json_str,
                     categories_json_str, employment_types_json_str, position_levels_json_str,
                     salary_min, salary_max, posted_date, expiry_date, min_years_experience,
+                    description,
                 ],
             )
 
@@ -297,7 +322,7 @@ class PostgresStore(Storage):
             cur.execute(
                 """
                 SELECT job_uuid, title, company_name, location, job_url,
-                       is_active, first_seen_at, last_seen_at, skills_json
+                       is_active, first_seen_at, last_seen_at, skills_json, description
                 FROM jobs WHERE job_uuid = %s
                 """,
                 [job_uuid],
@@ -310,6 +335,7 @@ class PostgresStore(Storage):
             "location": row[3], "job_url": row[4], "is_active": row[5],
             "first_seen_at": row[6], "last_seen_at": row[7],
             "skills": json.loads(row[8]) if row[8] else [],
+            "description": row[9],
         }
 
     def get_active_job_count(self) -> int:
@@ -565,6 +591,32 @@ class PostgresStore(Storage):
             rows = cur.fetchall()
         return [(r[0], float(r[1]), r[2]) for r in rows]
 
+    def get_all_embedded_job_ids_ranked(
+        self,
+        query_embedding: Sequence[float],
+        limit: int = 5000,
+    ) -> list[tuple[str, float, datetime | None]]:
+        _, has_vector = self._job_embedding_schema()
+        if not has_vector:
+            return []
+        emb_str = json.dumps([float(x) for x in query_embedding])
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT j.job_uuid,
+                       (e.embedding <=> %s::vector) AS distance,
+                       j.last_seen_at
+                  FROM jobs j
+                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                 WHERE e.embedding IS NOT NULL
+                 ORDER BY distance ASC
+                 LIMIT %s
+                """,
+                [emb_str, limit],
+            )
+            rows = cur.fetchall()
+        return [(r[0], float(r[1]), r[2]) for r in rows]
+
     def get_jobs_by_uuids(self, uuids: list[str]) -> list[dict]:
         if not uuids:
             return []
@@ -572,7 +624,7 @@ class PostgresStore(Storage):
             cur.execute(
                 """
                 SELECT job_uuid, title, company_name, location, job_url, last_seen_at, skills_json,
-                       role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max
+                       role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max, description
                   FROM jobs WHERE job_uuid = ANY(%s)
                 """,
                 [uuids],
@@ -592,6 +644,7 @@ class PostgresStore(Storage):
                 "role_clusters": list(r[9]) if r[9] else None,
                 "salary_min": r[10],
                 "salary_max": r[11],
+                "description": r[12],
             }
             for r in rows
         }
@@ -701,7 +754,7 @@ class PostgresStore(Storage):
     def get_all_active_jobs(self) -> list[dict]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid, title, skills_json, position_levels_json, min_years_experience"
+                "SELECT job_uuid, title, skills_json, position_levels_json, min_years_experience, description"
                 " FROM jobs WHERE is_active = TRUE"
             )
             rows = cur.fetchall()
@@ -712,6 +765,7 @@ class PostgresStore(Storage):
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
                 "min_years_experience": r[4],
+                "description": r[5],
             }
             for r in rows
         ]
@@ -1681,7 +1735,7 @@ class PostgresStore(Storage):
             return []
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at "
+                "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active "
                 "FROM jobs WHERE job_uuid = ANY(%s)",
                 (job_uuids,),
             )

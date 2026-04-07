@@ -115,6 +115,7 @@ class DuckDBStore(Storage):
             "ALTER TABLE jobs ADD COLUMN posted_date DATE",
             "ALTER TABLE jobs ADD COLUMN expiry_date DATE",
             "ALTER TABLE jobs ADD COLUMN min_years_experience INTEGER",
+            "ALTER TABLE jobs ADD COLUMN description TEXT",
             # candidate_embeddings: support multiple embedding types per profile
             # (taste embedding stored with profile_id suffix ':taste')
             "ALTER TABLE candidate_embeddings ADD COLUMN embedding_type TEXT DEFAULT 'resume'",
@@ -302,6 +303,25 @@ class DuckDBStore(Storage):
             ).fetchall()
         return {r[0] for r in rows}
 
+    def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
+        """Return active MCF job UUIDs where description is NULL."""
+        sql = """
+            SELECT job_uuid FROM jobs
+            WHERE is_active = TRUE
+              AND (job_source = 'mcf' OR job_source IS NULL)
+              AND description IS NULL
+            ORDER BY job_uuid
+        """
+        if limit is not None:
+            sql += " LIMIT ?"
+            rows = self._con.execute(sql, [limit]).fetchall()
+        else:
+            rows = self._con.execute(sql).fetchall()
+        return [r[0] for r in rows]
+
+    def update_job_description(self, job_uuid: str, description: str) -> None:
+        self._con.execute("UPDATE jobs SET description = ? WHERE job_uuid = ?", [description, job_uuid])
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return MCF job UUIDs where categories_json is NULL or empty."""
         sql = """
@@ -350,6 +370,7 @@ class DuckDBStore(Storage):
         posted_date: str | None = None,
         expiry_date: str | None = None,
         min_years_experience: int | None = None,
+        description: str | None = None,
     ) -> None:
         now = _utcnow()
         skills_json_str = json.dumps(skills) if skills else None
@@ -362,8 +383,9 @@ class DuckDBStore(Storage):
                              first_seen_at, last_seen_at,
                              title, company_name, location, job_url, skills_json,
                              categories_json, employment_types_json, position_levels_json,
-                             salary_min, salary_max, posted_date, expiry_date, min_years_experience)
-            VALUES (?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             salary_min, salary_max, posted_date, expiry_date, min_years_experience,
+                             description)
+            VALUES (?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (job_uuid) DO UPDATE SET
               job_source = COALESCE(excluded.job_source, jobs.job_source),
               last_seen_run_id = excluded.last_seen_run_id,
@@ -381,7 +403,8 @@ class DuckDBStore(Storage):
               salary_max = COALESCE(excluded.salary_max, jobs.salary_max),
               posted_date = COALESCE(excluded.posted_date, jobs.posted_date),
               expiry_date = COALESCE(excluded.expiry_date, jobs.expiry_date),
-              min_years_experience = COALESCE(excluded.min_years_experience, jobs.min_years_experience)
+              min_years_experience = COALESCE(excluded.min_years_experience, jobs.min_years_experience),
+              description = COALESCE(excluded.description, jobs.description)
             """,
             [
                 job_uuid,
@@ -403,6 +426,7 @@ class DuckDBStore(Storage):
                 posted_date,
                 expiry_date,
                 min_years_experience,
+                description,
             ],
         )
 
@@ -579,13 +603,35 @@ class DuckDBStore(Storage):
         scored.sort(key=lambda x: x[1])
         return scored[:limit]
 
+    def get_all_embedded_job_ids_ranked(
+        self,
+        query_embedding: Sequence[float],
+        limit: int = 5000,
+    ) -> list[tuple[str, float, datetime | None]]:
+        import numpy as np
+
+        rows = self._con.execute(
+            """
+            SELECT j.job_uuid, e.embedding_json, j.last_seen_at
+              FROM jobs j
+              JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+            """
+        ).fetchall()
+        query_vec = np.array(query_embedding, dtype=np.float32)
+        scored = []
+        for uuid, emb_json, last_seen_at in rows:
+            emb = np.array(json.loads(emb_json), dtype=np.float32)
+            scored.append((uuid, float(1.0 - np.dot(query_vec, emb)), last_seen_at))
+        scored.sort(key=lambda x: x[1])
+        return scored[:limit]
+
     def get_jobs_by_uuids(self, uuids: list[str]) -> list[dict]:
         if not uuids:
             return []
         placeholders = ", ".join("?" * len(uuids))
         rows = self._con.execute(
             f"SELECT job_uuid, title, company_name, location, job_url, last_seen_at, skills_json, "
-            f"role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max "
+            f"role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max, description "
             f"FROM jobs WHERE job_uuid IN ({placeholders})",
             uuids,
         ).fetchall()
@@ -603,6 +649,7 @@ class DuckDBStore(Storage):
                 "role_clusters": json.loads(r[9]) if r[9] else None,
                 "salary_min": r[10],
                 "salary_max": r[11],
+                "description": r[12],
             }
             for r in rows
         }
@@ -709,17 +756,18 @@ class DuckDBStore(Storage):
         position_levels (list[str]), min_years_experience (int | None).
         """
         rows = self._con.execute(
-            "SELECT job_uuid, title, skills_json, position_levels_json, min_years_experience"
+            "SELECT job_uuid, title, skills_json, position_levels_json, min_years_experience, description"
             " FROM jobs WHERE is_active = TRUE"
         ).fetchall()
         result = []
-        for uuid, title, skills_json, position_levels_json, min_years_exp in rows:
+        for uuid, title, skills_json, position_levels_json, min_years_exp, description in rows:
             result.append({
                 "job_uuid": uuid,
                 "title": title or "",
                 "skills": json.loads(skills_json) if skills_json else [],
                 "position_levels": json.loads(position_levels_json) if position_levels_json else [],
                 "min_years_experience": min_years_exp,
+                "description": description,
             })
         return result
 
@@ -936,7 +984,7 @@ class DuckDBStore(Storage):
         """Get job by UUID."""
         row = self._con.execute(
             """
-            SELECT job_uuid, title, company_name, location, job_url, is_active, first_seen_at, last_seen_at, skills_json
+            SELECT job_uuid, title, company_name, location, job_url, is_active, first_seen_at, last_seen_at, skills_json, description
             FROM jobs WHERE job_uuid = ?
             """,
             [job_uuid],
@@ -953,6 +1001,7 @@ class DuckDBStore(Storage):
             "first_seen_at": row[6],
             "last_seen_at": row[7],
             "skills": json.loads(row[8]) if row[8] else [],
+            "description": row[9],
         }
 
     def get_recent_runs(self, limit: int = 10) -> list[dict]:
@@ -1670,11 +1719,11 @@ class DuckDBStore(Storage):
             return []
         placeholders = ", ".join("?" * len(job_uuids))
         rows = self._con.execute(
-            f"SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at "
+            f"SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active "
             f"FROM jobs WHERE job_uuid IN ({placeholders})",
             job_uuids,
         ).fetchall()
-        cols = ["job_uuid", "title", "company_name", "location", "job_url", "salary_min", "salary_max", "last_seen_at"]
+        cols = ["job_uuid", "title", "company_name", "location", "job_url", "salary_min", "salary_max", "last_seen_at", "is_active"]
         return [dict(zip(cols, row)) for row in rows]
 
     def upsert_taste_embedding(self, *, profile_id: str, model_name: str, embedding: Sequence[float]) -> None:

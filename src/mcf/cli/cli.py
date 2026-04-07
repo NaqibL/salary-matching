@@ -268,6 +268,7 @@ def backfill_rich_fields(
                         posted_date=normalized.posted_date,
                         expiry_date=normalized.expiry_date,
                         min_years_experience=normalized.min_years_experience,
+                        description=normalized.description,
                     )
                     ok += 1
                 except MCFAPIError as e:
@@ -295,6 +296,93 @@ def backfill_rich_fields(
         console.print("[bold green]Backfill complete[/bold green]")
         console.print(f"  Updated: [cyan]{ok:,}[/cyan]")
         console.print(f"  Skipped (404): [yellow]{skipped:,}[/yellow]")
+        console.print(f"  Failed: [red]{failed:,}[/red]")
+    finally:
+        store.close()
+
+
+@app.command("backfill-descriptions")
+def backfill_descriptions(
+    db: Annotated[
+        Optional[Path],
+        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
+    ] = None,
+    db_url: Annotated[
+        Optional[str],
+        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+    ] = None,
+    rate_limit: Annotated[
+        float,
+        typer.Option("--rate-limit", "-r", help="API requests per second (default: 4)"),
+    ] = 4.0,
+    limit: Annotated[
+        Optional[int],
+        typer.Option("--limit", "-l", help="Maximum number of jobs to backfill (for batched runs)"),
+    ] = None,
+) -> None:
+    """Backfill job descriptions for active MCF jobs that have no stored description.
+
+    Fetches each job from the MCF API, strips HTML, and saves the plain-text description.
+    Run with --limit for batched runs (e.g. --limit 5000 per day to avoid rate limits).
+    """
+    store, db_display = _open_store(db, db_url)
+
+    try:
+        job_uuids = store.get_job_uuids_needing_description_backfill(limit=limit)
+        if not job_uuids:
+            console.print("[bold green]No jobs need description backfill.[/bold green]")
+            return
+
+        console.print(f"[bold cyan]Backfill Descriptions[/bold cyan]")
+        console.print(f"  Storage: [green]{db_display}[/green]")
+        console.print(f"  Jobs to backfill: [yellow]{len(job_uuids):,}[/yellow]")
+        console.print(f"  Rate limit: [yellow]{rate_limit}[/yellow] req/s")
+        if limit:
+            console.print(f"  Limit: [yellow]{limit}[/yellow] (batched run)")
+        console.print()
+
+        source = MCFJobSource(rate_limit=rate_limit)
+        ok = 0
+        failed = 0
+        skipped = 0
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            TextColumn("•"),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("[cyan]Backfilling descriptions...", total=len(job_uuids))
+
+            for job_uuid in job_uuids:
+                try:
+                    normalized = source.get_job_detail(job_uuid)
+                    if normalized.description:
+                        store.update_job_description(job_uuid, normalized.description)
+                        ok += 1
+                    else:
+                        skipped += 1
+                except MCFAPIError as e:
+                    if e.status_code == 404:
+                        skipped += 1
+                    else:
+                        failed += 1
+                        progress.console.print(f"[yellow]Warning: {job_uuid}: {e}[/yellow]")
+                except Exception as e:
+                    failed += 1
+                    progress.console.print(f"[yellow]Warning: {job_uuid}: {e}[/yellow]")
+
+                progress.advance(task)
+
+        console.print()
+        console.print("[bold green]Description backfill complete[/bold green]")
+        console.print(f"  Updated: [cyan]{ok:,}[/cyan]")
+        console.print(f"  Skipped (no description / 404): [yellow]{skipped:,}[/yellow]")
         console.print(f"  Failed: [red]{failed:,}[/red]")
     finally:
         store.close()
@@ -663,8 +751,6 @@ def re_embed(
             embedded = 0
 
             for job in all_jobs:
-                # Build text from stored fields (title, skills, seniority).
-                # Description is not stored, so we use what we have.
                 job_text = build_job_text_from_dict(job)
 
                 if not job_text:

@@ -2,8 +2,63 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Protocol, Sequence
+
+# ---------------------------------------------------------------------------
+# Description cleaning (applied at ingest time, before storage)
+# ---------------------------------------------------------------------------
+
+_UNICODE_BULLETS_RE = re.compile(r"[•◦▪▸►·]+")
+_EM_DASH_RE = re.compile(r"[–—]+")
+_ZERO_WIDTH_RE = re.compile(r"[\u200b\u200c\u200d\ufeff]")
+_EXCESS_SPACE_RE = re.compile(r" {2,}")
+
+# Sentence-level boilerplate common in Singapore job postings.
+# On first match, everything from that sentence onwards is discarded
+# (boilerplate is always tail content).
+_BOILERPLATE_RES = [
+    re.compile(r"\bpdpa\b", re.IGNORECASE),
+    re.compile(r"\bpersonal data protection\b", re.IGNORECASE),
+    re.compile(r"by (submitting|applying|sending)\b.{0,60}(resume|cv|application|data)\b", re.IGNORECASE),
+    re.compile(r"\bonly shortlisted candidates?\b", re.IGNORECASE),
+    re.compile(r"\bwe regret (to inform|that only)\b", re.IGNORECASE),
+    re.compile(r"\bequal opportunity employer\b", re.IGNORECASE),
+    re.compile(r"\btreated in (strict )?confidence\b", re.IGNORECASE),
+    re.compile(r"\bdo not hear from us within\b", re.IGNORECASE),
+    re.compile(r"\ball applications? will be treated\b", re.IGNORECASE),
+]
+
+
+def clean_description(text: str) -> str:
+    """Clean a plain-text job description for storage.
+
+    Applied after HTML stripping. Normalises unicode punctuation and strips
+    boilerplate tail content (PDPA notices, EEO statements, shortlist notices).
+    """
+    if not text:
+        return text
+
+    # Normalise unicode noise to ASCII equivalents
+    text = _UNICODE_BULLETS_RE.sub("-", text)
+    text = _EM_DASH_RE.sub("-", text)
+    text = _ZERO_WIDTH_RE.sub("", text)
+
+    # Split on sentence/paragraph boundaries, drop boilerplate tail
+    sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
+    cleaned: list[str] = []
+    for sentence in sentences:
+        s = sentence.strip()
+        if not s:
+            continue
+        if any(p.search(s) for p in _BOILERPLATE_RES):
+            break  # everything from here is boilerplate
+        cleaned.append(s)
+
+    result = " ".join(cleaned)
+    result = _EXCESS_SPACE_RE.sub(" ", result)
+    return result.strip()
 
 
 @dataclass(frozen=True)
@@ -21,7 +76,7 @@ class NormalizedJob:
     location: str | None
     job_url: str | None
     skills: list[str]
-    description_snippet: str | None
+    description: str | None
     categories: list[str] = field(default_factory=list)
     employment_types: list[str] = field(default_factory=list)
     position_levels: list[str] = field(default_factory=list)

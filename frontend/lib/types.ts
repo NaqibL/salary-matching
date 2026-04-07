@@ -74,6 +74,7 @@ export interface SimilarJob {
   salary_min: number | null
   salary_max: number | null
   similarity_score: number
+  is_active?: boolean
 }
 
 export interface SalarySearchJob {

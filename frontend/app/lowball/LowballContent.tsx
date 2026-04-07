@@ -131,6 +131,11 @@ function SimilarJobsTable({ jobs }: { jobs: SimilarJob[] }) {
                     ) : (
                       <span className="truncate">{j.title}</span>
                     )}
+                    {j.is_active === false && (
+                      <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+                        Expired
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-slate-600 dark:text-slate-400 truncate max-w-[140px]">
                     {j.company_name ?? '—'}

@@ -147,6 +147,7 @@ def run_incremental_crawl(
                     posted_date=normalized.posted_date,
                     expiry_date=normalized.expiry_date,
                     min_years_experience=normalized.min_years_experience,
+                    description=normalized.description,
                 )
 
                 if job_text:

@@ -90,6 +90,7 @@ class Storage(ABC):
         posted_date: str | None = None,
         expiry_date: str | None = None,
         min_years_experience: int | None = None,
+        description: str | None = None,
     ) -> None: ...
 
     @abstractmethod
@@ -110,6 +111,14 @@ class Storage(ABC):
         """Delete embeddings for inactive jobs with no user interactions.
         Returns count of deleted rows."""
         ...
+
+    def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
+        """Return active MCF job UUIDs where description is NULL (need description backfill)."""
+        raise NotImplementedError
+
+    def update_job_description(self, job_uuid: str, description: str) -> None:
+        """Set the description field for a single job row."""
+        raise NotImplementedError
 
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return MCF job UUIDs where categories_json is NULL or empty (need backfill).
@@ -186,6 +195,15 @@ class Storage(ABC):
     ) -> list[tuple[str, float, datetime | None]]:
         """Return (job_uuid, cosine_distance, last_seen_at) sorted by distance ASC."""
         ...
+
+    def get_all_embedded_job_ids_ranked(
+        self,
+        query_embedding: Sequence[float],
+        limit: int = 5000,
+    ) -> list[tuple[str, float, datetime | None]]:
+        """Return (job_uuid, cosine_distance, last_seen_at) sorted ASC for ALL jobs
+        with embeddings — active AND inactive. Used for salary percentile pools only."""
+        raise NotImplementedError
 
     @abstractmethod
     def get_jobs_by_uuids(self, uuids: list[str]) -> list[dict]:

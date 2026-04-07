@@ -13,7 +13,7 @@ from typing import Sequence
 
 import httpx
 
-from mcf.lib.sources.base import NormalizedJob
+from mcf.lib.sources.base import NormalizedJob, clean_description
 
 # ---------------------------------------------------------------------------
 # API constants
@@ -129,7 +129,7 @@ def _numeric_job_id(raw_job_id: str) -> str:
 
 
 def _build_description(raw: dict) -> str | None:
-    """Build a text description from available Algolia fields."""
+    """Build a cleaned text description from available Algolia fields."""
     candidates = (
         "description",
         "job_description",
@@ -146,8 +146,7 @@ def _build_description(raw: dict) -> str | None:
         if stripped:
             parts.append(stripped)
     combined = " ".join(parts)
-    words = combined.split()
-    return " ".join(words[:150]) if words else None
+    return clean_description(combined) or None
 
 
 # ---------------------------------------------------------------------------
@@ -325,5 +324,5 @@ class CareersGovJobSource:
             location=location,
             job_url=job_url,
             skills=skills,
-            description_snippet=description_snippet,
+            description=description_snippet,
         )

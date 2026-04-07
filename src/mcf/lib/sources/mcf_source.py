@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import re
 from typing import Callable, Sequence
+
+_TAG_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and normalise whitespace."""
+    if not text:
+        return ""
+    text = text.replace("\u00a0", " ")
+    text = _TAG_RE.sub(" ", text)
+    text = _WHITESPACE_RE.sub(" ", text)
+    return text.strip()
 
 from mcf.lib.api.client import MCFClient
 from mcf.lib.crawler.crawler import Crawler, CrawlProgress
-from mcf.lib.sources.base import NormalizedJob
+from mcf.lib.sources.base import NormalizedJob, clean_description
 
 
 def _extract_mcf_skills(raw: dict) -> list[str]:
@@ -46,8 +60,7 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
     if not job_url:
         job_url = f"https://www.mycareersfuture.gov.sg/job/{external_id}"
 
-    description = raw.get("description") or raw.get("jobDescription") or ""
-    description_snippet = " ".join(description.split()[:100]) if description else None
+    description = clean_description(_strip_html(raw.get("description") or raw.get("jobDescription") or "")) or None
 
     skills = _extract_mcf_skills(raw)
 
@@ -95,7 +108,7 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
         location=location,
         job_url=job_url,
         skills=skills,
-        description_snippet=description_snippet,
+        description=description,
         categories=categories,
         employment_types=employment_types,
         position_levels=position_levels,
