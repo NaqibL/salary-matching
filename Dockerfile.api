@@ -2,19 +2,19 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install uv
-RUN pip install --no-cache-dir uv
+# Install uv and uv_build (uv_build is the build backend declared in pyproject.toml)
+RUN pip install --no-cache-dir uv "uv_build>=0.8.23,<0.9.0"
 
 # Install CPU-only PyTorch first (~400 MB vs ~2.5 GB CUDA). Must run before project deps
-# so uv won't pull the full CUDA build. Satisfies torch requirement for sentence-transformers.
+# so uv sees it already satisfied and won't pull the full CUDA build.
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install remaining dependencies (torch already satisfied)
+# Copy project files — src/ must be present for editable install
 COPY pyproject.toml ./
-RUN uv pip install --system --no-cache-dir -e . --no-build-isolation
-
-# Copy application code
 COPY src/ ./src/
+
+# Install remaining dependencies (torch already satisfied; --no-build-isolation reuses current env)
+RUN uv pip install --system --no-cache-dir -e . --no-build-isolation
 
 # Make mcf package importable (it lives in src/mcf/)
 ENV PYTHONPATH=/app/src
