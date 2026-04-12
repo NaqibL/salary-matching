@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Briefcase, BarChart2, HelpCircle, Bookmark, Scale, Home } from 'lucide-react'
+import { Briefcase, BarChart2, HelpCircle, Bookmark, Scale, Home, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
   { href: '/lowball', label: 'Lowball Checker', icon: Scale },
   { href: '/how-it-works', label: 'How it works', icon: HelpCircle },
+  { href: '/profile', label: 'Profile', icon: User },
 ]
 
 export interface SidebarProps {

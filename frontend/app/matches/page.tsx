@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import type { Session } from '@supabase/supabase-js'
 import { profileApi } from '@/lib/api'
-import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import AuthGate from '../components/AuthGate'
 import { useProfileContext } from '../components/ProfileProvider'
 import { RatingsQueueProvider } from '../components/RatingsQueueProvider'
@@ -16,7 +16,7 @@ import { MatchesErrorBoundary } from '../MatchesErrorBoundary'
 import Spinner from '../components/Spinner'
 import { TutorialModal, getTutorialStep, hasSeenTutorial } from '../components/TutorialModal'
 import { toast } from 'sonner'
-import { Upload, RefreshCw, FileWarning } from 'lucide-react'
+import { Upload, FileWarning } from 'lucide-react'
 
 const LazyResumeTab = dynamic(() => import('../components/ResumeTab'), {
   ssr: false,
@@ -40,16 +40,13 @@ function MatchesHeaderActions({
   loadingProfile,
   processingResume,
   onUploadClick,
-  onProcessResume,
   onStartTutorial,
 }: {
   profile: { profile?: unknown; resume_exists?: boolean } | null | undefined
   loadingProfile: boolean
   processingResume: boolean
   onUploadClick: () => void
-  onProcessResume: () => void
   onStartTutorial?: () => void
-  fileInputRef?: React.RefObject<HTMLInputElement | null>
 }) {
   if (loadingProfile || !isSupabaseConfigured) return null
   const showTutorialButton = onStartTutorial && !hasSeenTutorial()
@@ -61,33 +58,7 @@ function MatchesHeaderActions({
           First time? Start tutorial
         </Button>
       )}
-      {profile?.profile ? (
-        <>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-            Resume ready
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onUploadClick}
-            disabled={processingResume}
-            className="text-slate-600 dark:text-slate-400"
-          >
-            <Upload className="size-4" />
-            Replace
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onProcessResume}
-            disabled={processingResume}
-            className="text-slate-600 dark:text-slate-400"
-          >
-            <RefreshCw className="size-4" />
-            Re-process
-          </Button>
-        </>
-      ) : (
+      {!profile?.profile && (
         <Button
           size="sm"
           onClick={onUploadClick}
@@ -128,20 +99,6 @@ function App({ session }: { session: Session | null }) {
         .finally(() => setProcessingResume(false))
     }
   }, [userId, profile?.resume_exists, profile?.profile, isValidating, invalidateProfile])
-
-  const handleProcessResume = async () => {
-    setProcessingResume(true)
-    try {
-      await profileApi.processResume()
-      invalidateProfile()
-      toast.success('Resume processed!')
-    } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      toast.error(detail || 'Failed to process resume')
-    } finally {
-      setProcessingResume(false)
-    }
-  }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -220,9 +177,7 @@ function App({ session }: { session: Session | null }) {
           loadingProfile={loadingProfile}
           processingResume={processingResume}
           onUploadClick={onUploadClick}
-          onProcessResume={handleProcessResume}
           onStartTutorial={handleStartTutorial}
-          fileInputRef={fileInputRef}
         />
       }
     >
@@ -258,7 +213,9 @@ function App({ session }: { session: Session | null }) {
                 <FileWarning className="size-5" />
               </div>
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                No resume found. Click <strong>Upload Resume</strong> in the header to get started.
+                No resume uploaded yet. Upload one above or visit your{' '}
+                <a href="/profile" className="font-semibold underline underline-offset-2">Profile</a>{' '}
+                to get started.
               </p>
             </CardBody>
           </Card>

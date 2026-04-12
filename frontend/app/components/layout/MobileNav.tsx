@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Briefcase, BarChart2, HelpCircle, Bookmark, Home, Scale } from 'lucide-react'
+import { Menu, X, Briefcase, BarChart2, HelpCircle, Bookmark, Home, Scale, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
@@ -13,6 +13,7 @@ const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
   { href: '/lowball', label: 'Lowball', icon: Scale },
   { href: '/how-it-works', label: 'How it works', icon: HelpCircle },
+  { href: '/profile', label: 'Profile', icon: User },
 ]
 
 export interface MobileNavProps {

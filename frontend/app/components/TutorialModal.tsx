@@ -58,8 +58,8 @@ const STEP_CONTENT: Record<
     primaryAction: 'upload',
   },
   2: {
-    title: 'Replace & Re-process',
-    body: 'Replace: Use when you\'ve updated your resume with new experience or skills. Re-process: Use if matches seem off or you\'ve changed your profile — we\'ll re-analyze your resume.',
+    title: 'Keep your resume fresh',
+    body: 'Head to your Profile anytime to swap in a new version of your resume. Your matches update automatically whenever you upload.',
     icon: RefreshCw,
     primaryLabel: 'Got it',
   },
