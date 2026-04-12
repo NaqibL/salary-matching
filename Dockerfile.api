@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir uv "uv_build>=0.8.23,<0.9.0"
 # so uv sees it already satisfied and won't pull the full CUDA build.
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Copy project files — src/ must be present for editable install
-COPY pyproject.toml ./
+# Copy project files — src/ and README.md must be present for editable install
+COPY pyproject.toml README.md ./
 COPY src/ ./src/
 
 # Install remaining dependencies (torch already satisfied; --no-build-isolation reuses current env)
