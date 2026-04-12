@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 from fastapi import HTTPException
 
 from mcf.api.config import settings
-from mcf.api.deps import _make_store, close_store, set_store
+from mcf.api.deps import _make_store, close_store, set_embedder, set_store
 from mcf.api.routes import admin, dashboard, jobs, lowball, matches, profile
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     store = _make_store()
     set_store(store)
+    from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
+    from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
+    cache = EmbeddingsCache(store=store) if settings.enable_embeddings_cache else None
+    set_embedder(Embedder(EmbedderConfig(), embeddings_cache=cache))
     if settings.enable_active_jobs_pool_cache:
         try:
             from mcf.api.cache.job_pool import get_pool_or_fetch as _warm_pool

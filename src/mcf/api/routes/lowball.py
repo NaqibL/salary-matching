@@ -8,11 +8,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from mcf.api.auth import get_optional_user
-from mcf.api.config import settings
-from mcf.api.deps import get_store
-from mcf.lib.embeddings.base import EmbedderProtocol
-from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
-from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
+from mcf.api.deps import get_embedder, get_store
 from mcf.lib.embeddings.job_text import structure_salary_query
 
 router = APIRouter()
@@ -105,8 +101,7 @@ def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
 def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optional_user)):
     """Check if an offered salary is competitive for a described role."""
     store = get_store()
-    embeddings_cache_inst = EmbeddingsCache(store=store) if settings.enable_embeddings_cache else None
-    embedder: EmbedderProtocol = Embedder(EmbedderConfig(), embeddings_cache=embeddings_cache_inst)
+    embedder = get_embedder()
     vector = embedder.embed_text(body.job_description)
 
     ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
@@ -169,8 +164,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
 def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optional_user)):
     """Semantic job search filtered by salary range."""
     store = get_store()
-    embeddings_cache_inst = EmbeddingsCache(store=store) if settings.enable_embeddings_cache else None
-    embedder: EmbedderProtocol = Embedder(EmbedderConfig(), embeddings_cache=embeddings_cache_inst)
+    embedder = get_embedder()
     query_text = structure_salary_query(body.job_description) if body.structured_query else body.job_description
     vector = embedder.embed_text(query_text)
 

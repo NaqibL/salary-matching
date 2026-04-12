@@ -1,7 +1,8 @@
-"""FastAPI dependencies — store initialisation and shared access.
+"""FastAPI dependencies — store and embedder initialisation and shared access.
 
-The global _store is set once during the FastAPI lifespan (server.py) via
-set_store(). All routes call get_store() to obtain the active Storage instance.
+The globals _store and _embedder are set once during the FastAPI lifespan
+(server.py) via set_store() / set_embedder(). All routes call get_store() /
+get_embedder() to obtain the active instances.
 """
 
 from __future__ import annotations
@@ -10,9 +11,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from mcf.lib.embeddings.base import EmbedderProtocol
     from mcf.lib.storage.base import Storage
 
 _store: Storage | None = None
+_embedder: EmbedderProtocol | None = None
 
 
 def _make_store() -> Storage:
@@ -50,3 +53,16 @@ def close_store() -> None:
     if _store:
         _store.close()
         _store = None
+
+
+def set_embedder(e: EmbedderProtocol) -> None:
+    """Set the global embedder. Called once from the FastAPI lifespan."""
+    global _embedder
+    _embedder = e
+
+
+def get_embedder() -> EmbedderProtocol:
+    """Return the active Embedder instance. Raises if not yet initialised."""
+    if _embedder is None:
+        raise RuntimeError("Embedder not initialised")
+    return _embedder

@@ -13,10 +13,7 @@ from mcf.api.auth import get_current_user
 from mcf.api.cache.matches import invalidate_user
 from mcf.api.cache.response import invalidate_matches_for_user
 from mcf.api.config import settings
-from mcf.api.deps import get_store
-from mcf.lib.embeddings.base import EmbedderProtocol
-from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
-from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
+from mcf.api.deps import get_embedder, get_store
 from mcf.lib.embeddings.resume import extract_resume_text, preprocess_resume_text
 from mcf.lib.storage.base import Storage
 from mcf.matching.service import MatchingService
@@ -184,8 +181,7 @@ def _process_resume_text(
         if storage_path:
             store.update_profile(profile_id=profile_id, resume_storage_path=storage_path)
 
-    embeddings_cache = EmbeddingsCache(store=store) if settings.enable_embeddings_cache else None
-    embedder: EmbedderProtocol = Embedder(EmbedderConfig(), embeddings_cache=embeddings_cache)
+    embedder = get_embedder()
     preprocessed = preprocess_resume_text(resume_text)
     try:
         embedding = embedder.embed_resume(preprocessed)
