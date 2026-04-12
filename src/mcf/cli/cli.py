@@ -16,8 +16,8 @@ from rich.progress import (
     TimeRemainingColumn,
 )
 
-from mcf.api.services.matching_service import MatchingService
-from mcf.lib.api.client import MCFAPIError
+from mcf.matching.service import MatchingService
+from mcf.lib.external.client import MCFAPIError
 from mcf.lib.crawler.crawler import CrawlProgress
 from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache

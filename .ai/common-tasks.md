@@ -17,15 +17,16 @@ Step-by-step guides for the most frequent modifications to this codebase.
        result: str
    ```
 
-2. **Add business logic** to a service file in `src/mcf/api/services/` (or inline in the route if trivial):
+2. **Add business logic** to a matching or lib module (or inline in the route if trivial):
    ```python
-   # src/mcf/api/services/my_service.py
+   # src/mcf/matching/my_algorithm.py  (if algorithm-related)
+   # src/mcf/lib/my_util.py            (if general utility)
    def do_thing(store: Storage, user_id: str, field: str) -> str:
        data = store.get_something(user_id)
        return process(data, field)
    ```
 
-3. **Add the route** in `src/mcf/api/server.py`:
+3. **Add the route** to the relevant file in `src/mcf/api/routes/` (or create a new route file and register it in `server.py` with `app.include_router()`):
    ```python
    @app.post("/api/my-endpoint")
    async def my_endpoint(
@@ -393,21 +394,22 @@ export function formatSalary(min?: number, max?: number): string {
 
 **Description:** Change how jobs are ranked or scored.
 
-The matching pipeline lives in `src/mcf/api/services/matching_service.py`.
+The matching pipeline lives in `src/mcf/matching/service.py`.
 
 Key functions to understand:
-- `get_matches(user_id, mode, ...)` — entry point, calls ranking + filtering
-- `_compute_scores(query_embedding, job_embeddings)` — cosine similarity (NumPy)
-- `_apply_recency_decay(scores, posted_dates)` — multiplies score by time decay
-- `_rocchio_expand(resume_emb, liked_embs, disliked_embs)` — taste query expansion
+- `MatchingService.match_candidate_to_jobs()` — resume matching entry point
+- `MatchingService.match_taste_to_jobs()` — taste profile matching entry point
+- `MatchingService._build_session()` — cosine similarity scoring, recency decay, tier boost
+- `MatchingService._expand_query_with_interactions()` — Rocchio query expansion
 
 To change scoring:
-1. Modify `_compute_scores` or `_apply_recency_decay` in `matching_service.py`
-2. Update parameters (α, β, γ for Rocchio) which may be in `config.py` or hardcoded
-3. Run smoke tests: `uv run pytest tests/ -v`
-4. Test manually: `uv run mcf match-jobs --limit 10`
+1. Modify `_build_session` (recency decay, tier boost) or `_expand_query_with_interactions` (Rocchio α/β/γ) in `matching/service.py`
+2. Constants (`_RECENCY_DECAY_PER_DAY`, `_ROCCHIO_ALPHA`, etc.) are at the top of `matching/service.py`
+3. For role/tier classification changes, see `matching/classifiers.py`
+4. Run smoke tests: `uv run pytest tests/ -v`
+5. Test manually: `uv run mcf match-jobs --limit 10`
 
-**Related files:** `matching_service.py`, `active_jobs_pool_cache.py`, `config.py`
+**Related files:** `matching/service.py`, `matching/classifiers.py`, `api/cache/job_pool.py`, `api/config.py`
 
 ---
 

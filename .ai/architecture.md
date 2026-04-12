@@ -44,10 +44,12 @@ A background crawl pipeline (triggered daily by GitHub Actions via webhook) keep
 
 | Directory | Purpose | Key Files |
 |---|---|---|
-| `src/mcf/api/` | FastAPI app — routes, middleware, caching | `server.py`, `config.py`, `auth.py` |
-| `src/mcf/api/services/` | Business logic (matching) | `matching_service.py` |
+| `src/mcf/api/` | FastAPI app factory, middleware, config, auth, deps | `server.py`, `config.py`, `auth.py`, `deps.py` |
+| `src/mcf/api/cache/` | In-memory caches (matches, response, job pool) | `matches.py`, `response.py`, `job_pool.py` |
+| `src/mcf/api/routes/` | Route handlers split by domain | `jobs.py`, `dashboard.py`, `profile.py`, `matches.py`, `admin.py`, `lowball.py` |
+| `src/mcf/matching/` | Algorithm layer — scoring, Rocchio, classifiers | `service.py`, `classifiers.py` |
 | `src/mcf/cli/` | Typer CLI — crawl, embed, match scripts | `cli.py` |
-| `src/mcf/lib/api/` | External API clients (MCF, CAG) | `client.py` |
+| `src/mcf/lib/external/` | External API clients (MCF, CAG) | `client.py` |
 | `src/mcf/lib/crawler/` | Job UUID listing with rate limiting | `crawler.py` |
 | `src/mcf/lib/embeddings/` | BGE wrapper, caching, resume/job text extraction | `embedder.py`, `resume.py`, `job_text.py` |
 | `src/mcf/lib/models/` | Pydantic models for MCF API responses | `models.py`, `job_detail.py` |
@@ -62,7 +64,6 @@ A background crawl pipeline (triggered daily by GitHub Actions via webhook) keep
 | `tests/` | Pytest smoke tests | `test_smoke.py` |
 | `docs/` | Additional docs | deployment, architecture notes |
 | `scripts/` | Dev helper scripts | - |
-| `dev_scripts/` | Local dev utilities | - |
 | `data/` | DuckDB file (gitignored) | `mcf.duckdb` |
 | `resume/` | Local resume file for dev | `resume.pdf` |
 
@@ -120,7 +121,7 @@ The `Storage` abstract base class allows seamless switching between DuckDB (loca
 4. `GET /api/matches` → `MatchingService.get_matches(user_id, mode='resume')`
 5. All active job embeddings loaded (pool cache or DB), cosine distances computed
 6. Recency decay applied (0.5%/day floor 0.5), interacted jobs filtered
-7. Session (ranked IDs) stored in `matches_cache`, paginated results returned
+7. Session (ranked IDs) stored in `api/cache/matches`, paginated results returned
 
 ### Taste Matching (Rocchio)
 1. User rates jobs liked/disliked via `/api/profile/rate`

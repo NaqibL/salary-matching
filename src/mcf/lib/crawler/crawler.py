@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable
 
-from mcf.lib.api.client import MCFClient
+from mcf.lib.external.client import MCFClient
 from mcf.lib.categories import CATEGORIES
 
 

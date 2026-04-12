@@ -175,7 +175,7 @@ def run_incremental_crawl(
             if embedded:
                 try:
                     import numpy as np
-                    from mcf.lib.classifiers import classify_jobs, classify_jobs_multilabel
+                    from mcf.matching.classifiers import classify_jobs, classify_jobs_multilabel
 
                     emb_matrix = np.array([e for _, e in embedded], dtype=np.float32)
                     classifications_raw = classify_jobs(emb_matrix)
@@ -212,7 +212,7 @@ def run_incremental_crawl(
 
         # Invalidate active jobs pool cache when same process runs API + crawl
         try:
-            from mcf.api.active_jobs_pool_cache import invalidate
+            from mcf.api.cache.job_pool import invalidate
 
             invalidate()
         except ImportError:

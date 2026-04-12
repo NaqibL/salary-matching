@@ -7,8 +7,18 @@ from mcf.api.server import app
 
 
 @pytest.fixture(scope="session")
-def client():
-    """TestClient used as context manager so the lifespan runs (initialises _store)."""
+def client(tmp_path_factory):
+    """TestClient backed by a fresh empty DuckDB, isolated from any .env settings.
+
+    Using a temp DB means:
+    - No DATABASE_URL → no Postgres (avoids production DB in tests)
+    - No stale embeddings at wrong dimensions → no 500s from dimension mismatches
+    - Tests check structure (keys/types), not non-zero data, so empty DB is fine
+    """
+    db_dir = tmp_path_factory.mktemp("db")
+    from mcf.api.config import settings
+    settings.database_url = None
+    settings.db_path = str(db_dir / "test.duckdb")
     with TestClient(app) as c:
         yield c
 

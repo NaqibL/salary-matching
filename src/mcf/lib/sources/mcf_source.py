@@ -18,7 +18,7 @@ def _strip_html(text: str) -> str:
     text = _WHITESPACE_RE.sub(" ", text)
     return text.strip()
 
-from mcf.lib.api.client import MCFClient
+from mcf.lib.external.client import MCFClient
 from mcf.lib.crawler.crawler import Crawler, CrawlProgress
 from mcf.lib.sources.base import NormalizedJob, clean_description
 

@@ -1,0 +1,63 @@
+name: Daily Job Crawl (Part 2 — Segments 4-5)
+
+on:
+  schedule:
+    # Run at 07:00 UTC every day (15:00 SGT)
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      segment:
+        description: 'Segment to run (4, 5, or all)'
+        required: false
+        default: 'all'
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Cache HuggingFace models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ hashFiles('pyproject.toml') }}
+          restore-keys: hf-models-
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Crawl segment 4
+        if: ${{ github.event.inputs.segment == '4' || github.event.inputs.segment == 'all' || github.event.inputs.segment == '' }}
+        run: |
+          uv run mcf crawl-incremental --source mcf \
+            --categories "Marketing / Public Relations,Medical / Therapy Services,Others,Personal Care / Beauty,Precision Engineering,Professional Services,Public / Civil Service,Purchasing / Merchandising,Real Estate / Property Management"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRAWL_WEBHOOK_URL: ${{ secrets.CRAWL_WEBHOOK_URL }}
+
+      - name: Crawl segment 5
+        if: ${{ github.event.inputs.segment == '5' || github.event.inputs.segment == 'all' || github.event.inputs.segment == '' }}
+        run: |
+          uv run mcf crawl-incremental --source mcf \
+            --categories "Repair and Maintenance,Risk Management,Sales / Retail,Sciences / Laboratory / R&D,Security and Investigation,Social Services,Telecommunications,Travel / Tourism,Wholesale Trade"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRAWL_WEBHOOK_URL: ${{ secrets.CRAWL_WEBHOOK_URL }}
+
+      - name: Print summary
+        if: always()
+        run: echo "Crawl (Part 2) finished at $(date -u)"

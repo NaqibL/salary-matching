@@ -17,11 +17,11 @@ from typing import Any
 import numpy as np
 
 from mcf.api.config import settings
-from mcf.api.active_jobs_pool_cache import (
+from mcf.api.cache.job_pool import (
     compute_ranked_from_pool,
     get_pool_or_fetch,
 )
-from mcf.lib.classifiers import role_name as _role_name, predict_candidate_tier
+from mcf.matching.classifiers import role_name as _role_name, predict_candidate_tier
 from mcf.lib.storage.base import Storage
 
 # Pure semantic matching — skills keyword overlap removed.

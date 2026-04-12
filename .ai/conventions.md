@@ -48,7 +48,7 @@ src/mcf/
     └── storage/   # DB abstraction + implementations
 ```
 
-**Rule:** Route handlers live in `api/server.py`. Business logic belongs in `api/services/`. Raw data access belongs in `lib/storage/`.
+**Rule:** Route handlers live in `api/routes/{domain}.py`. Core algorithm logic belongs in `matching/`. Raw data access belongs in `lib/storage/`. Shared deps (store access) live in `api/deps.py`. External HTTP clients live in `lib/external/`.
 
 ### Frontend
 ```

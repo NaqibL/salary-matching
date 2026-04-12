@@ -3,7 +3,7 @@
 Models are loaded lazily on first call and cached for the lifetime of the process.
 
 Usage:
-    from mcf.lib.classifiers import classify_jobs
+    from mcf.matching.classifiers import classify_jobs
     results = classify_jobs(embeddings)   # list of (role_cluster, predicted_tier)
 """
 

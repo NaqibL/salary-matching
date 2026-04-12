@@ -34,7 +34,7 @@ Computes similarity between a user's query embedding (resume or taste profile)
 and all active job embeddings. Applies recency decay and filters interacted jobs.
 
 Dependencies:
-    - mcf.api.active_jobs_pool_cache: Pre-loaded job embeddings
+    - mcf.api.cache.job_pool: Pre-loaded job embeddings
     - mcf.lib.storage.base: Storage interface
     - numpy: Vector math
 

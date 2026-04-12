@@ -8,13 +8,29 @@ Quick reference for locating functionality across the codebase.
 
 | Module | File Path | Purpose | Key Exports | Dependencies | Dependents |
 |---|---|---|---|---|---|
-| FastAPI App | `src/mcf/api/server.py` | Main app, all route handlers, CORS, lifespan | `app` (FastAPI) | `config`, `auth`, `matches_cache`, `response_cache`, `active_jobs_pool_cache`, `matching_service`, all lib modules | CLI, tests, uvicorn |
+| FastAPI App | `src/mcf/api/server.py` | App factory, lifespan, middleware, router registration | `app` (FastAPI) | `config`, `deps`, `routes/*`, `cache/job_pool` | CLI, tests, uvicorn |
 | Settings | `src/mcf/api/config.py` | Pydantic Settings loaded from env / `.env` | `settings` (Settings) | `pydantic-settings` | Nearly everything |
-| Auth | `src/mcf/api/auth.py` | JWT verification, user extraction, FastAPI dependency | `get_current_user`, `verify_token` | `PyJWT`, `settings` | `server.py` |
-| Matches Cache | `src/mcf/api/matches_cache.py` | In-memory session cache: `user_id → ranked_job_ids + TTL` | `MatchesCache` | stdlib | `server.py` |
-| Response Cache | `src/mcf/api/response_cache.py` | TTL-based cache for dashboard/job list responses | `ResponseCache` | stdlib | `server.py` |
-| Active Jobs Pool Cache | `src/mcf/api/active_jobs_pool_cache.py` | Pre-loads all active job embeddings into memory (15min TTL) | `ActiveJobsPoolCache` | `storage`, numpy | `server.py`, `matching_service.py` |
-| Matching Service | `src/mcf/api/services/matching_service.py` | Cosine similarity ranking, Rocchio expansion, recency decay | `MatchingService`, `get_matches` | `embedder`, `storage`, numpy, scikit-learn | `server.py` |
+| Auth | `src/mcf/api/auth.py` | JWT verification, user extraction, FastAPI dependency | `get_current_user`, `get_optional_user` | `PyJWT`, `settings` | All route files |
+| Dependencies | `src/mcf/api/deps.py` | Store initialisation and `get_store()` dependency | `get_store`, `set_store`, `close_store` | `storage` | All route files, `server.py` |
+
+### API Caches (`src/mcf/api/cache/`)
+
+| Module | File Path | Purpose | Key Exports |
+|---|---|---|---|
+| Matches Cache | `src/mcf/api/cache/matches.py` | In-memory session cache: `user_id → ranked_job_ids + TTL` | `get_cached`, `set_cached`, `invalidate_user`, `invalidate_all` |
+| Response Cache | `src/mcf/api/cache/response.py` | TTL-based cache for dashboard/job list responses | `cache_response` (decorator), `cache_invalidate`, `TTL_*` |
+| Job Pool Cache | `src/mcf/api/cache/job_pool.py` | Pre-loads all active job embeddings into memory (15min TTL) | `get_pool_or_fetch`, `compute_ranked_from_pool`, `invalidate` |
+
+### API Routes (`src/mcf/api/routes/`)
+
+| Module | File Path | Routes |
+|---|---|---|
+| Jobs | `src/mcf/api/routes/jobs.py` | `GET /api/jobs/taxonomy`, `GET /api/jobs/interested`, `POST /api/jobs/{uuid}/interact`, `GET /api/jobs/{uuid}`, `GET /api/discover/stats` |
+| Dashboard | `src/mcf/api/routes/dashboard.py` | All `GET /api/dashboard/*` endpoints (14 total, public + authed variants) |
+| Profile | `src/mcf/api/routes/profile.py` | `GET /api/profile`, `POST /api/profile/process-resume`, `POST /api/profile/upload-resume`, `POST /api/profile/reset-ratings`, `POST /api/profile/compute-taste` |
+| Matches | `src/mcf/api/routes/matches.py` | `GET /api/matches` |
+| Admin | `src/mcf/api/routes/admin.py` | All `GET|POST|DELETE /api/admin/*` endpoints |
+| Lowball | `src/mcf/api/routes/lowball.py` | `POST /api/lowball/check`, `POST /api/salary/search` |
 
 ---
 
@@ -26,11 +42,20 @@ Quick reference for locating functionality across the codebase.
 
 ---
 
-## Backend — External API Clients (`src/mcf/lib/api/`)
+## Backend — Matching / Algorithm Layer (`src/mcf/matching/`)
 
 | Module | File Path | Purpose | Key Exports | Dependencies | Dependents |
 |---|---|---|---|---|---|
-| API Client | `src/mcf/lib/api/client.py` | MCF REST API client + CareersGov (Algolia) client | `MCFClient`, `CareersGovJobSource` | `httpx`, `requests`, `tenacity`, `models` | `mcf_source.py`, `cag_source.py`, `cli.py` |
+| Matching Service | `src/mcf/matching/service.py` | Cosine similarity ranking, Rocchio expansion, recency decay, tier boost | `MatchingService` | `cache/job_pool`, `classifiers`, `storage`, numpy | `routes/matches.py`, `routes/profile.py`, `cli.py` |
+| Classifiers | `src/mcf/matching/classifiers.py` | KMeans role clustering + LogisticRegression tier prediction | `classify_jobs`, `classify_jobs_multilabel`, `predict_candidate_tier`, `role_name` | numpy, scikit-learn, pickle | `matching/service.py`, `incremental_crawl.py` |
+
+---
+
+## Backend — External API Clients (`src/mcf/lib/external/`)
+
+| Module | File Path | Purpose | Key Exports | Dependencies | Dependents |
+|---|---|---|---|---|---|
+| API Client | `src/mcf/lib/external/client.py` | MCF REST API client | `MCFClient`, `MCFAPIError` | `httpx`, `tenacity`, `models` | `mcf_source.py`, `crawler.py`, `cli.py` |
 
 ---
 
