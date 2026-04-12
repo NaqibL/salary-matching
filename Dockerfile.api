@@ -2,13 +2,16 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install CPU-only PyTorch first (~400 MB vs ~2.5 GB CUDA). Must run before requirements
-# so pip won't pull the full CUDA build. Satisfies torch requirement for sentence-transformers.
-RUN pip install --no-cache-dir torch==2.9.1 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+# Install uv
+RUN pip install --no-cache-dir uv
+
+# Install CPU-only PyTorch first (~400 MB vs ~2.5 GB CUDA). Must run before project deps
+# so uv won't pull the full CUDA build. Satisfies torch requirement for sentence-transformers.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # Install remaining dependencies (torch already satisfied)
-COPY pyproject.toml requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml ./
+RUN uv pip install --system --no-cache-dir -e . --no-build-isolation
 
 # Copy application code
 COPY src/ ./src/
