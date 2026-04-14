@@ -13,14 +13,17 @@ function getAppBaseUrl(): string {
 }
 
 export async function fetchDashboardSummary() {
-  const res = await fetch(`${getAppBaseUrl()}/api/dashboard/summary`)
+  const res = await fetch(`${getAppBaseUrl()}/api/dashboard/summary`, {
+    next: { tags: ['dashboard-stats'] },
+  })
   if (!res.ok) throw new Error('Failed to fetch dashboard summary')
   return res.json()
 }
 
 export async function fetchJobsOverTimePostedAndRemoved(limitDays = 90) {
   const res = await fetch(
-    `${getAppBaseUrl()}/api/dashboard/jobs-over-time-posted-and-removed?limit_days=${limitDays}`
+    `${getAppBaseUrl()}/api/dashboard/jobs-over-time-posted-and-removed?limit_days=${limitDays}`,
+    { next: { tags: ['dashboard-stats'] } },
   )
   if (!res.ok) throw new Error('Failed to fetch jobs over time')
   return res.json()

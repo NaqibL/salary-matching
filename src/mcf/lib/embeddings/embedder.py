@@ -119,6 +119,15 @@ class Embedder:
             cache.set(text, model, "query", result)
         return result
 
+    def count_tokens(self, text: str) -> int:
+        """Count tokens using the actual model tokenizer (no approximation).
+
+        Uses the underlying HuggingFace tokenizer so the count is exact for
+        the loaded model.  Prefer this over word-count heuristics when building
+        embedding text that must stay within the BGE 512-token limit.
+        """
+        return len(self._model.tokenizer.encode(text))
+
     def embed_resume(self, text: str, chunk_size: int = 400, overlap: int = 80) -> list[float]:
         """Embed resume text, chunking if long to avoid BGE 512-token truncation.
 

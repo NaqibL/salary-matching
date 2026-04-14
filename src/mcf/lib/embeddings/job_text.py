@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import re
+from typing import Callable
 
+from mcf.lib.embeddings.job_description_extractor import extract_high_signal_description
 from mcf.lib.sources.base import NormalizedJob
 
 # ---------------------------------------------------------------------------
@@ -159,8 +161,19 @@ def _format_seniority(
     return None
 
 
-def build_job_text_from_normalized(normalized: NormalizedJob) -> str:
-    """Build embedding text from a NormalizedJob (source-agnostic)."""
+def build_job_text_from_normalized(
+    normalized: NormalizedJob,
+    token_counter: Callable[[str], int] | None = None,
+) -> str:
+    """Build embedding text from a NormalizedJob (source-agnostic).
+
+    Args:
+        normalized: The normalized job object.
+        token_counter: Optional callable mapping text → token count.  When
+            provided (e.g. ``embedder.count_tokens``), the description is
+            clipped using exact tokenizer counts.  Defaults to the heuristic
+            ``len(words) * 4/3`` approximation.
+    """
     parts: list[str] = []
     if normalized.title:
         parts.append(f"Job Title: {normalized.title}")
@@ -173,17 +186,31 @@ def build_job_text_from_normalized(normalized: NormalizedJob) -> str:
     if role_types:
         parts.append(f"Role Type: {', '.join(role_types)}")
     if normalized.description:
-        snippet = " ".join(normalized.description.split()[:300])
-        parts.append(f"Description: {snippet}")
+        description_text, _ = extract_high_signal_description(
+            description=normalized.description,
+            title=normalized.title,
+            token_counter=token_counter,
+        )
+        parts.append(f"Description: {description_text}")
     return "\n".join(parts)
 
 
-def build_job_text_from_dict(job: dict) -> str:
+def build_job_text_from_dict(
+    job: dict,
+    token_counter: Callable[[str], int] | None = None,
+) -> str:
     """Build embedding text from a job dict (as returned by Storage.get_all_active_jobs).
 
     Used by the re-embed CLI command where NormalizedJob objects are not available.
     Expected keys: title, skills (list[str]), position_levels (list[str]),
                    min_years_experience (int | None), description (str | None).
+
+    Args:
+        job: Job dict from storage.
+        token_counter: Optional callable mapping text → token count.  When
+            provided (e.g. ``embedder.count_tokens``), the description is
+            clipped using exact tokenizer counts.  Defaults to the heuristic
+            ``len(words) * 4/3`` approximation.
     """
     parts: list[str] = []
     if job.get("title"):
@@ -200,6 +227,10 @@ def build_job_text_from_dict(job: dict) -> str:
     if role_types:
         parts.append(f"Role Type: {', '.join(role_types)}")
     if job.get("description"):
-        snippet = " ".join(job["description"].split()[:300])
-        parts.append(f"Description: {snippet}")
+        description_text, _ = extract_high_signal_description(
+            description=job["description"],
+            title=job.get("title"),
+            token_counter=token_counter,
+        )
+        parts.append(f"Description: {description_text}")
     return "\n".join(parts)

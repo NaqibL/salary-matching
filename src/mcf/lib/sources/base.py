@@ -34,8 +34,14 @@ _BOILERPLATE_RES = [
 def clean_description(text: str) -> str:
     """Clean a plain-text job description for storage.
 
-    Applied after HTML stripping. Normalises unicode punctuation and strips
-    boilerplate tail content (PDPA notices, EEO statements, shortlist notices).
+    Applied after HTML stripping. Normalises unicode punctuation, strips
+    boilerplate tail content (PDPA notices, EEO statements, shortlist notices),
+    and preserves paragraph/bullet structure using newline separators.
+
+    Paragraph structure (newlines) is preserved so that the embedding pipeline
+    can later split into meaningful blocks and score them by salience.  Callers
+    that previously expected a single flat string will still work — they just
+    see newlines instead of spaces between paragraphs.
     """
     if not text:
         return text
@@ -45,20 +51,34 @@ def clean_description(text: str) -> str:
     text = _EM_DASH_RE.sub("-", text)
     text = _ZERO_WIDTH_RE.sub("", text)
 
-    # Split on sentence/paragraph boundaries, drop boilerplate tail
-    sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
-    cleaned: list[str] = []
-    for sentence in sentences:
-        s = sentence.strip()
-        if not s:
-            continue
-        if any(p.search(s) for p in _BOILERPLATE_RES):
-            break  # everything from here is boilerplate
-        cleaned.append(s)
+    # Split into paragraph blocks (preserve structure), then within each block
+    # check for boilerplate sentences.  On the first boilerplate hit, discard
+    # that block and everything after it (boilerplate is always tail content).
+    raw_blocks = re.split(r"\n{2,}", text)
+    kept_blocks: list[str] = []
+    done = False
+    for raw_block in raw_blocks:
+        if done:
+            break
+        # Check each sentence in this block for boilerplate triggers.
+        sentences = re.split(r"(?<=[.!?])\s+|\n", raw_block)
+        block_lines: list[str] = []
+        for sentence in sentences:
+            s = sentence.strip()
+            if not s:
+                continue
+            if any(p.search(s) for p in _BOILERPLATE_RES):
+                done = True  # discard this sentence and everything after
+                break
+            block_lines.append(s)
+        if block_lines:
+            # Re-join sentences within the block with a single newline so that
+            # bullet items and short lines remain on separate lines.
+            block_text = "\n".join(block_lines)
+            block_text = _EXCESS_SPACE_RE.sub(" ", block_text)
+            kept_blocks.append(block_text.strip())
 
-    result = " ".join(cleaned)
-    result = _EXCESS_SPACE_RE.sub(" ", result)
-    return result.strip()
+    return "\n\n".join(kept_blocks).strip()
 
 
 @dataclass(frozen=True)
