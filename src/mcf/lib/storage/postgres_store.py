@@ -168,6 +168,31 @@ class PostgresStore(Storage):
                 )
             return {r[0] for r in cur.fetchall()}
 
+    def active_job_uuids_for_source_and_categories(
+        self, job_source: str, categories: list[str]
+    ) -> set[str]:
+        """Get active job UUIDs for a source whose primary category is in `categories`."""
+        import json as _json
+        with self._cur() as cur:
+            if job_source == "mcf":
+                cur.execute(
+                    "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)"
+                )
+            else:
+                cur.execute(
+                    "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = %s",
+                    [job_source],
+                )
+            rows = cur.fetchall()
+        cats_set = set(categories)
+        result: set[str] = set()
+        for uuid, cat_json in rows:
+            if cat_json:
+                job_cats = _json.loads(cat_json) if isinstance(cat_json, str) else cat_json
+                if any(c in cats_set for c in job_cats):
+                    result.add(uuid)
+        return result
+
     def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
         """Return active MCF job UUIDs where description is NULL."""
         with self._cur() as cur:

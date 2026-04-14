@@ -41,7 +41,7 @@ jobs:
       - name: Crawl segment 1
         if: ${{ github.event.inputs.segment == '1' || github.event.inputs.segment == 'all' || github.event.inputs.segment == '' }}
         run: |
-          uv run mcf crawl-incremental --source mcf \
+          uv run mcf crawl-incremental --source mcf --no-embed \
             --categories "Accounting / Auditing / Taxation,Admin / Secretarial,Advertising / Media,Architecture / Interior Design,Banking and Finance,Building and Construction,Consulting,Customer Service"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -51,7 +51,7 @@ jobs:
       - name: Crawl segment 2
         if: ${{ github.event.inputs.segment == '2' || github.event.inputs.segment == 'all' || github.event.inputs.segment == '' }}
         run: |
-          uv run mcf crawl-incremental --source mcf \
+          uv run mcf crawl-incremental --source mcf --no-embed \
             --categories "Design,Education and Training,Engineering,Entertainment,Environment / Health,Events / Promotions,F&B,General Management,General Work"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -61,7 +61,7 @@ jobs:
       - name: Crawl segment 3
         if: ${{ github.event.inputs.segment == '3' || github.event.inputs.segment == 'all' || github.event.inputs.segment == '' }}
         run: |
-          uv run mcf crawl-incremental --source mcf \
+          uv run mcf crawl-incremental --source mcf --no-embed \
             --categories "Healthcare / Pharmaceutical,Hospitality,Human Resources,Information Technology,Insurance,Legal,Logistics / Supply Chain,Manufacturing"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

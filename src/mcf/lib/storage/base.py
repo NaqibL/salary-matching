@@ -54,6 +54,11 @@ class Storage(ABC):
     def active_job_uuids_for_source(self, job_source: str) -> set[str]: ...
 
     @abstractmethod
+    def active_job_uuids_for_source_and_categories(
+        self, job_source: str, categories: list[str]
+    ) -> set[str]: ...
+
+    @abstractmethod
     def record_statuses(
         self,
         run_id: str,

@@ -100,6 +100,14 @@ def crawl_incremental(
             help="Job source to crawl: mcf | cag | all (default: mcf)",
         ),
     ] = "mcf",
+    no_embed: Annotated[
+        bool,
+        typer.Option(
+            "--no-embed",
+            help="Skip embedding and classification (store job details only).",
+            is_flag=True,
+        ),
+    ] = False,
 ) -> None:
     """Incrementally crawl jobs (fetch job detail only for newly-seen UUIDs).
 
@@ -121,6 +129,8 @@ def crawl_incremental(
         console.print(f"  Limit: [yellow]{limit}[/yellow] jobs")
     if categories and source in ("mcf", "all"):
         console.print(f"  Categories (MCF): [yellow]{categories}[/yellow]")
+    if no_embed:
+        console.print(f"  Embeddings: [yellow]disabled[/yellow]")
     console.print()
 
     cats = [c.strip() for c in categories.split(",") if c.strip()] if categories else None
@@ -157,6 +167,7 @@ def crawl_incremental(
                 categories=cats_arg,
                 limit=limit,
                 on_progress=on_progress,
+                embed=not no_embed,
             )
 
         console.print()

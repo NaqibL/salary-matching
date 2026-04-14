@@ -71,6 +71,7 @@ def run_incremental_crawl(
     categories: Sequence[str] | None = None,
     limit: int | None = None,
     on_progress=None,
+    embed: bool = True,
 ) -> IncrementalCrawlResult:
     """Run an incremental crawl.
 
@@ -94,14 +95,24 @@ def run_incremental_crawl(
 
         added = sorted(seen_set - existing)
         maintained = sorted(seen_set & existing)
-        # Only a *full crawl* can reliably infer removals. For multi-source, only
-        # remove jobs from this source that are no longer listed.
-        is_full_universe = (categories is None) and (limit is None)
-        if is_full_universe and hasattr(store, "active_job_uuids_for_source"):
+        # Removals can be inferred whenever we have a complete view of a well-defined
+        # slice of the job universe:
+        #   - full crawl (no category filter, no limit): diff against all active jobs
+        #   - category-scoped crawl (no limit): diff against active jobs in those categories
+        # A limit-capped crawl never sees the full slice, so removals cannot be inferred.
+        if limit is not None:
+            removed = []
+        elif categories is not None:
+            # Category-scoped: only retire jobs whose category overlaps the crawled set
+            active_in_scope = store.active_job_uuids_for_source_and_categories(
+                job_source.source_id, list(categories)
+            )
+            removed = sorted(active_in_scope - seen_set)
+        elif hasattr(store, "active_job_uuids_for_source"):
             active_for_source = store.active_job_uuids_for_source(job_source.source_id)
             removed = sorted(active_for_source - seen_set)
         else:
-            removed = sorted(active - seen_set) if is_full_universe else []
+            removed = sorted(active - seen_set)
 
         store.record_statuses(run.run_id, added=added, maintained=maintained, removed=removed)
         store.touch_jobs(run_id=run.run_id, job_uuids=maintained)
@@ -109,18 +120,19 @@ def run_incremental_crawl(
             store.deactivate_jobs(run_id=run.run_id, job_uuids=removed)
 
         if added:
-            _embeddings_cache = (
-                EmbeddingsCache(store=store)
-                if os.getenv("ENABLE_EMBEDDINGS_CACHE", "1") in ("1", "true", "yes")
-                else None
-            )
-            _embedder: EmbedderProtocol = (
-                embedder
-                if embedder is not None
-                else Embedder(EmbedderConfig(), embeddings_cache=_embeddings_cache)
-            )
-            cfg = getattr(_embedder, "config", None)
-            batch_size = cfg.batch_size if cfg and hasattr(cfg, "batch_size") else 32
+            if embed:
+                _embeddings_cache = (
+                    EmbeddingsCache(store=store)
+                    if os.getenv("ENABLE_EMBEDDINGS_CACHE", "1") in ("1", "true", "yes")
+                    else None
+                )
+                _embedder: EmbedderProtocol = (
+                    embedder
+                    if embedder is not None
+                    else Embedder(EmbedderConfig(), embeddings_cache=_embeddings_cache)
+                )
+                cfg = getattr(_embedder, "config", None)
+                batch_size = cfg.batch_size if cfg and hasattr(cfg, "batch_size") else 32
 
             # Phase 1: Fetch job details and upsert (no embeddings yet)
             jobs_to_embed: list[tuple[NormalizedJob, str]] = []  # (normalized, job_text)
@@ -153,45 +165,46 @@ def run_incremental_crawl(
                 if job_text:
                     jobs_to_embed.append((normalized, job_text))
 
-            # Phase 2: Batch embed and upsert (10–30x faster than one-by-one with GPU)
-            embedded: list[tuple[str, list[float]]] = []  # (job_uuid, embedding)
-            for i in range(0, len(jobs_to_embed), batch_size):
-                batch = jobs_to_embed[i : i + batch_size]
-                texts = [jt for _, jt in batch]
-                try:
-                    embeddings = _embedder.embed_texts(texts)
-                    for (normalized, _), emb in zip(batch, embeddings):
-                        store.upsert_embedding(
-                            job_uuid=normalized.job_uuid,
-                            model_name=_embedder.model_name,
-                            embedding=emb,
+            if embed:
+                # Phase 2: Batch embed and upsert (10–30x faster than one-by-one with GPU)
+                embedded: list[tuple[str, list[float]]] = []  # (job_uuid, embedding)
+                for i in range(0, len(jobs_to_embed), batch_size):
+                    batch = jobs_to_embed[i : i + batch_size]
+                    texts = [jt for _, jt in batch]
+                    try:
+                        embeddings = _embedder.embed_texts(texts)
+                        for (normalized, _), emb in zip(batch, embeddings):
+                            store.upsert_embedding(
+                                job_uuid=normalized.job_uuid,
+                                model_name=_embedder.model_name,
+                                embedding=emb,
+                            )
+                            embedded.append((normalized.job_uuid, emb))
+                    except Exception as e:
+                        for normalized, _ in batch:
+                            print(f"Warning: Failed to generate embedding for job {normalized.job_uuid}: {e}")
+
+                # Phase 3: Classify all new jobs in one batch (role cluster + experience tier + multi-label)
+                if embedded:
+                    try:
+                        import numpy as np
+                        from mcf.matching.classifiers import classify_jobs, classify_jobs_multilabel
+
+                        emb_matrix = np.array([e for _, e in embedded], dtype=np.float32)
+                        classifications_raw = classify_jobs(emb_matrix)
+                        classifications = [
+                            (job_uuid, role_cluster, predicted_tier)
+                            for (job_uuid, _), (role_cluster, predicted_tier)
+                            in zip(embedded, classifications_raw)
+                        ]
+                        store.batch_upsert_job_classifications(classifications)
+
+                        multi_labels = classify_jobs_multilabel(emb_matrix)
+                        store.batch_upsert_multi_label_clusters(
+                            [(job_uuid, clusters) for (job_uuid, _), clusters in zip(embedded, multi_labels)]
                         )
-                        embedded.append((normalized.job_uuid, emb))
-                except Exception as e:
-                    for normalized, _ in batch:
-                        print(f"Warning: Failed to generate embedding for job {normalized.job_uuid}: {e}")
-
-            # Phase 3: Classify all new jobs in one batch (role cluster + experience tier + multi-label)
-            if embedded:
-                try:
-                    import numpy as np
-                    from mcf.matching.classifiers import classify_jobs, classify_jobs_multilabel
-
-                    emb_matrix = np.array([e for _, e in embedded], dtype=np.float32)
-                    classifications_raw = classify_jobs(emb_matrix)
-                    classifications = [
-                        (job_uuid, role_cluster, predicted_tier)
-                        for (job_uuid, _), (role_cluster, predicted_tier)
-                        in zip(embedded, classifications_raw)
-                    ]
-                    store.batch_upsert_job_classifications(classifications)
-
-                    multi_labels = classify_jobs_multilabel(emb_matrix)
-                    store.batch_upsert_multi_label_clusters(
-                        [(job_uuid, clusters) for (job_uuid, _), clusters in zip(embedded, multi_labels)]
-                    )
-                except Exception as e:
-                    print(f"Warning: job classification failed, skipping: {e}")
+                    except Exception as e:
+                        print(f"Warning: job classification failed, skipping: {e}")
 
         store.update_daily_stats(run.run_id)
         store.delete_inactive_job_embeddings()

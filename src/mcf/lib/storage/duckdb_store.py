@@ -303,6 +303,28 @@ class DuckDBStore(Storage):
             ).fetchall()
         return {r[0] for r in rows}
 
+    def active_job_uuids_for_source_and_categories(
+        self, job_source: str, categories: list[str]
+    ) -> set[str]:
+        """Get active job UUIDs for a source whose primary category is in `categories`."""
+        if job_source == "mcf":
+            rows = self._con.execute(
+                "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)"
+            ).fetchall()
+        else:
+            rows = self._con.execute(
+                "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = ?",
+                [job_source],
+            ).fetchall()
+        cats_set = set(categories)
+        result: set[str] = set()
+        for uuid, cat_json in rows:
+            if cat_json:
+                job_cats = json.loads(cat_json)
+                if any(c in cats_set for c in job_cats):
+                    result.add(uuid)
+        return result
+
     def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
         """Return active MCF job UUIDs where description is NULL."""
         sql = """
