@@ -42,7 +42,7 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
     """Convert MCF API job detail dict to NormalizedJob."""
     title = raw.get("title") or raw.get("jobTitle")
     company_name = None
-    company = raw.get("company") or raw.get("postingCompany")
+    company = raw.get("postedCompany") or raw.get("hiringCompany") or raw.get("company") or raw.get("postingCompany")
     if isinstance(company, dict):
         company_name = company.get("name") or company.get("companyName")
 
