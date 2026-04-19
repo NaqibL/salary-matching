@@ -40,20 +40,17 @@ BEGIN
       COUNT(*) FILTER (WHERE is_active = TRUE)::int AS active,
       COUNT(*) FILTER (WHERE is_active = FALSE)::int AS inactive
     FROM jobs
-    WHERE (job_source = 'mcf' OR job_source IS NULL)
   ),
   emb AS (
     SELECT COUNT(*)::int AS cnt
     FROM jobs j
     JOIN job_embeddings e ON e.job_uuid = j.job_uuid
     WHERE j.is_active = TRUE
-      AND (j.job_source = 'mcf' OR j.job_source IS NULL)
   ),
   backfill AS (
     SELECT COUNT(*)::int AS cnt
     FROM jobs
     WHERE is_active = TRUE
-      AND (job_source = 'mcf' OR job_source IS NULL)
       AND (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
   )
   SELECT jsonb_build_object(
@@ -98,7 +95,6 @@ BEGIN
   FROM jobs j
   JOIN job_embeddings e ON e.job_uuid = j.job_uuid
   WHERE j.is_active = TRUE
-    AND (j.job_source = 'mcf' OR j.job_source IS NULL)
     AND (e.embedding_json IS NOT NULL OR e.embedding IS NOT NULL)
     AND NOT EXISTS (
       SELECT 1 FROM job_interactions i
