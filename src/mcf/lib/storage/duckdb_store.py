@@ -106,7 +106,6 @@ class DuckDBStore(Storage):
         for _col_ddl in [
             "ALTER TABLE jobs ADD COLUMN job_url TEXT",
             "ALTER TABLE jobs ADD COLUMN skills_json TEXT",
-            "ALTER TABLE jobs ADD COLUMN job_source TEXT DEFAULT 'mcf'",
             "ALTER TABLE jobs ADD COLUMN categories_json TEXT",
             "ALTER TABLE jobs ADD COLUMN employment_types_json TEXT",
             "ALTER TABLE jobs ADD COLUMN position_levels_json TEXT",
@@ -114,31 +113,19 @@ class DuckDBStore(Storage):
             "ALTER TABLE jobs ADD COLUMN salary_max INTEGER",
             "ALTER TABLE jobs ADD COLUMN posted_date DATE",
             "ALTER TABLE jobs ADD COLUMN expiry_date DATE",
-            "ALTER TABLE jobs ADD COLUMN min_years_experience INTEGER",
             "ALTER TABLE jobs ADD COLUMN description TEXT",
-            # candidate_embeddings: support multiple embedding types per profile
-            # (taste embedding stored with profile_id suffix ':taste')
-            "ALTER TABLE candidate_embeddings ADD COLUMN embedding_type TEXT DEFAULT 'resume'",
         ]:
             try:
                 self._con.execute(_col_ddl)
             except duckdb.ProgrammingError:
                 pass  # column already exists
 
-        # Backfill job_url for MCF rows that have NULL (jobs crawled before URL extraction).
-        # Only apply MCF URL pattern when job_source is NULL or 'mcf'.
+        # Backfill job_url for rows that have NULL (crawled before URL extraction)
         self._con.execute(
             """
             UPDATE jobs
                SET job_url = 'https://www.mycareersfuture.gov.sg/job/' || job_uuid
              WHERE job_url IS NULL
-               AND (job_source IS NULL OR job_source = 'mcf')
-            """
-        )
-        # Backfill job_source for existing rows
-        self._con.execute(
-            """
-            UPDATE jobs SET job_source = 'mcf' WHERE job_source IS NULL
             """
         )
 
@@ -291,31 +278,18 @@ class DuckDBStore(Storage):
         return {r[0] for r in rows}
 
     def active_job_uuids_for_source(self, job_source: str) -> set[str]:
-        """Get active job UUIDs for a specific source (for multi-source removal logic)."""
-        if job_source == "mcf":
-            rows = self._con.execute(
-                "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)"
-            ).fetchall()
-        else:
-            rows = self._con.execute(
-                "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND job_source = ?",
-                [job_source],
-            ).fetchall()
+        rows = self._con.execute(
+            "SELECT job_uuid FROM jobs WHERE is_active = TRUE"
+        ).fetchall()
         return {r[0] for r in rows}
 
     def active_job_uuids_for_source_and_categories(
         self, job_source: str, categories: list[str]
     ) -> set[str]:
-        """Get active job UUIDs for a source whose primary category is in `categories`."""
-        if job_source == "mcf":
-            rows = self._con.execute(
-                "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)"
-            ).fetchall()
-        else:
-            rows = self._con.execute(
-                "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = ?",
-                [job_source],
-            ).fetchall()
+        """Get active job UUIDs whose primary category is in `categories`."""
+        rows = self._con.execute(
+            "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE"
+        ).fetchall()
         cats_set = set(categories)
         result: set[str] = set()
         for uuid, cat_json in rows:
@@ -326,11 +300,10 @@ class DuckDBStore(Storage):
         return result
 
     def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
-        """Return active MCF job UUIDs where description is NULL."""
+        """Return active job UUIDs where description is NULL."""
         sql = """
             SELECT job_uuid FROM jobs
             WHERE is_active = TRUE
-              AND (job_source = 'mcf' OR job_source IS NULL)
               AND description IS NULL
             ORDER BY job_uuid
         """
@@ -345,11 +318,10 @@ class DuckDBStore(Storage):
         self._con.execute("UPDATE jobs SET description = ? WHERE job_uuid = ?", [description, job_uuid])
 
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
-        """Return MCF job UUIDs where categories_json is NULL or empty."""
+        """Return job UUIDs where categories_json is NULL or empty."""
         sql = """
             SELECT job_uuid FROM jobs
-            WHERE (job_source = 'mcf' OR job_source IS NULL)
-              AND (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
+            WHERE (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
             ORDER BY job_uuid
         """
         if limit is not None:
@@ -381,7 +353,6 @@ class DuckDBStore(Storage):
         company_name: str | None,
         location: str | None,
         job_url: str | None,
-        job_source: str = "mcf",
         skills: list[str] | None = None,
         raw_json: dict | None = None,
         categories: list[str] | None = None,
@@ -391,7 +362,6 @@ class DuckDBStore(Storage):
         salary_max: int | None = None,
         posted_date: str | None = None,
         expiry_date: str | None = None,
-        min_years_experience: int | None = None,
         description: str | None = None,
     ) -> None:
         now = _utcnow()
@@ -401,15 +371,14 @@ class DuckDBStore(Storage):
         position_levels_json_str = json.dumps(position_levels) if position_levels else None
         self._con.execute(
             """
-            INSERT INTO jobs(job_uuid, job_source, first_seen_run_id, last_seen_run_id, is_active,
+            INSERT INTO jobs(job_uuid, first_seen_run_id, last_seen_run_id, is_active,
                              first_seen_at, last_seen_at,
                              title, company_name, location, job_url, skills_json,
                              categories_json, employment_types_json, position_levels_json,
-                             salary_min, salary_max, posted_date, expiry_date, min_years_experience,
+                             salary_min, salary_max, posted_date, expiry_date,
                              description)
-            VALUES (?, ?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, TRUE, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (job_uuid) DO UPDATE SET
-              job_source = COALESCE(excluded.job_source, jobs.job_source),
               last_seen_run_id = excluded.last_seen_run_id,
               is_active = TRUE,
               last_seen_at = excluded.last_seen_at,
@@ -425,12 +394,10 @@ class DuckDBStore(Storage):
               salary_max = COALESCE(excluded.salary_max, jobs.salary_max),
               posted_date = COALESCE(excluded.posted_date, jobs.posted_date),
               expiry_date = COALESCE(excluded.expiry_date, jobs.expiry_date),
-              min_years_experience = COALESCE(excluded.min_years_experience, jobs.min_years_experience),
               description = COALESCE(excluded.description, jobs.description)
             """,
             [
                 job_uuid,
-                job_source,
                 run_id,
                 run_id,
                 now,
@@ -447,7 +414,6 @@ class DuckDBStore(Storage):
                 salary_max,
                 posted_date,
                 expiry_date,
-                min_years_experience,
                 description,
             ],
         )
@@ -772,26 +738,20 @@ class DuckDBStore(Storage):
         }
 
     def get_all_active_jobs(self) -> list[dict]:
-        """Get all active jobs with stored metadata (for re-embedding).
-
-        Returns a list of dicts with: job_uuid, title, skills (list[str]),
-        position_levels (list[str]), min_years_experience (int | None).
-        """
         rows = self._con.execute(
-            "SELECT job_uuid, title, skills_json, position_levels_json, min_years_experience, description"
+            "SELECT job_uuid, title, skills_json, position_levels_json, description"
             " FROM jobs WHERE is_active = TRUE"
         ).fetchall()
-        result = []
-        for uuid, title, skills_json, position_levels_json, min_years_exp, description in rows:
-            result.append({
-                "job_uuid": uuid,
-                "title": title or "",
-                "skills": json.loads(skills_json) if skills_json else [],
-                "position_levels": json.loads(position_levels_json) if position_levels_json else [],
-                "min_years_experience": min_years_exp,
-                "description": description,
-            })
-        return result
+        return [
+            {
+                "job_uuid": r[0],
+                "title": r[1] or "",
+                "skills": json.loads(r[2]) if r[2] else [],
+                "position_levels": json.loads(r[3]) if r[3] else [],
+                "description": r[4],
+            }
+            for r in rows
+        ]
 
     def get_embedding_model_name(self) -> str | None:
         """Return the model name used for the most recent job embedding, or None."""
@@ -1204,31 +1164,28 @@ class DuckDBStore(Storage):
     # === Dashboard ===
 
     def get_dashboard_summary(self) -> dict:
-        """Summary for MCF jobs only (excludes CAG)."""
-        # Query 1: counts + embeddings in a single LEFT JOIN pass
         row = self._con.execute(
             """
             SELECT
               COUNT(*) AS total,
               COUNT(*) FILTER (WHERE j.is_active = TRUE) AS active,
               COUNT(*) FILTER (WHERE j.is_active = FALSE) AS inactive,
-              COUNT(e.job_uuid) FILTER (WHERE j.is_active = TRUE) AS with_embeddings
+              COUNT(e.job_uuid) FILTER (WHERE j.is_active = TRUE) AS active_with_embeddings,
+              COUNT(e.job_uuid) FILTER (WHERE j.is_active = FALSE) AS inactive_with_embeddings
             FROM jobs j
             LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-            WHERE (j.job_source = 'mcf' OR j.job_source IS NULL)
             """
         ).fetchone()
         total = row[0] if row else 0
         active = row[1] if row else 0
         inactive = row[2] if row else 0
         jobs_with_embeddings = row[3] if row else 0
+        inactive_jobs_with_embeddings = row[4] if row else 0
 
-        # Query 2: backfill count
         row = self._con.execute(
             """
             SELECT COUNT(*) FROM jobs
             WHERE is_active = TRUE
-              AND (job_source = 'mcf' OR job_source IS NULL)
               AND (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
             """
         ).fetchone()
@@ -1240,6 +1197,7 @@ class DuckDBStore(Storage):
             "inactive_jobs": inactive,
             "by_source": {"mcf": total},
             "jobs_with_embeddings": jobs_with_embeddings,
+            "inactive_jobs_with_embeddings": inactive_jobs_with_embeddings,
             "jobs_needing_backfill": jobs_needing_backfill,
         }
 
@@ -1299,7 +1257,6 @@ class DuckDBStore(Storage):
                         COALESCE(CAST(last_seen_at AS DATE), DATE '9999-12-31')
                     ))
                     FROM jobs
-                    WHERE (job_source = 'mcf' OR job_source IS NULL)
                     """
                 ).fetchone()
             except duckdb.ProgrammingError:
@@ -1311,7 +1268,6 @@ class DuckDBStore(Storage):
         cat_ex = "COALESCE(NULLIF(TRIM(COALESCE(json_extract_string(categories_json, '$[0]'), '')), ''), 'Unknown')"
         et_ex = "COALESCE(NULLIF(TRIM(COALESCE(json_extract_string(employment_types_json, '$[0]'), '')), ''), 'Unknown')"
         pl_ex = "COALESCE(NULLIF(TRIM(COALESCE(json_extract_string(position_levels_json, '$[0]'), '')), ''), 'Unknown')"
-        mcf = "AND (job_source = 'mcf' OR job_source IS NULL)"
 
         days_processed = 0
         d = start_date
@@ -1338,7 +1294,6 @@ class DuckDBStore(Storage):
                             WHERE last_seen_at IS NOT NULL AND CAST(last_seen_at AS DATE) = ? AND is_active = FALSE
                         )::INTEGER AS removed_count
                     FROM jobs
-                    WHERE 1=1 {mcf}
                     GROUP BY 2, 3, 4
                     HAVING COUNT(*) FILTER (
                         WHERE posted_date IS NOT NULL AND CAST(posted_date AS DATE) <= ?
@@ -1461,7 +1416,6 @@ class DuckDBStore(Storage):
                     COUNT(*)::INTEGER AS count
                 FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                 GROUP BY 1
                 ORDER BY count DESC
                 LIMIT ?
@@ -1511,8 +1465,7 @@ class DuckDBStore(Storage):
             row = self._con.execute(
                 f"""
                 SELECT COUNT(*)::INTEGER FROM jobs j
-                WHERE (j.job_source = 'mcf' OR j.job_source IS NULL)
-                  AND {cat_extract} = ?
+                WHERE {cat_extract} = ?
                   AND j.posted_date IS NOT NULL
                   AND CAST(j.posted_date AS DATE) <= ?
                   AND (j.is_active = TRUE
@@ -1540,7 +1493,6 @@ class DuckDBStore(Storage):
                         salary_min
                     FROM jobs
                     WHERE is_active = TRUE
-                      AND (job_source = 'mcf' OR job_source IS NULL)
                       AND COALESCE(NULLIF(TRIM(COALESCE(json_extract_string(categories_json, '$[0]'), '')), ''), 'Unknown') = ?
                 )
                 SELECT 'summary' AS kind, '' AS val,
@@ -1652,7 +1604,6 @@ class DuckDBStore(Storage):
                     COUNT(*)::INTEGER AS count
                 FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                 GROUP BY 1
                 ORDER BY count DESC
                 LIMIT ?
@@ -1693,7 +1644,6 @@ class DuckDBStore(Storage):
                     COUNT(*)::INTEGER AS count
                 FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                 GROUP BY 1
                 ORDER BY count DESC
                 LIMIT ?
@@ -1727,7 +1677,7 @@ class DuckDBStore(Storage):
                     END AS bucket,
                     COUNT(*)::INTEGER AS count
                 FROM jobs
-                WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)
+                WHERE is_active = TRUE
                 GROUP BY 1
                 """
             ).fetchall()

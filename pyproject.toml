@@ -25,6 +25,7 @@ dependencies = [
     "tenacity>=9.1.2",
     "typer>=0.21.0",
     "uvicorn[standard]>=0.32.0",
+    "plotly>=6.7.0",
 ]
 
 [project.scripts]

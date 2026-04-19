@@ -1,139 +1,142 @@
 ============================================================
   MCF JOB MATCHER — TODO
-  Updated: 2026-04-12
+  Updated: 2026-04-19
 ============================================================
 
 ------------------------------------------------------------
-DONE (this session)
+DONE (previous sessions)
 ------------------------------------------------------------
 
 [x] Fix clean_description() to preserve paragraph structure
     - src/mcf/lib/sources/base.py
     - Now outputs "\n\n"-separated blocks instead of a flat string
-    - Boilerplate tail removal still works; structure survives to storage
 
 [x] Build high-signal job description extraction pipeline
     - New file: src/mcf/lib/embeddings/job_description_extractor.py
-    - Splits descriptions into paragraph/sentence blocks
-    - Scores each block: section headers, tech tools, years-of-exp,
-      degree/cert, title overlap, seniority cues all score UP;
-      company intro, culture fluff, benefits, EEO, apply instructions
-      all score DOWN
-    - Greedily selects highest-scoring blocks within token budget
-    - Passthrough for short descriptions (< 40 words)
-    - Handles flat/structured/mixed descriptions
-    - All scoring weights are tunable constants at the top of the file
+    - Scores/selects blocks within token budget; passthrough for short descs
 
 [x] Replace naive 300-word truncation with extraction pipeline
     - src/mcf/lib/embeddings/job_text.py
-    - Both build_job_text_from_normalized() and build_job_text_from_dict()
-      now call extract_high_signal_description()
-    - Both accept an optional token_counter= kwarg for exact tokenizer counts
 
 [x] Add count_tokens() to Embedder using real tokenizer
     - src/mcf/lib/embeddings/embedder.py
-    - Uses self._model.tokenizer.encode() — no more word/1.33 guessing
 
-[x] Scaffold optional LLM cleaning path (Phase 2)
-    - LLMJobCleaner Protocol defined in job_description_extractor.py
-    - register_llm_cleaner() / get_llm_cleaner() registry added
-    - Controlled by JOB_EXTRACTOR_LLM_ENABLED env var (default off)
-    - No implementation yet — interface only
+[x] Scaffold optional LLM cleaning path
+    - LLMJobCleaner Protocol + register_llm_cleaner() in job_description_extractor.py
+    - Controlled by JOB_EXTRACTOR_LLM_ENABLED env var
 
 [x] 52 tests covering the full extraction pipeline
     - tests/test_job_description_extractor.py
-    - Boilerplate exclusion, section scoring, flat/structured/passthrough,
-      token budget, determinism, LLM scaffold, clean_description structure,
-      integration with job text builder
+
+[x] Fix dashboard not showing new jobs (ISR cache tag issue)
+    - frontend/lib/server-fetch.ts — added next: { tags: ['dashboard-stats'] }
+
+[x] Fix removed_count always showing 0 in category-segmented crawls
+    - Added active_job_uuids_for_source_and_categories() to Storage interface
+    - Implemented in DuckDBStore and PostgresStore
+    - incremental_crawl.py now detects removals within the scoped category set
+
+[x] Disable embeddings in daily GitHub Actions crawls (--no-embed)
+    - .github/workflows/daily-crawl-1.yml and daily-crawl-2.yml
+    - All 5 segments now pass --no-embed; embeddings happen separately via re-embed
+
+[x] Implement OpenRouter LLM cleaner (google/gemini-2.5-flash-lite)
+    - New file: src/mcf/lib/embeddings/llm_cleaner.py
+    - OpenRouterJobCleaner: always cleans (no word threshold), falls back on error
+    - make_openrouter_cleaner_from_env() reads OPENROUTER_API_KEY + OPENROUTER_MODEL
+    - Tracks last_input_tokens / last_output_tokens for cost monitoring
+
+[x] Build LLM test script with before/after comparison
+    - scripts/test_llm_cleaner.py
+    - Modes: built-in samples, --text, --file, --from-db N
+    - Shows heuristic extraction → LLM cleaning → final embedding text
+    - Prints cost estimate per run
+
+[x] Write OpenRouter setup guide
+    - docs/openrouter-setup.txt
+
+[x] Wire LLM cleaner into re-embed and crawl-incremental CLI commands
+    - src/mcf/cli/cli.py — re_embed() and crawl_incremental()
+    - Cleaner registers automatically when OPENROUTER_API_KEY +
+      JOB_EXTRACTOR_LLM_ENABLED=1 are set; no code changes needed to activate
 
 ------------------------------------------------------------
-IMMEDIATE NEXT STEPS
+DONE (2026-04-19)
 ------------------------------------------------------------
 
-[ ] Re-embed all existing jobs with the new pipeline
-    Run once after deploying or pulling this branch:
+[x] Add OPENROUTER secrets to GitHub Actions
+    OPENROUTER_API_KEY, OPENROUTER_MODEL, JOB_EXTRACTOR_LLM_ENABLED=1
+    now set in GitHub repo → Settings → Secrets → Actions
 
-      uv run mcf re-embed --db data/mcf.duckdb
+[x] Run full re-embed against Supabase with LLM cleaning
+    ~45k jobs re-embedded with gemini-2.5-flash-lite cleaning via OpenRouter
+    All active jobs now have 768-dim embeddings; 0 active jobs without embeddings
 
-    Then re-process your resume so query vectors stay aligned:
+[x] Run cluster analysis on re-embedded jobs (scripts/cluster_analysis.py)
+    45,738 jobs, BGE-base-en-v1.5 768-dim
+    KMeans best_k=9, silhouette=0.116
+    HDBSCAN: 66 clusters, 21% noise
+    Output: scripts/cluster_analysis_output/ (HTML plots + summary.json)
 
-      uv run mcf process-resume --file resume/resume.pdf
-
-[ ] Backfill flat-stored descriptions (optional but worthwhile)
-    Jobs ingested before this fix have no paragraph structure in the DB.
-    The extractor handles them via sentence-level fallback, but quality
-    is lower. To fix them properly:
-
-      uv run mcf backfill-descriptions   # re-fetch raw HTML from MCF API
-      uv run mcf re-embed --db data/mcf.duckdb
-
-    Run backfill-descriptions with --limit N for batched runs to avoid
-    rate limiting. The re-crawl will apply the improved clean_description().
-
-[ ] Evaluate extraction quality on real jobs
-    Look at a few actual job descriptions before/after and check:
-    - Are requirements/responsibilities blocks being selected?
-    - Are company-intro paragraphs being excluded?
-    - Does matching quality feel noticeably better?
-    Quick way: add a debug flag to the re-embed command or temporarily
-    set JOB_EXTRACTOR_DEBUG=1 to print block scores.
-
-    Env var: JOB_EXTRACTOR_DEBUG=1 uv run mcf re-embed --db data/mcf.duckdb
+[x] Archive stale unembedded jobs in Supabase (migration 014)
+    scripts/migrations/014_archive_stale_jobs_rebuild_hnsw.sql
+    Result: 0 rows archived — all active jobs already had embeddings
 
 ------------------------------------------------------------
-PHASE 2 — OPTIONAL LLM CLEANING (future)
+BACKLOG
 ------------------------------------------------------------
 
-[ ] Implement ClaudeJobCleaner (LLM extractive cleaner)
-    The interface is already in job_description_extractor.py.
-    To wire it up:
+[ ] Diversity sampling in matching results
+    Use KMeans cluster assignments (k=9) to inject variety into top-N results.
+    If top matches are dominated by one cluster, surface 1-2 jobs from adjacent
+    clusters. Slots into the matching pipeline post-cosine-ranking.
+    Note: silhouette=0.116 is weak — verify this improves perceived result quality
+    before investing further in cluster-based search.
 
-    1. pip install anthropic (add to pyproject.toml)
-    2. Create src/mcf/lib/embeddings/llm_job_cleaner.py
-       Implement LLMJobCleaner protocol:
-         - should_clean(): return True if word_count > threshold
-           (default 800, set via JOB_EXTRACTOR_LLM_THRESHOLD)
-         - clean(): call Claude Haiku with an extractive prompt:
-           "Extract only requirements, qualifications, responsibilities,
-            and tools from the following job description. Preserve exact
-            wording. Do not summarize or add content not in the original."
-         - Cache the cleaned result to avoid repeated API calls
-    3. Register at app startup (e.g. in server.py lifespan):
-         from mcf.lib.embeddings.llm_job_cleaner import ClaudeJobCleaner
-         register_llm_cleaner(ClaudeJobCleaner())
-    4. Set JOB_EXTRACTOR_LLM_ENABLED=1 in your .env
-    5. Run re-embed to process existing jobs
-
-    Cost estimate: Claude Haiku is ~$0.25/M input tokens.
-    At ~500 tokens per job description and 10k jobs = ~$1.25 total.
-    Only runs for jobs above the word threshold anyway.
+[ ] Backfill flat-stored descriptions (optional quality improvement)
+    Jobs ingested before the paragraph-structure fix are stored as flat text.
+    To fix them:
+      uv run mcf backfill-descriptions   # re-fetches raw HTML from MCF API
+      uv run mcf re-embed --db-url $DATABASE_URL
+    Use --limit N for batched runs to avoid rate limiting.
 
 [ ] Add domain-specific tech keywords to _RE_TECH_TOOL
     Current regex covers general SG tech stacks. Consider adding:
-    - Finance: Bloomberg, Murex, Calypso, FIX protocol, risk models
-    - Healthcare: HL7, FHIR, Epic, Cerner, clinical data
-    - Legal: contract management, e-discovery, legal tech platforms
+    - Finance: Bloomberg, Murex, Calypso, FIX protocol
+    - Healthcare: HL7, FHIR, Epic, Cerner
+    - Legal: contract management, e-discovery platforms
     - Civil service: SAP, PeopleSoft, government systems
 
 ------------------------------------------------------------
-KNOWN LIMITATIONS (to keep in mind)
+KNOWN LIMITATIONS
 ------------------------------------------------------------
 
-- Jobs ingested before this fix are stored as flat text. The sentence-
-  level fallback in the extractor handles them but is less accurate.
-  Fix via backfill-descriptions + re-embed (see above).
+- Jobs ingested before the paragraph-structure fix are stored as flat text.
+  Sentence-level fallback handles them but quality is lower.
+  Fix via backfill-descriptions + re-embed.
 
-- Scoring weights (_W_SECTION_HEADER, _W_TECH_TOOL, etc.) were set
-  heuristically. If matching quality doesn't improve after re-embedding,
-  try tuning these constants in job_description_extractor.py.
+- Scoring weights in job_description_extractor.py were set heuristically.
+  If matching quality doesn't improve, try tuning _W_SECTION_HEADER,
+  _W_TECH_TOOL, etc.
 
-- The LLM path (Phase 2) is scaffolded but has zero implementation.
-  It does nothing until you build ClaudeJobCleaner and set the env var.
+- Some active jobs have no description stored — they get title-only embeddings
+  until re-crawled. Run backfill-descriptions to fix.
+
+- Cluster silhouette of 0.116 is weak even post-LLM-cleaning. The MCF job
+  market has naturally overlapping roles (generalist titles, shared skills).
+  Cluster-based search filtering requires silhouette > ~0.3 to be reliable.
 
 ------------------------------------------------------------
-ENV VARS ADDED
+ENV VARS
 ------------------------------------------------------------
 
-  JOB_EXTRACTOR_LLM_ENABLED=0   (1 = enable LLM cleaning path)
-  JOB_EXTRACTOR_LLM_THRESHOLD=800   (word count to trigger LLM)
-  JOB_EXTRACTOR_DEBUG=0   (1 = print block scores during extraction)
+  # LLM cleaning
+  OPENROUTER_API_KEY=sk-or-v1-...
+  OPENROUTER_MODEL=google/gemini-2.5-flash-lite
+  JOB_EXTRACTOR_LLM_ENABLED=1        (0 = heuristic only)
+
+  # Extraction debug
+  JOB_EXTRACTOR_DEBUG=0               (1 = print block scores)
+
+  # Embeddings cache
+  ENABLE_EMBEDDINGS_CACHE=1           (0 = disable cache)

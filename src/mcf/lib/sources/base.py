@@ -104,7 +104,6 @@ class NormalizedJob:
     salary_max: int | None = None
     posted_date: str | None = None
     expiry_date: str | None = None
-    min_years_experience: int | None = None
 
     @property
     def job_uuid(self) -> str:

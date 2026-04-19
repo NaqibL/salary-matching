@@ -84,7 +84,6 @@ class Storage(ABC):
         company_name: str | None,
         location: str | None,
         job_url: str | None,
-        job_source: str = "mcf",
         skills: list[str] | None = None,
         raw_json: dict | None = None,
         categories: list[str] | None = None,
@@ -94,7 +93,6 @@ class Storage(ABC):
         salary_max: int | None = None,
         posted_date: str | None = None,
         expiry_date: str | None = None,
-        min_years_experience: int | None = None,
         description: str | None = None,
     ) -> None: ...
 
@@ -355,10 +353,6 @@ class Storage(ABC):
 
     def get_category_trends(self, category: str, limit_days: int = 90) -> list[dict]:
         """Trend data for a category from job_daily_stats. Returns [{date, active_count, added_count, removed_count}]."""
-        raise NotImplementedError
-
-    def get_category_stats(self, category: str) -> dict:
-        """Stats for a category: active_count, employment_types, position_levels, salary_buckets, avg_salary, etc."""
         raise NotImplementedError
 
     @abstractmethod

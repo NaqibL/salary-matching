@@ -131,6 +131,21 @@ def crawl_incremental(
         console.print(f"  Categories (MCF): [yellow]{categories}[/yellow]")
     if no_embed:
         console.print(f"  Embeddings: [yellow]disabled[/yellow]")
+
+    # Wire LLM cleaner if configured (only relevant when embed=True)
+    if not no_embed:
+        from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
+        from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
+        import mcf.lib.embeddings.job_description_extractor as _jde
+
+        _llm_cleaner = make_openrouter_cleaner_from_env()
+        if _llm_cleaner and os.getenv("JOB_EXTRACTOR_LLM_ENABLED", "0") == "1":
+            register_llm_cleaner(_llm_cleaner)
+            _jde._LLM_ENABLED = True
+            console.print(f"  LLM cleaning: [green]enabled[/green] ({_llm_cleaner.model})")
+        else:
+            console.print(f"  LLM cleaning: [yellow]disabled[/yellow]")
+
     console.print()
 
     cats = [c.strip() for c in categories.split(",") if c.strip()] if categories else None
@@ -727,6 +742,16 @@ def re_embed(
             console.print("Run 'mcf crawl-incremental' first to create the database.")
             raise typer.Exit(1)
 
+    # Wire LLM cleaner if configured
+    from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
+    from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
+    import mcf.lib.embeddings.job_description_extractor as _jde
+
+    _llm_cleaner = make_openrouter_cleaner_from_env()
+    if _llm_cleaner and os.getenv("JOB_EXTRACTOR_LLM_ENABLED", "0") == "1":
+        register_llm_cleaner(_llm_cleaner)
+        _jde._LLM_ENABLED = True
+
     store, db_display = _open_store(db, db_url)
     try:
         all_jobs = store.get_all_active_jobs()
@@ -739,6 +764,8 @@ def re_embed(
         console.print(f"  Active jobs: [yellow]{len(all_jobs):,}[/yellow]")
         console.print(f"  Model: [green]{EmbedderConfig().model_name}[/green]")
         console.print(f"  Batch size: [yellow]{batch_size}[/yellow]")
+        llm_status = f"[green]enabled[/green] ({_llm_cleaner.model})" if _llm_cleaner and _jde._LLM_ENABLED else "[yellow]disabled[/yellow]"
+        console.print(f"  LLM cleaning: {llm_status}")
         console.print()
 
         embeddings_cache = EmbeddingsCache(store=store) if os.getenv("ENABLE_EMBEDDINGS_CACHE", "1") in ("1", "true", "yes") else None

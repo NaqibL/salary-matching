@@ -429,7 +429,6 @@ class TestBuildJobTextIntegration:
             skills=["Python", "SQL", "AWS"],
             description=description,
             position_levels=["senior executive"],
-            min_years_experience=3,
         )
 
     def test_output_contains_description_field(self):

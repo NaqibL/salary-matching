@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
-import { Briefcase, CheckCircle, XCircle, Database, AlertCircle, BarChart2 } from 'lucide-react'
+import { Briefcase, CheckCircle, XCircle, Database, AlertCircle, SearchX } from 'lucide-react'
 import { dashboardApi } from '@/lib/api'
 import { Card } from '@/components/design'
 import { DASHBOARD_SWR_CONFIG } from '@/lib/swr-config'
@@ -12,7 +12,9 @@ export type Summary = {
   inactive_jobs: number
   by_source: Record<string, number>
   jobs_with_embeddings: number
+  inactive_jobs_with_embeddings: number
   jobs_needing_backfill: number
+  active_unembedded?: number
 }
 
 const SUMMARY_CARDS = [
@@ -41,12 +43,13 @@ const SUMMARY_CARDS = [
     valueKey: 'inactive_jobs' as const,
   },
   {
-    key: 'jobs_with_embeddings',
-    label: 'With embeddings',
+    key: 'jobs_embedded_total',
+    label: 'Jobs embedded',
     icon: Database,
     iconColor: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
     valueColor: 'text-indigo-600 dark:text-indigo-400',
-    valueKey: 'jobs_with_embeddings' as const,
+    valueKey: 'jobs_embedded_total' as const,
+    sublabel: null as string | null,
   },
   {
     key: 'jobs_needing_backfill',
@@ -58,12 +61,13 @@ const SUMMARY_CARDS = [
     sublabel: 'Category/employment missing',
   },
   {
-    key: 'by_source',
-    label: 'By source (MCF)',
-    icon: BarChart2,
-    iconColor: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
-    valueColor: 'text-slate-600 dark:text-slate-400',
-    valueKey: 'by_source' as const,
+    key: 'active_unembedded',
+    label: 'Active unembedded',
+    icon: SearchX,
+    iconColor: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
+    valueColor: 'text-rose-600 dark:text-rose-400',
+    valueKey: 'active_unembedded' as const,
+    sublabel: 'Missing from search',
   },
 ]
 
@@ -92,8 +96,18 @@ export function DashboardSummary({ fallbackData }: DashboardSummaryProps) {
       </h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {SUMMARY_CARDS.map(({ key, label, icon: Icon, iconColor, valueColor, valueKey, sublabel }) => {
+          const activeEmbedded = displaySummary?.jobs_with_embeddings ?? 0
+          const inactiveEmbedded = displaySummary?.inactive_jobs_with_embeddings ?? 0
           const rawValue =
-            valueKey === 'by_source' ? displaySummary?.by_source?.mcf : displaySummary?.[valueKey]
+            valueKey === 'active_unembedded'
+              ? (displaySummary?.active_jobs ?? 0) - activeEmbedded
+              : valueKey === 'jobs_embedded_total'
+              ? activeEmbedded + inactiveEmbedded
+              : displaySummary?.[valueKey]
+          const embeddedSublabel =
+            valueKey === 'jobs_embedded_total'
+              ? `${(activeEmbedded / 1000).toFixed(1)}k active · ${(inactiveEmbedded / 1000).toFixed(1)}k inactive`
+              : undefined
           const displayValue =
             rawValue != null ? (typeof rawValue === 'number' ? rawValue.toLocaleString() : String(rawValue)) : '—'
           return (
@@ -109,8 +123,8 @@ export function DashboardSummary({ fallbackData }: DashboardSummaryProps) {
                 {displayValue}
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400">{label}</div>
-              {sublabel && (
-                <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sublabel}</div>
+              {(embeddedSublabel ?? sublabel) && (
+                <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{embeddedSublabel ?? sublabel}</div>
               )}
             </Card>
           )

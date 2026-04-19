@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     # Avoid re-computing BGE embeddings for same text. LRU in-memory + optional DB table.
     enable_embeddings_cache: bool = os.getenv("ENABLE_EMBEDDINGS_CACHE", "1") in ("1", "true", "yes")
 
+    # --- LLM job description cleaning (optional, used during re-embed/crawl) ---
+    openrouter_api_key: str | None = None
+    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash-lite")
+    job_extractor_llm_enabled: bool = os.getenv("JOB_EXTRACTOR_LLM_ENABLED", "0") in ("1", "true", "yes")
+
     # --- Admin ---
     # Comma-separated user IDs allowed to access admin endpoints (when using JWT auth)
     admin_user_ids: str = os.getenv("ADMIN_USER_IDS", "")

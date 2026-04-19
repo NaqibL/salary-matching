@@ -179,7 +179,7 @@ def build_job_text_from_normalized(
         parts.append(f"Job Title: {normalized.title}")
     if normalized.skills:
         parts.append(f"Required Skills: {', '.join(normalized.skills)}")
-    seniority = _format_seniority(normalized.position_levels, normalized.min_years_experience)
+    seniority = _format_seniority(normalized.position_levels, None)
     if seniority:
         parts.append(seniority)
     role_types = _extract_role_types(normalized.title, normalized.description)

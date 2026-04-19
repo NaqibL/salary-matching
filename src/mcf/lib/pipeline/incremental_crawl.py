@@ -148,9 +148,7 @@ def run_incremental_crawl(
                     company_name=normalized.company_name,
                     location=normalized.location,
                     job_url=normalized.job_url,
-                    job_source=normalized.source_id,
                     skills=normalized.skills or None,
-                    raw_json=None,
                     categories=normalized.categories or None,
                     employment_types=normalized.employment_types or None,
                     position_levels=normalized.position_levels or None,
@@ -158,7 +156,6 @@ def run_incremental_crawl(
                     salary_max=normalized.salary_max,
                     posted_date=normalized.posted_date,
                     expiry_date=normalized.expiry_date,
-                    min_years_experience=normalized.min_years_experience,
                     description=normalized.description,
                 )
 

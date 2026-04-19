@@ -198,6 +198,7 @@ export const dashboardApi = {
       inactive_jobs: number
       by_source: Record<string, number>
       jobs_with_embeddings: number
+      inactive_jobs_with_embeddings: number
       jobs_needing_backfill: number
     }>
   },

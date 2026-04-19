@@ -36,8 +36,6 @@ class PostgresStore(Storage):
             maxconn=8,
             dsn=database_url,
         )
-        self._job_emb_select: str | None = None  # cached: "e.embedding_json" or "e.embedding::text"
-        self._job_emb_has_vector: bool | None = None  # cached: True if embedding column exists
 
     def close(self) -> None:
         self._pool.closeall()
@@ -51,30 +49,6 @@ class PostgresStore(Storage):
                 yield cur
         finally:
             self._pool.putconn(conn)
-
-    def _job_embedding_schema(self) -> tuple[str, bool]:
-        """Return (select_expr, has_vector) for job_embeddings.
-        select_expr: "e.embedding_json" or "e.embedding::text" for SELECT.
-        has_vector: True if embedding column exists (for vector search).
-        """
-        if self._job_emb_select is not None and self._job_emb_has_vector is not None:
-            return (self._job_emb_select, self._job_emb_has_vector)
-        with self._cur() as cur:
-            cur.execute(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name = 'job_embeddings' AND column_name IN ('embedding_json', 'embedding')"
-            )
-            cols = {r[0] for r in cur.fetchall()}
-        has_json = "embedding_json" in cols
-        has_vec = "embedding" in cols
-        if has_json:
-            self._job_emb_select = "e.embedding_json"
-        elif has_vec:
-            self._job_emb_select = "e.embedding::text"
-        else:
-            raise RuntimeError("job_embeddings has neither embedding_json nor embedding column")
-        self._job_emb_has_vector = has_vec
-        return (self._job_emb_select, self._job_emb_has_vector)
 
     # === Crawl runs ===
 
@@ -157,32 +131,16 @@ class PostgresStore(Storage):
 
     def active_job_uuids_for_source(self, job_source: str) -> set[str]:
         with self._cur() as cur:
-            if job_source == "mcf":
-                cur.execute(
-                    "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)"
-                )
-            else:
-                cur.execute(
-                    "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND job_source = %s",
-                    [job_source],
-                )
+            cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE")
             return {r[0] for r in cur.fetchall()}
 
     def active_job_uuids_for_source_and_categories(
         self, job_source: str, categories: list[str]
     ) -> set[str]:
-        """Get active job UUIDs for a source whose primary category is in `categories`."""
+        """Get active job UUIDs whose primary category is in `categories`."""
         import json as _json
         with self._cur() as cur:
-            if job_source == "mcf":
-                cur.execute(
-                    "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)"
-                )
-            else:
-                cur.execute(
-                    "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = %s",
-                    [job_source],
-                )
+            cur.execute("SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE")
             rows = cur.fetchall()
         cats_set = set(categories)
         result: set[str] = set()
@@ -194,12 +152,11 @@ class PostgresStore(Storage):
         return result
 
     def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
-        """Return active MCF job UUIDs where description is NULL."""
+        """Return active job UUIDs where description is NULL."""
         with self._cur() as cur:
             sql = """
                 SELECT job_uuid FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                   AND description IS NULL
                 ORDER BY job_uuid
             """
@@ -215,12 +172,11 @@ class PostgresStore(Storage):
             cur.execute("UPDATE jobs SET description = %s WHERE job_uuid = %s", [description, job_uuid])
 
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
-        """Return MCF job UUIDs where categories_json is NULL or empty."""
+        """Return job UUIDs where categories_json is NULL or empty."""
         with self._cur() as cur:
             sql = """
                 SELECT job_uuid FROM jobs
-                WHERE (job_source = 'mcf' OR job_source IS NULL)
-                  AND (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
+                WHERE (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
                 ORDER BY job_uuid
             """
             if limit is not None:
@@ -285,7 +241,6 @@ class PostgresStore(Storage):
         company_name: str | None,
         location: str | None,
         job_url: str | None,
-        job_source: str = "mcf",
         skills: list[str] | None = None,
         raw_json: dict | None = None,
         categories: list[str] | None = None,
@@ -295,7 +250,6 @@ class PostgresStore(Storage):
         salary_max: int | None = None,
         posted_date: str | None = None,
         expiry_date: str | None = None,
-        min_years_experience: int | None = None,
         description: str | None = None,
     ) -> None:
         now = _utcnow()
@@ -306,15 +260,14 @@ class PostgresStore(Storage):
         with self._cur() as cur:
             cur.execute(
                 """
-                INSERT INTO jobs(job_uuid, job_source, first_seen_run_id, last_seen_run_id,
+                INSERT INTO jobs(job_uuid, first_seen_run_id, last_seen_run_id,
                                  is_active, first_seen_at, last_seen_at,
                                  title, company_name, location, job_url, skills_json,
                                  categories_json, employment_types_json, position_levels_json,
-                                 salary_min, salary_max, posted_date, expiry_date, min_years_experience,
+                                 salary_min, salary_max, posted_date, expiry_date,
                                  description)
-                VALUES (%s, %s, %s, %s, TRUE, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, TRUE, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (job_uuid) DO UPDATE SET
-                  job_source            = COALESCE(EXCLUDED.job_source, jobs.job_source),
                   last_seen_run_id      = EXCLUDED.last_seen_run_id,
                   is_active             = TRUE,
                   last_seen_at          = EXCLUDED.last_seen_at,
@@ -330,14 +283,13 @@ class PostgresStore(Storage):
                   salary_max            = COALESCE(EXCLUDED.salary_max, jobs.salary_max),
                   posted_date           = COALESCE(EXCLUDED.posted_date, jobs.posted_date),
                   expiry_date           = COALESCE(EXCLUDED.expiry_date, jobs.expiry_date),
-                  min_years_experience  = COALESCE(EXCLUDED.min_years_experience, jobs.min_years_experience),
                   description           = COALESCE(EXCLUDED.description, jobs.description)
                 """,
                 [
-                    job_uuid, job_source, run_id, run_id,
+                    job_uuid, run_id, run_id,
                     now, now, title, company_name, location, job_url, skills_json_str,
                     categories_json_str, employment_types_json_str, position_levels_json_str,
-                    salary_min, salary_max, posted_date, expiry_date, min_years_experience,
+                    salary_min, salary_max, posted_date, expiry_date,
                     description,
                 ],
             )
@@ -440,114 +392,58 @@ class PostgresStore(Storage):
         now = _utcnow()
         emb_list = [float(x) for x in embedding]
         emb_str = json.dumps(emb_list)
-        _, has_vector = self._job_embedding_schema()
-        has_json = self._job_emb_select == "e.embedding_json"
         with self._cur() as cur:
-            if has_vector and has_json:
-                # Both columns exist
-                cur.execute(
-                    """
-                    INSERT INTO job_embeddings(job_uuid, model_name, embedding_json, embedding, dim, embedded_at)
-                    VALUES (%s, %s, %s, %s::vector, %s, %s)
-                    ON CONFLICT (job_uuid) DO UPDATE SET
-                      model_name     = EXCLUDED.model_name,
-                      embedding_json = EXCLUDED.embedding_json,
-                      embedding      = EXCLUDED.embedding,
-                      dim            = EXCLUDED.dim,
-                      embedded_at    = EXCLUDED.embedded_at
-                    """,
-                    [job_uuid, model_name, emb_str, emb_str, len(emb_list), now],
-                )
-            elif has_vector:
-                # pgvector only (no embedding_json column)
-                cur.execute(
-                    """
-                    INSERT INTO job_embeddings(job_uuid, model_name, embedding, dim, embedded_at)
-                    VALUES (%s, %s, %s::vector, %s, %s)
-                    ON CONFLICT (job_uuid) DO UPDATE SET
-                      model_name  = EXCLUDED.model_name,
-                      embedding   = EXCLUDED.embedding,
-                      dim         = EXCLUDED.dim,
-                      embedded_at = EXCLUDED.embedded_at
-                    """,
-                    [job_uuid, model_name, emb_str, len(emb_list), now],
-                )
-            else:
-                # json only (pre-pgvector migration)
-                cur.execute(
-                    """
-                    INSERT INTO job_embeddings(job_uuid, model_name, embedding_json, dim, embedded_at)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (job_uuid) DO UPDATE SET
-                      model_name     = EXCLUDED.model_name,
-                      embedding_json = EXCLUDED.embedding_json,
-                      dim            = EXCLUDED.dim,
-                      embedded_at    = EXCLUDED.embedded_at
-                    """,
-                    [job_uuid, model_name, emb_str, len(emb_list), now],
-                )
+            cur.execute(
+                """
+                INSERT INTO job_embeddings(job_uuid, model_name, embedding, dim, embedded_at)
+                VALUES (%s, %s, %s::vector, %s, %s)
+                ON CONFLICT (job_uuid) DO UPDATE SET
+                  model_name  = EXCLUDED.model_name,
+                  embedding   = EXCLUDED.embedding,
+                  dim         = EXCLUDED.dim,
+                  embedded_at = EXCLUDED.embedded_at
+                """,
+                [job_uuid, model_name, emb_str, len(emb_list), now],
+            )
 
     def get_active_job_embeddings(
         self,
         query_embedding: Sequence[float] | None = None,
         limit: int | None = None,
     ) -> list[tuple[str, str, list[float], dict]]:
-        emb_select, has_vector = self._job_embedding_schema()
-
-        # Use pgvector similarity search when query_embedding, limit, and vector column exist
-        if (
-            query_embedding is not None
-            and limit is not None
-            and limit > 0
-            and has_vector
-        ):
+        if query_embedding is not None and limit is not None and limit > 0:
             emb_str = json.dumps([float(x) for x in query_embedding])
-            try:
-                with self._cur() as cur:
-                    cur.execute(
-                        f"""
-                        SELECT j.job_uuid, j.title, {emb_select},
-                               j.company_name, j.location, j.job_url,
-                               j.first_seen_at, j.last_seen_at, j.skills_json
-                          FROM jobs j
-                          JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                         WHERE j.is_active = TRUE
-                           AND e.embedding IS NOT NULL
-                         ORDER BY e.embedding <=> %s::vector ASC
-                         LIMIT %s
-                        """,
-                        [emb_str, limit],
-                    )
-                    rows = cur.fetchall()
-                out: list[tuple[str, str, list[float], dict]] = []
-                for uuid, title, emb_json, company_name, location, job_url, first_seen_at, last_seen_at, skills_json in rows:
-                    job_details = {
-                        "company_name": company_name,
-                        "location": location,
-                        "job_url": job_url,
-                        "first_seen_at": first_seen_at,
-                        "last_seen_at": last_seen_at,
-                        "skills": json.loads(skills_json) if skills_json else [],
-                    }
-                    out.append((uuid, title or "", json.loads(emb_json), job_details))
-                return out
-            except psycopg2.ProgrammingError:
-                pass  # Fall through to full scan
-
-        # Full scan (no vector search or pgvector not migrated)
-        with self._cur() as cur:
-            cur.execute(
-                f"""
-                SELECT j.job_uuid, j.title, {emb_select},
-                       j.company_name, j.location, j.job_url,
-                       j.first_seen_at, j.last_seen_at, j.skills_json
-                  FROM jobs j
-                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                 WHERE j.is_active = TRUE
-                """
-            )
-            rows = cur.fetchall()
-        out = []
+            with self._cur() as cur:
+                cur.execute(
+                    """
+                    SELECT j.job_uuid, j.title, e.embedding::text,
+                           j.company_name, j.location, j.job_url,
+                           j.first_seen_at, j.last_seen_at, j.skills_json
+                      FROM jobs j
+                      JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                     WHERE j.is_active = TRUE
+                       AND e.embedding IS NOT NULL
+                     ORDER BY e.embedding <=> %s::vector ASC
+                     LIMIT %s
+                    """,
+                    [emb_str, limit],
+                )
+                rows = cur.fetchall()
+        else:
+            with self._cur() as cur:
+                cur.execute(
+                    """
+                    SELECT j.job_uuid, j.title, e.embedding::text,
+                           j.company_name, j.location, j.job_url,
+                           j.first_seen_at, j.last_seen_at, j.skills_json
+                      FROM jobs j
+                      JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                     WHERE j.is_active = TRUE
+                       AND e.embedding IS NOT NULL
+                    """
+                )
+                rows = cur.fetchall()
+        out: list[tuple[str, str, list[float], dict]] = []
         for uuid, title, emb_json, company_name, location, job_url, first_seen_at, last_seen_at, skills_json in rows:
             job_details = {
                 "company_name": company_name,
@@ -564,39 +460,28 @@ class PostgresStore(Storage):
         self,
     ) -> list[tuple[str, list[float], datetime | None]]:
         """Return (job_uuid, embedding, last_seen_at) for all active jobs with embeddings."""
-        emb_select, _ = self._job_embedding_schema()
         with self._cur() as cur:
             cur.execute(
-                f"""
-                SELECT j.job_uuid, {emb_select}, j.last_seen_at
+                """
+                SELECT j.job_uuid, e.embedding::text, j.last_seen_at
                   FROM jobs j
                   JOIN job_embeddings e ON e.job_uuid = j.job_uuid
                  WHERE j.is_active = TRUE
-                   AND (e.embedding_json IS NOT NULL OR e.embedding IS NOT NULL)
-                   AND (e.dim IS NULL OR e.dim >= 500)
+                   AND e.embedding IS NOT NULL
                 """,
             )
             rows = cur.fetchall()
-        result = []
-        for r in rows:
-            emb_raw = r[1]
-            if emb_raw is None:
-                continue
-            if isinstance(emb_raw, str):
-                emb = json.loads(emb_raw)
-            else:
-                emb = emb_raw
-            result.append((r[0], emb, r[2]))
-        return result
+        return [
+            (r[0], json.loads(r[1]), r[2])
+            for r in rows
+            if r[1] is not None
+        ]
 
     def get_active_job_ids_ranked(
         self,
         query_embedding: Sequence[float],
         limit: int = 5000,
     ) -> list[tuple[str, float, datetime | None]]:
-        _, has_vector = self._job_embedding_schema()
-        if not has_vector:
-            return []
         emb_str = json.dumps([float(x) for x in query_embedding])
         with self._cur() as cur:
             cur.execute(
@@ -621,9 +506,6 @@ class PostgresStore(Storage):
         query_embedding: Sequence[float],
         limit: int = 5000,
     ) -> list[tuple[str, float, datetime | None]]:
-        _, has_vector = self._job_embedding_schema()
-        if not has_vector:
-            return []
         emb_str = json.dumps([float(x) for x in query_embedding])
         with self._cur() as cur:
             cur.execute(
@@ -779,7 +661,7 @@ class PostgresStore(Storage):
     def get_all_active_jobs(self) -> list[dict]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid, title, skills_json, position_levels_json, min_years_experience, description"
+                "SELECT job_uuid, title, skills_json, position_levels_json, description"
                 " FROM jobs WHERE is_active = TRUE"
             )
             rows = cur.fetchall()
@@ -789,8 +671,7 @@ class PostgresStore(Storage):
                 "title": r[1] or "",
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
-                "min_years_experience": r[4],
-                "description": r[5],
+                "description": r[4],
             }
             for r in rows
         ]
@@ -800,11 +681,9 @@ class PostgresStore(Storage):
     ) -> list[tuple[str, list[float]]]:
         if not uuids:
             return []
-        emb_select, _ = self._job_embedding_schema()
-        col = emb_select.replace("e.", "")  # "embedding_json" or "embedding::text"
         with self._cur() as cur:
             cur.execute(
-                f"SELECT job_uuid, {col} FROM job_embeddings WHERE job_uuid = ANY(%s)",
+                "SELECT job_uuid, embedding::text FROM job_embeddings WHERE job_uuid = ANY(%s) AND embedding IS NOT NULL",
                 [uuids],
             )
             rows = cur.fetchall()
@@ -957,28 +836,29 @@ class PostgresStore(Storage):
     ) -> None:
         now = _utcnow()
         emb_list = [float(x) for x in embedding]
+        emb_str = json.dumps(emb_list)
         with self._cur() as cur:
             cur.execute(
                 """
-                INSERT INTO candidate_embeddings(profile_id, model_name, embedding_json, dim, embedded_at)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO candidate_embeddings(profile_id, model_name, embedding, dim, embedded_at)
+                VALUES (%s, %s, %s::vector, %s, %s)
                 ON CONFLICT (profile_id) DO UPDATE SET
-                  model_name     = EXCLUDED.model_name,
-                  embedding_json = EXCLUDED.embedding_json,
-                  dim            = EXCLUDED.dim,
-                  embedded_at    = EXCLUDED.embedded_at
+                  model_name  = EXCLUDED.model_name,
+                  embedding   = EXCLUDED.embedding,
+                  dim         = EXCLUDED.dim,
+                  embedded_at = EXCLUDED.embedded_at
                 """,
-                [profile_id, model_name, json.dumps(emb_list), len(emb_list), now],
+                [profile_id, model_name, emb_str, len(emb_list), now],
             )
 
     def get_candidate_embedding(self, profile_id: str) -> list[float] | None:
         with self._cur() as cur:
             cur.execute(
-                "SELECT embedding_json FROM candidate_embeddings WHERE profile_id = %s",
+                "SELECT embedding::text FROM candidate_embeddings WHERE profile_id = %s",
                 [profile_id],
             )
             row = cur.fetchone()
-        return json.loads(row[0]) if row else None
+        return json.loads(row[0]) if row and row[0] else None
 
     def upsert_taste_embedding(
         self, *, profile_id: str, model_name: str, embedding: Sequence[float]
@@ -986,29 +866,30 @@ class PostgresStore(Storage):
         taste_key = f"{profile_id}:taste"
         now = _utcnow()
         emb_list = [float(x) for x in embedding]
+        emb_str = json.dumps(emb_list)
         with self._cur() as cur:
             cur.execute(
                 """
-                INSERT INTO candidate_embeddings(profile_id, model_name, embedding_json, dim, embedded_at)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO candidate_embeddings(profile_id, model_name, embedding, dim, embedded_at)
+                VALUES (%s, %s, %s::vector, %s, %s)
                 ON CONFLICT (profile_id) DO UPDATE SET
-                  model_name     = EXCLUDED.model_name,
-                  embedding_json = EXCLUDED.embedding_json,
-                  dim            = EXCLUDED.dim,
-                  embedded_at    = EXCLUDED.embedded_at
+                  model_name  = EXCLUDED.model_name,
+                  embedding   = EXCLUDED.embedding,
+                  dim         = EXCLUDED.dim,
+                  embedded_at = EXCLUDED.embedded_at
                 """,
-                [taste_key, model_name, json.dumps(emb_list), len(emb_list), now],
+                [taste_key, model_name, emb_str, len(emb_list), now],
             )
 
     def get_taste_embedding(self, profile_id: str) -> list[float] | None:
         taste_key = f"{profile_id}:taste"
         with self._cur() as cur:
             cur.execute(
-                "SELECT embedding_json FROM candidate_embeddings WHERE profile_id = %s",
+                "SELECT embedding::text FROM candidate_embeddings WHERE profile_id = %s",
                 [taste_key],
             )
             row = cur.fetchone()
-        return json.loads(row[0]) if row else None
+        return json.loads(row[0]) if row and row[0] else None
 
     # === Interactions ===
 
@@ -1154,8 +1035,6 @@ class PostgresStore(Storage):
     # === Dashboard ===
 
     def get_dashboard_summary(self) -> dict:
-        """Summary for MCF jobs only (excludes CAG)."""
-        # Query 1: counts + embeddings in a single LEFT JOIN pass
         with self._cur() as cur:
             cur.execute(
                 """
@@ -1163,10 +1042,10 @@ class PostgresStore(Storage):
                   COUNT(*) AS total,
                   COUNT(*) FILTER (WHERE j.is_active = TRUE) AS active,
                   COUNT(*) FILTER (WHERE j.is_active = FALSE) AS inactive,
-                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = TRUE) AS with_embeddings
+                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = TRUE) AS active_with_embeddings,
+                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = FALSE) AS inactive_with_embeddings
                 FROM jobs j
                 LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                WHERE (j.job_source = 'mcf' OR j.job_source IS NULL)
                 """
             )
             row = cur.fetchone()
@@ -1174,14 +1053,13 @@ class PostgresStore(Storage):
         active = row[1] if row else 0
         inactive = row[2] if row else 0
         jobs_with_embeddings = row[3] if row else 0
+        inactive_jobs_with_embeddings = row[4] if row else 0
 
-        # Query 2: backfill count
         with self._cur() as cur:
             cur.execute(
                 """
                 SELECT COUNT(*) FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                   AND (categories_json IS NULL OR categories_json = '' OR categories_json = '[]')
                 """
             )
@@ -1194,6 +1072,7 @@ class PostgresStore(Storage):
             "inactive_jobs": inactive,
             "by_source": {"mcf": total},
             "jobs_with_embeddings": jobs_with_embeddings,
+            "inactive_jobs_with_embeddings": inactive_jobs_with_embeddings,
             "jobs_needing_backfill": jobs_needing_backfill,
         }
 
@@ -1202,8 +1081,8 @@ class PostgresStore(Storage):
 
         cutoff = _utcnow().date() - timedelta(days=limit_days)
 
-        with self._cur() as cur:
-            try:
+        try:
+            with self._cur() as cur:
                 cur.execute(
                     """
                     SELECT stat_date::date AS day, added_count, removed_count
@@ -1213,7 +1092,9 @@ class PostgresStore(Storage):
                     """,
                     [cutoff],
                 )
-            except psycopg2.ProgrammingError:
+                rows = cur.fetchall()
+        except psycopg2.ProgrammingError:
+            with self._cur() as cur:
                 cur.execute(
                     """
                     SELECT stat_date::date AS day,
@@ -1226,7 +1107,7 @@ class PostgresStore(Storage):
                     """,
                     [cutoff],
                 )
-            rows = cur.fetchall()
+                rows = cur.fetchall()
 
         return [
             {"date": str(r[0]), "added_count": r[1], "removed_count": r[2]}
@@ -1238,8 +1119,8 @@ class PostgresStore(Storage):
 
         cutoff = _utcnow().date() - timedelta(days=limit_days)
 
-        with self._cur() as cur:
-            try:
+        try:
+            with self._cur() as cur:
                 cur.execute(
                     """
                     SELECT stat_date::date AS day, active_count
@@ -1249,7 +1130,9 @@ class PostgresStore(Storage):
                     """,
                     [cutoff],
                 )
-            except psycopg2.ProgrammingError:
+                rows = cur.fetchall()
+        except psycopg2.ProgrammingError:
+            with self._cur() as cur:
                 cur.execute(
                     """
                     SELECT stat_date::date AS day, SUM(active_count)::int AS active_count
@@ -1260,7 +1143,7 @@ class PostgresStore(Storage):
                     """,
                     [cutoff],
                 )
-            rows = cur.fetchall()
+                rows = cur.fetchall()
 
         return [{"date": str(r[0]), "active_count": r[1]} for r in rows]
 
@@ -1279,7 +1162,7 @@ class PostgresStore(Storage):
                         COALESCE(last_seen_at::date, '9999-12-31'::date)
                     ))
                     FROM jobs
-                    WHERE (job_source = 'mcf' OR job_source IS NULL)
+                    FROM jobs
                     """
                 )
                 row = cur.fetchone()
@@ -1290,7 +1173,6 @@ class PostgresStore(Storage):
         cat_ex = "COALESCE(NULLIF(TRIM(BOTH '\"' FROM (categories_json::jsonb->0)::text), ''), 'Unknown')"
         et_ex = "COALESCE(NULLIF(TRIM(BOTH '\"' FROM (employment_types_json::jsonb->0)::text), ''), 'Unknown')"
         pl_ex = "COALESCE(NULLIF(TRIM(BOTH '\"' FROM (position_levels_json::jsonb->0)::text), ''), 'Unknown')"
-        mcf = "AND (job_source = 'mcf' OR job_source IS NULL)"
 
         total_rows = 0
         d = start_date
@@ -1317,7 +1199,6 @@ class PostgresStore(Storage):
                             WHERE last_seen_at IS NOT NULL AND last_seen_at::date = %s AND is_active = FALSE
                         )::int AS removed_count
                     FROM jobs
-                    WHERE 1=1 {mcf}
                     GROUP BY 2, 3, 4
                     HAVING COUNT(*) FILTER (
                         WHERE posted_date IS NOT NULL AND posted_date::date <= %s
@@ -1472,7 +1353,6 @@ class PostgresStore(Storage):
                     COUNT(*)::int AS count
                 FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                 GROUP BY 1
                 ORDER BY count DESC
                 LIMIT %s
@@ -1538,8 +1418,7 @@ class PostgresStore(Storage):
                 )
                 SELECT ds.d::text AS date,
                     (SELECT COUNT(*)::int FROM jobs j
-                     WHERE (j.job_source = 'mcf' OR j.job_source IS NULL)
-                       AND {cat_extract} = %s
+                     WHERE {cat_extract} = %s
                        AND j.posted_date IS NOT NULL
                        AND j.posted_date::date <= ds.d
                        AND (j.is_active = TRUE
@@ -1573,7 +1452,6 @@ class PostgresStore(Storage):
                         salary_min
                     FROM jobs
                     WHERE is_active = TRUE
-                      AND (job_source = 'mcf' OR job_source IS NULL)
                       AND COALESCE(NULLIF(TRIM(BOTH '"' FROM (categories_json::jsonb->0)::text), ''), 'Unknown') = %s
                 )
                 SELECT 'summary' AS kind, '' AS val,
@@ -1675,7 +1553,6 @@ class PostgresStore(Storage):
                     COUNT(*)::int AS count
                 FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                 GROUP BY 1
                 ORDER BY count DESC
                 LIMIT %s
@@ -1714,7 +1591,6 @@ class PostgresStore(Storage):
                     COUNT(*)::int AS count
                 FROM jobs
                 WHERE is_active = TRUE
-                  AND (job_source = 'mcf' OR job_source IS NULL)
                 GROUP BY 1
                 ORDER BY count DESC
                 LIMIT %s
@@ -1747,7 +1623,7 @@ class PostgresStore(Storage):
                     END AS bucket,
                     COUNT(*)::int AS count
                 FROM jobs
-                WHERE is_active = TRUE AND (job_source = 'mcf' OR job_source IS NULL)
+                WHERE is_active = TRUE
                 GROUP BY 1
                 """
             )

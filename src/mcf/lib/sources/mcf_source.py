@@ -96,10 +96,6 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
     if metadata_dict.get("expiryDate"):
         expiry_date = str(metadata_dict.get("expiryDate", ""))[:10]
 
-    min_years_experience = raw.get("minimumYearsExperience")
-    if min_years_experience is not None:
-        min_years_experience = int(min_years_experience)
-
     return NormalizedJob(
         source_id="mcf",
         external_id=external_id,
@@ -116,7 +112,6 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
         salary_max=salary_max,
         posted_date=posted_date or None,
         expiry_date=expiry_date or None,
-        min_years_experience=min_years_experience,
     )
 
 

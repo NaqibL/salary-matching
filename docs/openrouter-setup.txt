@@ -1,0 +1,122 @@
+OpenRouter Setup Guide — LLM Job Description Cleaning
+======================================================
+
+OpenRouter gives you a single API key that routes to many LLM providers
+(Google, Meta, Anthropic, Mistral, etc.).  This project uses it to run an
+extractive cleaning pass on job descriptions before embedding.
+
+
+1. CREATE AN ACCOUNT
+--------------------
+Go to https://openrouter.ai and sign up with your email or GitHub account.
+Verify your email address.
+
+
+2. GET AN API KEY
+-----------------
+- Click your avatar (top-right) → "Keys"
+- Click "Create Key", give it a name (e.g. "mcf-job-matcher")
+- Copy the key immediately — it starts with "sk-or-v1-..."
+- Store it somewhere safe; you cannot view it again after closing the dialog
+
+
+3. CHOOSE A MODEL
+-----------------
+The model is set via the OPENROUTER_MODEL env var (see step 4).
+If not set, the default is: google/gemma-3-27b-it:free
+
+Free tier (no cost, rate-limited):
+  google/gemma-3-27b-it:free
+  meta-llama/llama-3.1-8b-instruct:free
+
+Paid — cheap and fast (recommended once you are happy with results):
+  google/gemini-flash-1.5          ~$0.075 / 1M input tokens
+  anthropic/claude-3-haiku         ~$0.25  / 1M input tokens
+
+Note: Free models are shared and may be slow during peak hours.
+For production re-embed runs, a paid model is more reliable.
+
+Browse all models at: https://openrouter.ai/models
+
+
+4. SET ENVIRONMENT VARIABLES
+-----------------------------
+Add these to your .env file (never commit .env to git):
+
+  # Required
+  OPENROUTER_API_KEY=sk-or-v1-...
+
+  # Optional — defaults shown
+  OPENROUTER_MODEL=google/gemma-3-27b-it:free
+  JOB_EXTRACTOR_LLM_ENABLED=1
+  JOB_EXTRACTOR_LLM_THRESHOLD=800
+
+JOB_EXTRACTOR_LLM_THRESHOLD controls how many words a description must
+have before the LLM is called.  Descriptions below this threshold are
+handled by the heuristic extractor alone (faster, no API cost).
+
+
+5. RUN THE TEST SCRIPT
+-----------------------
+The test script shows before/after for 4 sample job descriptions.
+It prints: original → heuristic extraction → LLM cleaning → final embedding text.
+
+  # Heuristic-only (no API key needed):
+  uv run python scripts/test_llm_cleaner.py
+
+  # With LLM cleaning:
+  OPENROUTER_API_KEY=sk-or-v1-... JOB_EXTRACTOR_LLM_ENABLED=1 \
+    uv run python scripts/test_llm_cleaner.py
+
+What to look for in the output:
+  - [HEURISTIC EXTRACTION]: blocks selected, tokens used, strategy
+  - [LLM CLEANING]: model, latency, word count reduction
+  - [FINAL EMBEDDING TEXT]: the structured text the BGE model will encode
+
+A good LLM output should:
+  - Contain only sentences that appear verbatim in the original
+  - Have removed "About Us", benefits, EEO/PDPA, "How to Apply" sections
+  - Preserve requirements, responsibilities, and technical skills
+
+
+6. WIRE INTO PRODUCTION (Railway)
+-----------------------------------
+Once you are satisfied with the LLM output quality:
+
+a) Add to Railway environment variables:
+     OPENROUTER_API_KEY=sk-or-v1-...
+     OPENROUTER_MODEL=google/gemini-flash-1.5   (or your chosen model)
+     JOB_EXTRACTOR_LLM_ENABLED=1
+
+b) Register the cleaner in src/mcf/api/server.py lifespan startup:
+
+     from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
+     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
+
+     @asynccontextmanager
+     async def lifespan(app: FastAPI):
+         cleaner = make_openrouter_cleaner_from_env()
+         if cleaner:
+             register_llm_cleaner(cleaner)
+         ...
+         yield
+         ...
+
+c) Run the re-embed GitHub Action to process all stored descriptions:
+     .github/workflows/re-embed.yml
+     (trigger manually from Actions tab)
+
+IMPORTANT: LLM cleaning only fires during re-embed / crawl ingestion.
+It is never called at query or retrieval time.
+
+
+7. COST ESTIMATE (OPTIONAL)
+----------------------------
+Typical Singapore job description: ~300–600 words ≈ 400–800 tokens input.
+LLM output: ~100–250 tokens.
+
+At 30,000 jobs × 700 tokens avg input:
+  google/gemini-flash-1.5:  30,000 × 700 / 1,000,000 × $0.075  ≈  $1.58 per full re-embed
+  claude-3-haiku:           30,000 × 700 / 1,000,000 × $0.25   ≈  $5.25 per full re-embed
+
+Daily incremental crawls add ~50–200 new jobs/day, so ongoing cost is minimal.
