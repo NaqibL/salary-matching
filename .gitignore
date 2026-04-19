@@ -25,6 +25,7 @@ debug-*.log
 
 # IDE
 .cursor/
+.claude/settings.local.json
 
 # Notebook analysis outputs (local only, not for git)
 notebooks/*.png
