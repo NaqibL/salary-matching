@@ -213,12 +213,12 @@ def run_incremental_crawl(
             removed=len(removed),
         )
 
-        # Refresh dashboard materialized views (Postgres only)
+        # Refresh dashboard materialized views (Postgres only; non-fatal)
         if hasattr(store, "refresh_dashboard_materialized_views"):
             try:
                 store.refresh_dashboard_materialized_views()
-            except Exception:
-                pass  # Non-fatal; dashboard may use fallback queries
+            except Exception as _mv_err:
+                print(f"Warning: failed to refresh dashboard materialized views: {_mv_err}")
 
         # Invalidate active jobs pool cache when same process runs API + crawl
         try:

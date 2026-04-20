@@ -1,0 +1,62 @@
+name: Daily Embed (auto after crawl)
+
+on:
+  workflow_run:
+    workflows: ["Daily Job Crawl (Part 2 — Segments 4-5)"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: 'Embedding batch size (default: 32)'
+        required: false
+        default: '32'
+
+jobs:
+  embed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    # Always run (even if crawl failed — partial new jobs still need embedding)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Cache HuggingFace models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ hashFiles('pyproject.toml') }}
+          restore-keys: hf-models-
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Embed unembedded jobs
+        run: uv run mcf re-embed --db-url "$DATABASE_URL" --batch-size "$BATCH_SIZE" --only-unembedded
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRAWL_WEBHOOK_URL: ${{ secrets.CRAWL_WEBHOOK_URL }}
+          BATCH_SIZE: ${{ github.event.inputs.batch_size || '32' }}
+
+      - name: Rebuild HNSW indexes
+        run: |
+          psql "$DATABASE_URL" <<'SQL'
+            CREATE INDEX IF NOT EXISTS idx_job_embeddings_vector
+              ON job_embeddings
+              USING hnsw (embedding vector_cosine_ops);
+          SQL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Print summary
+        if: always()
+        run: echo "Daily embed finished at $(date -u)"

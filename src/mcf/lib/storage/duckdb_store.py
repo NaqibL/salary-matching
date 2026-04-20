@@ -753,6 +753,23 @@ class DuckDBStore(Storage):
             for r in rows
         ]
 
+    def get_active_jobs_without_embeddings(self) -> list[dict]:
+        rows = self._con.execute(
+            "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description"
+            " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
+            " WHERE j.is_active = TRUE AND e.job_uuid IS NULL"
+        ).fetchall()
+        return [
+            {
+                "job_uuid": r[0],
+                "title": r[1] or "",
+                "skills": json.loads(r[2]) if r[2] else [],
+                "position_levels": json.loads(r[3]) if r[3] else [],
+                "description": r[4],
+            }
+            for r in rows
+        ]
+
     def get_embedding_model_name(self) -> str | None:
         """Return the model name used for the most recent job embedding, or None."""
         row = self._con.execute("SELECT model_name FROM job_embeddings LIMIT 1").fetchone()

@@ -86,6 +86,13 @@ DONE (2026-04-19)
 BACKLOG
 ------------------------------------------------------------
 
+[ ] Rotate Supabase DB password and update DATABASE_URL in:
+    - Vercel environment variables
+    - Railway environment variables
+    - GitHub Actions secret (repo Settings → Secrets → Actions → DATABASE_URL)
+    - Local .env file used by Docker Compose
+
+
 [ ] Diversity sampling in matching results
     Use KMeans cluster assignments (k=9) to inject variety into top-N results.
     If top matches are dominated by one cluster, surface 1-2 jobs from adjacent

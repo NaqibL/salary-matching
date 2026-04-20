@@ -676,6 +676,25 @@ class PostgresStore(Storage):
             for r in rows
         ]
 
+    def get_active_jobs_without_embeddings(self) -> list[dict]:
+        with self._cur() as cur:
+            cur.execute(
+                "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description"
+                " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
+                " WHERE j.is_active = TRUE AND e.job_uuid IS NULL"
+            )
+            rows = cur.fetchall()
+        return [
+            {
+                "job_uuid": r[0],
+                "title": r[1] or "",
+                "skills": json.loads(r[2]) if r[2] else [],
+                "position_levels": json.loads(r[3]) if r[3] else [],
+                "description": r[4],
+            }
+            for r in rows
+        ]
+
     def get_job_embeddings_for_uuids(
         self, uuids: list[str]
     ) -> list[tuple[str, list[float]]]:
@@ -1081,33 +1100,20 @@ class PostgresStore(Storage):
 
         cutoff = _utcnow().date() - timedelta(days=limit_days)
 
-        try:
-            with self._cur() as cur:
-                cur.execute(
-                    """
-                    SELECT stat_date::date AS day, added_count, removed_count
-                    FROM mv_dashboard_daily_stats
-                    WHERE stat_date >= %s
-                    ORDER BY stat_date ASC
-                    """,
-                    [cutoff],
-                )
-                rows = cur.fetchall()
-        except psycopg2.ProgrammingError:
-            with self._cur() as cur:
-                cur.execute(
-                    """
-                    SELECT stat_date::date AS day,
-                           SUM(added_count)::int AS added_count,
-                           SUM(removed_count)::int AS removed_count
-                    FROM job_daily_stats
-                    WHERE stat_date >= %s AND category != 'Unknown'
-                    GROUP BY stat_date
-                    ORDER BY stat_date ASC
-                    """,
-                    [cutoff],
-                )
-                rows = cur.fetchall()
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT stat_date::date AS day,
+                       SUM(added_count)::int AS added_count,
+                       SUM(removed_count)::int AS removed_count
+                FROM job_daily_stats
+                WHERE stat_date >= %s AND category != 'Unknown'
+                GROUP BY stat_date
+                ORDER BY stat_date ASC
+                """,
+                [cutoff],
+            )
+            rows = cur.fetchall()
 
         return [
             {"date": str(r[0]), "added_count": r[1], "removed_count": r[2]}
@@ -1119,31 +1125,18 @@ class PostgresStore(Storage):
 
         cutoff = _utcnow().date() - timedelta(days=limit_days)
 
-        try:
-            with self._cur() as cur:
-                cur.execute(
-                    """
-                    SELECT stat_date::date AS day, active_count
-                    FROM mv_dashboard_daily_stats
-                    WHERE stat_date >= %s
-                    ORDER BY stat_date ASC
-                    """,
-                    [cutoff],
-                )
-                rows = cur.fetchall()
-        except psycopg2.ProgrammingError:
-            with self._cur() as cur:
-                cur.execute(
-                    """
-                    SELECT stat_date::date AS day, SUM(active_count)::int AS active_count
-                    FROM job_daily_stats
-                    WHERE stat_date >= %s AND category != 'Unknown'
-                    GROUP BY stat_date
-                    ORDER BY stat_date ASC
-                    """,
-                    [cutoff],
-                )
-                rows = cur.fetchall()
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT stat_date::date AS day, SUM(active_count)::int AS active_count
+                FROM job_daily_stats
+                WHERE stat_date >= %s AND category != 'Unknown'
+                GROUP BY stat_date
+                ORDER BY stat_date ASC
+                """,
+                [cutoff],
+            )
+            rows = cur.fetchall()
 
         return [{"date": str(r[0]), "active_count": r[1]} for r in rows]
 

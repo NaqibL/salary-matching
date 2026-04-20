@@ -175,6 +175,10 @@ class Storage(ABC):
     @abstractmethod
     def get_all_active_jobs(self) -> list[dict]: ...
 
+    def get_active_jobs_without_embeddings(self) -> list[dict]:
+        """Return active jobs that have no row in job_embeddings. Default: filter get_all_active_jobs."""
+        raise NotImplementedError
+
     @abstractmethod
     def get_job_embeddings_for_uuids(
         self, uuids: list[str]

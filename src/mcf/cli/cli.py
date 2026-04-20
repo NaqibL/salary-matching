@@ -723,6 +723,10 @@ def re_embed(
         int,
         typer.Option("--batch-size", "-b", help="Embedding batch size"),
     ] = 32,
+    only_unembedded: Annotated[
+        bool,
+        typer.Option("--only-unembedded", help="Only embed jobs that have no existing embedding"),
+    ] = False,
 ) -> None:
     """Re-embed all jobs with the current model and structured text format.
 
@@ -754,14 +758,22 @@ def re_embed(
 
     store, db_display = _open_store(db, db_url)
     try:
-        all_jobs = store.get_all_active_jobs()
+        if only_unembedded:
+            try:
+                all_jobs = store.get_active_jobs_without_embeddings()
+            except NotImplementedError:
+                all_jobs = store.get_all_active_jobs()
+        else:
+            all_jobs = store.get_all_active_jobs()
         if not all_jobs:
-            console.print("[yellow]No active jobs found in the database.[/yellow]")
+            console.print("[yellow]No jobs to embed.[/yellow]")
             return
 
         console.print(f"[bold cyan]Re-embedding Jobs[/bold cyan]")
         console.print(f"  Database: [green]{db_display}[/green]")
-        console.print(f"  Active jobs: [yellow]{len(all_jobs):,}[/yellow]")
+        mode = "[yellow]unembedded only[/yellow]" if only_unembedded else "[yellow]all active[/yellow]"
+        console.print(f"  Mode: {mode}")
+        console.print(f"  Jobs to embed: [yellow]{len(all_jobs):,}[/yellow]")
         console.print(f"  Model: [green]{EmbedderConfig().model_name}[/green]")
         console.print(f"  Batch size: [yellow]{batch_size}[/yellow]")
         llm_status = f"[green]enabled[/green] ({_llm_cleaner.model})" if _llm_cleaner and _jde._LLM_ENABLED else "[yellow]disabled[/yellow]"
