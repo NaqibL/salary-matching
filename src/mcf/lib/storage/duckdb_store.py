@@ -1393,6 +1393,7 @@ class DuckDBStore(Storage):
             FROM job_embeddings e
             JOIN jobs j ON j.job_uuid = e.job_uuid
             WHERE j.is_active = FALSE
+              AND j.last_seen_at < NOW() - INTERVAL '24 hours'
               AND NOT EXISTS (SELECT 1 FROM job_interactions i WHERE i.job_uuid = e.job_uuid)
             """
         ).fetchall()

@@ -100,6 +100,12 @@ BACKLOG
     Note: silhouette=0.116 is weak — verify this improves perceived result quality
     before investing further in cluster-based search.
 
+[ ] Embed inactive jobs with descriptions for richer salary percentile data
+    62,353 inactive jobs have descriptions but no embeddings.
+    These feed salary_search and lowball_check percentile pools (active + inactive).
+    Run: uv run mcf re-embed --db-url $DATABASE_URL --include-inactive
+    Note: re-embed CLI may need an --include-inactive flag added first.
+
 [ ] Backfill flat-stored descriptions (optional quality improvement)
     Jobs ingested before the paragraph-structure fix are stored as flat text.
     To fix them:
