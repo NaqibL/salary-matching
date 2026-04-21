@@ -1211,7 +1211,7 @@ class DuckDBStore(Storage):
         jobs_needing_backfill = row[0] if row else 0
 
         return {
-            "total_jobs": total,
+            "total_jobs": jobs_with_embeddings + inactive_jobs_with_embeddings,
             "active_jobs": active,
             "inactive_jobs": inactive,
             "by_source": {"mcf": active},

@@ -20,7 +20,7 @@ export type Summary = {
 const SUMMARY_CARDS = [
   {
     key: 'total_jobs',
-    label: 'Total jobs',
+    label: 'Queryable jobs',
     icon: Briefcase,
     iconColor: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
     valueColor: 'text-slate-900 dark:text-slate-100',
