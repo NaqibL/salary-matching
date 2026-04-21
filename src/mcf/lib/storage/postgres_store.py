@@ -131,7 +131,7 @@ class PostgresStore(Storage):
 
     def active_job_uuids_for_source(self, job_source: str) -> set[str]:
         with self._cur() as cur:
-            cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE AND job_source = %s", [job_source])
+            cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE")
             return {r[0] for r in cur.fetchall()}
 
     def active_job_uuids_for_source_and_categories(
@@ -140,7 +140,7 @@ class PostgresStore(Storage):
         """Get active job UUIDs whose primary category is in `categories`."""
         import json as _json
         with self._cur() as cur:
-            cur.execute("SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = %s", [job_source])
+            cur.execute("SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE")
             rows = cur.fetchall()
         cats_set = set(categories)
         result: set[str] = set()
