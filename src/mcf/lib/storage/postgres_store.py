@@ -131,7 +131,7 @@ class PostgresStore(Storage):
 
     def active_job_uuids_for_source(self, job_source: str) -> set[str]:
         with self._cur() as cur:
-            cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE")
+            cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE AND job_source = %s", [job_source])
             return {r[0] for r in cur.fetchall()}
 
     def active_job_uuids_for_source_and_categories(
@@ -140,14 +140,14 @@ class PostgresStore(Storage):
         """Get active job UUIDs whose primary category is in `categories`."""
         import json as _json
         with self._cur() as cur:
-            cur.execute("SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE")
+            cur.execute("SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = %s", [job_source])
             rows = cur.fetchall()
         cats_set = set(categories)
         result: set[str] = set()
         for uuid, cat_json in rows:
             if cat_json:
                 job_cats = _json.loads(cat_json) if isinstance(cat_json, str) else cat_json
-                if any(c in cats_set for c in job_cats):
+                if job_cats and job_cats[0] in cats_set:
                     result.add(uuid)
         return result
 
@@ -1089,7 +1089,7 @@ class PostgresStore(Storage):
             "total_jobs": total,
             "active_jobs": active,
             "inactive_jobs": inactive,
-            "by_source": {"mcf": total},
+            "by_source": {"mcf": active},
             "jobs_with_embeddings": jobs_with_embeddings,
             "inactive_jobs_with_embeddings": inactive_jobs_with_embeddings,
             "jobs_needing_backfill": jobs_needing_backfill,

@@ -279,7 +279,8 @@ class DuckDBStore(Storage):
 
     def active_job_uuids_for_source(self, job_source: str) -> set[str]:
         rows = self._con.execute(
-            "SELECT job_uuid FROM jobs WHERE is_active = TRUE"
+            "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND job_source = ?",
+            [job_source],
         ).fetchall()
         return {r[0] for r in rows}
 
@@ -288,14 +289,15 @@ class DuckDBStore(Storage):
     ) -> set[str]:
         """Get active job UUIDs whose primary category is in `categories`."""
         rows = self._con.execute(
-            "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE"
+            "SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE AND job_source = ?",
+            [job_source],
         ).fetchall()
         cats_set = set(categories)
         result: set[str] = set()
         for uuid, cat_json in rows:
             if cat_json:
                 job_cats = json.loads(cat_json)
-                if any(c in cats_set for c in job_cats):
+                if job_cats and job_cats[0] in cats_set:
                     result.add(uuid)
         return result
 
@@ -1212,7 +1214,7 @@ class DuckDBStore(Storage):
             "total_jobs": total,
             "active_jobs": active,
             "inactive_jobs": inactive,
-            "by_source": {"mcf": total},
+            "by_source": {"mcf": active},
             "jobs_with_embeddings": jobs_with_embeddings,
             "inactive_jobs_with_embeddings": inactive_jobs_with_embeddings,
             "jobs_needing_backfill": jobs_needing_backfill,
