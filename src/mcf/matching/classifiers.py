@@ -31,13 +31,13 @@ def _load() -> None:
     global _km, _lr, _taxonomy
     if _km is not None:
         return
-    with open(_MODELS_DIR / "kmeans_role_v1.pkl", "rb") as f:
+    with open(_MODELS_DIR / "kmeans_role_v2.pkl", "rb") as f:
         _km = pickle.load(f)
-    with open(_MODELS_DIR / "lr_tier_v1.pkl", "rb") as f:
+    with open(_MODELS_DIR / "lr_tier_v2.pkl", "rb") as f:
         _lr = pickle.load(f)
     _taxonomy = {
         int(k): v
-        for k, v in json.loads((_MODELS_DIR / "role_taxonomy.json").read_text()).items()
+        for k, v in json.loads((_MODELS_DIR / "role_taxonomy_v2.json").read_text()).items()
     }
 
 
@@ -51,7 +51,7 @@ def classify_jobs(
 
     Returns:
         List of (role_cluster_id, predicted_tier) per job.
-        role_cluster_id is 0-34, predicted_tier is one of:
+        role_cluster_id is 0-38, predicted_tier is one of:
         T1_Entry / T2_Junior / T3_Senior / T4_Management.
     """
     _load()
