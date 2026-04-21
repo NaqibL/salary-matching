@@ -1155,7 +1155,6 @@ class PostgresStore(Storage):
                         COALESCE(last_seen_at::date, '9999-12-31'::date)
                     ))
                     FROM jobs
-                    FROM jobs
                     """
                 )
                 row = cur.fetchone()
