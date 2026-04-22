@@ -179,6 +179,10 @@ class Storage(ABC):
         """Return active jobs that have no row in job_embeddings. Default: filter get_all_active_jobs."""
         raise NotImplementedError
 
+    def get_active_jobs_embedded_since(self, days: int) -> list[dict]:
+        """Return active jobs whose embedding was written within the last `days` days."""
+        raise NotImplementedError
+
     @abstractmethod
     def get_job_embeddings_for_uuids(
         self, uuids: list[str]

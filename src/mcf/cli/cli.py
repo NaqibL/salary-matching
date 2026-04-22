@@ -727,6 +727,10 @@ def re_embed(
         bool,
         typer.Option("--only-unembedded", help="Only embed jobs that have no existing embedding"),
     ] = False,
+    since_days: Annotated[
+        Optional[int],
+        typer.Option("--since-days", help="Re-embed active jobs whose embedding was written within the last N days"),
+    ] = None,
 ) -> None:
     """Re-embed all jobs with the current model and structured text format.
 
@@ -758,7 +762,12 @@ def re_embed(
 
     store, db_display = _open_store(db, db_url)
     try:
-        if only_unembedded:
+        if since_days is not None:
+            try:
+                all_jobs = store.get_active_jobs_embedded_since(since_days)
+            except NotImplementedError:
+                all_jobs = store.get_all_active_jobs()
+        elif only_unembedded:
             try:
                 all_jobs = store.get_active_jobs_without_embeddings()
             except NotImplementedError:
@@ -771,7 +780,12 @@ def re_embed(
 
         console.print(f"[bold cyan]Re-embedding Jobs[/bold cyan]")
         console.print(f"  Database: [green]{db_display}[/green]")
-        mode = "[yellow]unembedded only[/yellow]" if only_unembedded else "[yellow]all active[/yellow]"
+        if since_days is not None:
+            mode = f"[yellow]embedded in last {since_days} day(s)[/yellow]"
+        elif only_unembedded:
+            mode = "[yellow]unembedded only[/yellow]"
+        else:
+            mode = "[yellow]all active[/yellow]"
         console.print(f"  Mode: {mode}")
         console.print(f"  Jobs to embed: [yellow]{len(all_jobs):,}[/yellow]")
         console.print(f"  Model: [green]{EmbedderConfig().model_name}[/green]")

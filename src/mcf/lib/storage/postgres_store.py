@@ -695,6 +695,28 @@ class PostgresStore(Storage):
             for r in rows
         ]
 
+    def get_active_jobs_embedded_since(self, days: int) -> list[dict]:
+        from datetime import timedelta
+        cutoff = _utcnow() - timedelta(days=days)
+        with self._cur() as cur:
+            cur.execute(
+                "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description"
+                " FROM jobs j JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
+                " WHERE j.is_active = TRUE AND e.embedded_at >= %s",
+                [cutoff],
+            )
+            rows = cur.fetchall()
+        return [
+            {
+                "job_uuid": r[0],
+                "title": r[1] or "",
+                "skills": json.loads(r[2]) if r[2] else [],
+                "position_levels": json.loads(r[3]) if r[3] else [],
+                "description": r[4],
+            }
+            for r in rows
+        ]
+
     def get_job_embeddings_for_uuids(
         self, uuids: list[str]
     ) -> list[tuple[str, list[float]]]:
