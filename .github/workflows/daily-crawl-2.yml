@@ -2,8 +2,8 @@ name: Daily Job Crawl (Part 2 — Segments 4-5)
 
 on:
   schedule:
-    # Run at 07:00 UTC every day (15:00 SGT)
-    - cron: '0 7 * * *'
+    # Run at 10:00 UTC every day (18:00 SGT) — after Part 1's 6h window closes
+    - cron: '0 10 * * *'
   workflow_dispatch:
     inputs:
       segment:
