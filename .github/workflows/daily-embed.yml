@@ -48,6 +48,8 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           CRAWL_WEBHOOK_URL: ${{ secrets.CRAWL_WEBHOOK_URL }}
           BATCH_SIZE: ${{ github.event.inputs.batch_size || '32' }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          JOB_EXTRACTOR_LLM_ENABLED: "1"
 
       - name: Rebuild HNSW indexes
         run: |
