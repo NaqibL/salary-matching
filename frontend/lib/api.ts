@@ -195,6 +195,7 @@ export const dashboardApi = {
     return res.json() as Promise<{
       total_jobs: number
       active_jobs: number
+      active_jobs_total: number
       inactive_jobs: number
       by_source: Record<string, number>
       jobs_with_embeddings: number
@@ -207,6 +208,7 @@ export const dashboardApi = {
     return response.data as {
       total_jobs: number
       active_jobs: number
+      active_jobs_total: number
       inactive_jobs: number
       by_source: Record<string, number>
       jobs_with_embeddings: number
@@ -367,6 +369,7 @@ export const supabaseRpcApi = {
     return data as {
       total_jobs: number
       active_jobs: number
+      active_jobs_total: number
       inactive_jobs: number
       by_source: Record<string, number>
       jobs_with_embeddings: number

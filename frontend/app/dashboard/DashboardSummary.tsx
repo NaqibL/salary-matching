@@ -9,30 +9,32 @@ import { DASHBOARD_SWR_CONFIG } from '@/lib/swr-config'
 export type Summary = {
   total_jobs: number
   active_jobs: number
+  active_jobs_total: number
   inactive_jobs: number
   by_source: Record<string, number>
   jobs_with_embeddings: number
   inactive_jobs_with_embeddings: number
   jobs_needing_backfill: number
-  active_unembedded?: number
 }
 
 const SUMMARY_CARDS = [
   {
-    key: 'total_jobs',
-    label: 'Queryable jobs',
-    icon: Briefcase,
-    iconColor: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
-    valueColor: 'text-slate-900 dark:text-slate-100',
-    valueKey: 'total_jobs' as const,
-  },
-  {
     key: 'active_jobs',
-    label: 'Active jobs',
+    label: 'Live jobs',
     icon: CheckCircle,
     iconColor: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
     valueColor: 'text-emerald-600 dark:text-emerald-400',
     valueKey: 'active_jobs' as const,
+    sublabel: 'Active & searchable',
+  },
+  {
+    key: 'active_jobs_total',
+    label: 'Active in DB',
+    icon: Briefcase,
+    iconColor: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
+    valueColor: 'text-slate-900 dark:text-slate-100',
+    valueKey: 'active_jobs_total' as const,
+    sublabel: null as string | null,
   },
   {
     key: 'inactive_jobs',
@@ -41,6 +43,7 @@ const SUMMARY_CARDS = [
     iconColor: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
     valueColor: 'text-slate-600 dark:text-slate-400',
     valueKey: 'inactive_jobs' as const,
+    sublabel: null as string | null,
   },
   {
     key: 'jobs_embedded_total',
@@ -52,6 +55,15 @@ const SUMMARY_CARDS = [
     sublabel: null as string | null,
   },
   {
+    key: 'active_unembedded',
+    label: 'Embedding backlog',
+    icon: SearchX,
+    iconColor: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
+    valueColor: 'text-rose-600 dark:text-rose-400',
+    valueKey: 'active_unembedded' as const,
+    sublabel: 'Not yet searchable',
+  },
+  {
     key: 'jobs_needing_backfill',
     label: 'Need backfill',
     icon: AlertCircle,
@@ -59,15 +71,6 @@ const SUMMARY_CARDS = [
     valueColor: 'text-amber-600 dark:text-amber-400',
     valueKey: 'jobs_needing_backfill' as const,
     sublabel: 'Category/employment missing',
-  },
-  {
-    key: 'active_unembedded',
-    label: 'Active unembedded',
-    icon: SearchX,
-    iconColor: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
-    valueColor: 'text-rose-600 dark:text-rose-400',
-    valueKey: 'active_unembedded' as const,
-    sublabel: 'Missing from search',
   },
 ]
 
@@ -100,7 +103,7 @@ export function DashboardSummary({ fallbackData }: DashboardSummaryProps) {
           const inactiveEmbedded = displaySummary?.inactive_jobs_with_embeddings ?? 0
           const rawValue =
             valueKey === 'active_unembedded'
-              ? (displaySummary?.active_jobs ?? 0) - activeEmbedded
+              ? (displaySummary?.active_jobs_total ?? 0) - activeEmbedded
               : valueKey === 'jobs_embedded_total'
               ? activeEmbedded + inactiveEmbedded
               : displaySummary?.[valueKey]

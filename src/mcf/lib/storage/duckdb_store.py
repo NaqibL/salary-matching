@@ -1212,9 +1212,10 @@ class DuckDBStore(Storage):
 
         return {
             "total_jobs": jobs_with_embeddings + inactive_jobs_with_embeddings,
-            "active_jobs": active,
+            "active_jobs": jobs_with_embeddings,
+            "active_jobs_total": active,
             "inactive_jobs": inactive,
-            "by_source": {"mcf": active},
+            "by_source": {"mcf": jobs_with_embeddings},
             "jobs_with_embeddings": jobs_with_embeddings,
             "inactive_jobs_with_embeddings": inactive_jobs_with_embeddings,
             "jobs_needing_backfill": jobs_needing_backfill,
