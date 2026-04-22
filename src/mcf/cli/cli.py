@@ -751,12 +751,17 @@ def re_embed(
             raise typer.Exit(1)
 
     # Wire LLM cleaner if configured
-    from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
+    from mcf.lib.embeddings.llm_cleaner import OpenRouterJobCleaner
     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
     import mcf.lib.embeddings.job_description_extractor as _jde
+    from mcf.api.config import settings
 
-    _llm_cleaner = make_openrouter_cleaner_from_env()
-    if _llm_cleaner and os.getenv("JOB_EXTRACTOR_LLM_ENABLED", "0") == "1":
+    _llm_cleaner = None
+    if settings.openrouter_api_key and settings.job_extractor_llm_enabled:
+        _llm_cleaner = OpenRouterJobCleaner(
+            api_key=settings.openrouter_api_key,
+            model=settings.openrouter_model,
+        )
         register_llm_cleaner(_llm_cleaner)
         _jde._LLM_ENABLED = True
 
