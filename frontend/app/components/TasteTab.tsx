@@ -20,7 +20,6 @@ import { Search, Sparkles } from 'lucide-react'
 
 interface Filters {
   topK: number
-  minSimilarity: number
   maxDaysOld: number | null
 }
 
@@ -29,7 +28,7 @@ export default function TasteTab() {
   const { queueRating } = useRatingsQueue()
   const stats = profile?.stats ?? null
   const [matches, setMatches] = useState<Match[]>([])
-  const [filters, setFilters] = useState<Filters>({ topK: 25, minSimilarity: 0, maxDaysOld: null })
+  const [filters, setFilters] = useState<Filters>({ topK: 25, maxDaysOld: null })
   const [finding, setFinding] = useState(false)
   const [loadingUuids, setLoadingUuids] = useState<Set<string>>(new Set())
   const [computing, setComputing] = useState(false)
@@ -44,13 +43,12 @@ export default function TasteTab() {
         true,
         filters.topK,
         0,
-        filters.minSimilarity / 100,
         filters.maxDaysOld ?? undefined,
       )
       setMatches(data.matches)
       prefetchJobDetailsTopN(data.matches.map((m) => m.job_uuid), 10)
       if (data.matches.length === 0) {
-        toast.info('No matches found. Try lowering the minimum score filter.')
+        toast.info('No matches found. Try adjusting your filters.')
       } else {
         toast.success(`Found ${data.matches.length} matches`)
       }
@@ -130,20 +128,6 @@ export default function TasteTab() {
           </div>
 
           <div className="mt-6 flex flex-wrap items-end gap-6 border-t border-slate-200 pt-6 dark:border-slate-700">
-            <div className="flex-1 min-w-[200px]">
-              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Min Match: <span className="font-semibold text-violet-600 dark:text-violet-400">{filters.minSimilarity}%</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={80}
-                step={5}
-                value={filters.minSimilarity}
-                onChange={(e) => setFilters({ ...filters, minSimilarity: parseInt(e.target.value) })}
-                className="w-full accent-violet-600"
-              />
-            </div>
             <div className="w-24">
               <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Results

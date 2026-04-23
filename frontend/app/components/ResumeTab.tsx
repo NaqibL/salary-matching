@@ -30,7 +30,6 @@ const TIER_OPTIONS = [
 ]
 
 interface Filters {
-  minSimilarity: number
   maxDaysOld: number | null
   roleClusters: number[]
   predictedTiers: string[]
@@ -49,7 +48,7 @@ export default function ResumeTab() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [computing, setComputing] = useState(false)
   const [ratingUuids, setRatingUuids] = useState<Set<string>>(new Set())
-  const [localFilters, setLocalFilters] = useState<Filters>({ minSimilarity: 0, maxDaysOld: null, roleClusters: [], predictedTiers: [], salaryMin: null, salaryMax: null })
+  const [localFilters, setLocalFilters] = useState<Filters>({ maxDaysOld: null, roleClusters: [], predictedTiers: [], salaryMin: null, salaryMax: null })
   const debouncedFilters = useDebouncedValue(localFilters, 300)
   const [roleTaxonomy, setRoleTaxonomy] = useState<Array<{ id: number; name: string }>>([])
 
@@ -93,7 +92,6 @@ export default function ResumeTab() {
           true,
           JOBS_PER_PAGE,
           offset,
-          debouncedFilters.minSimilarity / 100,
           debouncedFilters.maxDaysOld ?? undefined,
           true,
           append ? (sid ?? undefined) : undefined,
@@ -120,7 +118,7 @@ export default function ResumeTab() {
         setLoadingMore(false)
       }
     },
-    [debouncedFilters.minSimilarity, debouncedFilters.maxDaysOld, debouncedFilters.roleClusters, debouncedFilters.predictedTiers],
+    [debouncedFilters.maxDaysOld, debouncedFilters.roleClusters, debouncedFilters.predictedTiers],
   )
 
   useEffect(() => {
@@ -265,20 +263,6 @@ export default function ResumeTab() {
       <Card className="border-slate-200 dark:border-slate-700">
         <CardBody>
           <div className="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Min Match: <span className="font-semibold text-violet-600 dark:text-violet-400">{localFilters.minSimilarity}%</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={80}
-                step={5}
-                value={localFilters.minSimilarity}
-                onChange={(e) => setLocalFilters({ ...localFilters, minSimilarity: parseInt(e.target.value) })}
-                className="w-full accent-violet-600"
-              />
-            </div>
             <div className="w-32">
               <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Max Days Old

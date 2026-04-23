@@ -113,7 +113,6 @@ export const matchesApi = {
     excludeInteracted = true,
     topK = 25,
     offset = 0,
-    minSimilarity?: number,
     maxDaysOld?: number,
     excludeRatedOnly = true,
     sessionId?: string,
@@ -127,7 +126,6 @@ export const matchesApi = {
       offset: offset.toString(),
     })
     if (excludeRatedOnly) params.append('exclude_rated_only', 'true')
-    if (minSimilarity !== undefined) params.append('min_similarity', minSimilarity.toString())
     if (maxDaysOld != null && !Number.isNaN(maxDaysOld) && maxDaysOld > 0) {
       params.append('max_days_old', maxDaysOld.toString())
     }

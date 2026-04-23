@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
   const exclude_rated_only = searchParams.get('exclude_rated_only') ?? 'true'
   const top_k = searchParams.get('top_k') || '25'
   const offset = searchParams.get('offset') || '0'
-  const min_similarity = searchParams.get('min_similarity') ?? '0'
   const max_days_old = searchParams.get('max_days_old') ?? ''
   const session_id = searchParams.get('session_id') ?? ''
   const role_clusters = searchParams.getAll('role_cluster')
@@ -40,7 +39,6 @@ export async function GET(request: NextRequest) {
     exclude_rated_only,
     top_k,
     offset,
-    min_similarity,
   })
   if (max_days_old) params.set('max_days_old', max_days_old)
   if (session_id) params.set('session_id', session_id)
@@ -58,7 +56,6 @@ export async function GET(request: NextRequest) {
     exclude_rated_only,
     top_k,
     offset,
-    min_similarity,
     max_days_old,
     session_id,
     role_clusters.join(','),
