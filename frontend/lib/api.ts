@@ -156,11 +156,13 @@ export const matchesApi = {
   },
 }
 
-// Taxonomy API
+// Taxonomy API — proxied through Next.js to avoid direct browser→backend calls
 export const taxonomyApi = {
   getClusters: async (): Promise<Array<{ id: number; name: string }>> => {
-    const response = await api.get('/api/jobs/taxonomy')
-    return response.data.clusters
+    const res = await fetch('/api/taxonomy')
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.clusters ?? []
   },
 }
 
