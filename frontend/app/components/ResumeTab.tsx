@@ -261,7 +261,7 @@ export default function ResumeTab() {
         </CardBody>
       </Card>
 
-      <Card className="border-slate-200 dark:border-slate-700">
+      <Card className="overflow-visible border-slate-200 dark:border-slate-700">
         <CardBody>
           <div className="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end">
             <div className="w-32">
