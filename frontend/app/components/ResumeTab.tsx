@@ -8,6 +8,7 @@ import { useProfileContext } from './ProfileProvider'
 import { useRatingsQueue } from './RatingsQueueProvider'
 import type { Match } from '@/lib/types'
 import { MatchCard } from './JobCard'
+import { RoleClusterSelect } from './RoleClusterSelect'
 import {
   Card,
   CardBody,
@@ -321,42 +322,11 @@ export default function ResumeTab() {
 
           <div className="mt-6 flex flex-col gap-4 border-t border-slate-100 pt-5 dark:border-slate-700 sm:flex-row sm:gap-6">
               <div className="flex-1">
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Role Category
-                  {localFilters.roleClusters.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setLocalFilters({ ...localFilters, roleClusters: [] })}
-                      className="ml-2 text-xs font-normal text-violet-500 hover:text-violet-700"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {roleTaxonomy.map(({ id, name }) => {
-                    const selected = localFilters.roleClusters.includes(id)
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => {
-                          const next = selected
-                            ? localFilters.roleClusters.filter((c) => c !== id)
-                            : [...localFilters.roleClusters, id]
-                          setLocalFilters({ ...localFilters, roleClusters: next })
-                        }}
-                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                          selected
-                            ? 'bg-violet-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                        }`}
-                      >
-                        {name}
-                      </button>
-                    )
-                  })}
-                </div>
+                <RoleClusterSelect
+                  options={roleTaxonomy}
+                  selected={localFilters.roleClusters}
+                  onChange={(ids) => setLocalFilters({ ...localFilters, roleClusters: ids })}
+                />
               </div>
 
               <div className="sm:w-48">
