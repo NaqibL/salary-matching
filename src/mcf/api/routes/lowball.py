@@ -88,7 +88,7 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
             "salary_min": j.get("salary_min"),
             "salary_max": j.get("salary_max"),
             "is_active": j.get("is_active", True),
-            "description": raw_desc[:1500] if raw_desc else None,
+            "description": raw_desc or None,
             "similarity_score": round(uuid_to_score.get(j["job_uuid"], 0.0), 4),
         })
     result.sort(key=lambda x: x["similarity_score"], reverse=True)
