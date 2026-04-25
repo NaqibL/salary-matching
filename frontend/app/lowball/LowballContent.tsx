@@ -89,6 +89,7 @@ function SalaryBar({
 // ---------------------------------------------------------------------------
 
 function SimilarJobCard({ job }: { job: SimilarJob }) {
+  const [descExpanded, setDescExpanded] = useState(false)
   const fmt = (v: number) => `$${v.toLocaleString()}`
   const score = job.similarity_score
   const scorePct = (score * 100).toFixed(0)
@@ -170,11 +171,21 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
           </div>
         </div>
 
-        {/* Description snippet */}
+        {/* Description */}
         {job.description && (
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-            {job.description}
-          </p>
+          <div className="mt-3">
+            <p className={`text-sm text-slate-500 dark:text-slate-400 leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>
+              {job.description}
+            </p>
+            {job.description.length > 150 && (
+              <button
+                onClick={() => setDescExpanded(v => !v)}
+                className="mt-1 text-xs font-medium text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+              >
+                {descExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
