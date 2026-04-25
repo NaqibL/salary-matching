@@ -63,7 +63,8 @@ const tools = [
 ]
 
 function HeroSalaryChecker() {
-  const [jobDesc, setJobDesc] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [salary, setSalary] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<LowballResult | null>(null)
@@ -77,7 +78,7 @@ function HeroSalaryChecker() {
     setLoading(true)
     try {
       const salaryValue = salary ? parseInt(salary, 10) : undefined
-      const data = await lowballApi.check(jobDesc, salaryValue)
+      const data = await lowballApi.check(title, description, salaryValue)
       setResult(data)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -115,18 +116,26 @@ function HeroSalaryChecker() {
           </h1>
         </div>
         <p className="mb-6 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-          Paste a job description to see the pay range from live Singapore listings. Optionally enter an offer to see where you stand.
+          Enter a job title and description to see the pay range from live Singapore listings. Optionally enter an offer to see where you stand.
         </p>
 
         {!result ? (
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder="Job title, e.g. Senior Software Engineer"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
             <textarea
-              value={jobDesc}
-              onChange={(e) => setJobDesc(e.target.value)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={3}
               required
               minLength={20}
-              placeholder="e.g. Senior Software Engineer — We are looking for…"
+              placeholder="Paste the job description here…"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y"
             />
             <div className="flex items-center gap-3 flex-wrap">
@@ -185,7 +194,7 @@ function HeroSalaryChecker() {
                 See full analysis <ArrowRight className="size-3" />
               </Link>
               <button
-                onClick={() => { setResult(null); setSalary('') }}
+                onClick={() => { setResult(null); setTitle(''); setDescription(''); setSalary('') }}
                 className="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               >
                 ← Check another

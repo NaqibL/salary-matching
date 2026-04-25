@@ -302,7 +302,8 @@ export const dashboardApi = {
 
 export const lowballApi = {
   check: async (
-    jobDescription: string,
+    title: string,
+    description: string,
     salary?: number,
     topK = 20,
   ): Promise<LowballResult> => {
@@ -315,7 +316,8 @@ export const lowballApi = {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        job_description: jobDescription,
+        title,
+        description,
         salary: salary ?? null,
         top_k: topK,
       }),
@@ -330,7 +332,8 @@ export const lowballApi = {
 
 export const salaryApi = {
   search: async (
-    jobDescription: string,
+    title: string,
+    description: string,
     salaryMin?: number,
     salaryMax?: number,
     topK = 25,
@@ -345,7 +348,8 @@ export const salaryApi = {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        job_description: jobDescription,
+        title,
+        description,
         salary_min: salaryMin ?? null,
         salary_max: salaryMax ?? null,
         top_k: topK,

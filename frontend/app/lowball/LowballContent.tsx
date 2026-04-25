@@ -1,23 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { lowballApi, salaryApi } from '@/lib/api'
-import type { LowballResult, SimilarJob, SalarySearchJob } from '@/lib/types'
+import { lowballApi } from '@/lib/api'
+import type { LowballResult, SimilarJob } from '@/lib/types'
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
 import { Input } from '@/components/ui/input'
 import {
   Scale,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
   Loader2,
   CheckCircle2,
   FileText,
   TrendingUp,
   Search,
-  MapPin,
   Building2,
 } from 'lucide-react'
 
@@ -86,171 +83,88 @@ function SalaryBar({
 }
 
 // ---------------------------------------------------------------------------
-// Similar jobs table
+// Similar job card
 // ---------------------------------------------------------------------------
 
-function SimilarJobsTable({ jobs }: { jobs: SimilarJob[] }) {
-  const [open, setOpen] = useState(false)
-  const fmt = (v: number | null) => (v != null ? `$${v.toLocaleString()}` : '—')
+function SimilarJobCard({ job }: { job: SimilarJob }) {
+  const fmt = (v: number) => `$${v.toLocaleString()}`
+  const score = job.similarity_score
+  const scorePct = (score * 100).toFixed(0)
+
+  const scoreCls =
+    score >= 0.75
+      ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800'
+      : score >= 0.55
+        ? 'bg-amber-500/10 text-amber-700 border-amber-200 dark:text-amber-400 dark:border-amber-800'
+        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600'
+
+  const ringCls =
+    score >= 0.75
+      ? 'ring-1 ring-emerald-200/50 dark:ring-emerald-800/50'
+      : score >= 0.55
+        ? 'ring-1 ring-amber-200/50 dark:ring-amber-800/50'
+        : ''
+
+  const salaryText =
+    job.salary_min != null && job.salary_max != null
+      ? `${fmt(job.salary_min)} – ${fmt(job.salary_max)}/mo`
+      : job.salary_min != null
+        ? `From ${fmt(job.salary_min)}/mo`
+        : job.salary_max != null
+          ? `Up to ${fmt(job.salary_max)}/mo`
+          : null
 
   return (
-    <div className="mt-4">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-      >
-        {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        {open ? 'Hide' : 'Show'} similar jobs ({jobs.length})
-      </button>
-
-      {open && (
-        <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-              <tr>
-                <th className="px-3 py-2 text-left">Title</th>
-                <th className="px-3 py-2 text-left">Company</th>
-                <th className="px-3 py-2 text-right">Salary range</th>
-                <th className="px-3 py-2 text-right">Similarity</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {jobs.map((j) => (
-                <tr key={j.job_uuid} className="bg-white dark:bg-slate-900">
-                  <td className="px-3 py-2 max-w-xs">
-                    {j.job_url ? (
-                      <a
-                        href={j.job_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline truncate"
-                      >
-                        {j.title}
-                        <ExternalLink className="w-3 h-3 shrink-0" />
-                      </a>
-                    ) : (
-                      <span className="truncate">{j.title}</span>
-                    )}
-                    {j.is_active === false && (
-                      <span className="ml-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
-                        Expired
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-400 truncate max-w-[140px]">
-                    {j.company_name ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                    {j.salary_min != null
-                      ? j.salary_max != null
-                        ? `${fmt(j.salary_min)} – ${fmt(j.salary_max)}`
-                        : fmt(j.salary_min)
-                      : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right text-slate-500 dark:text-slate-400">
-                    {(j.similarity_score * 100).toFixed(1)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Jobs in salary range panel
-// ---------------------------------------------------------------------------
-
-function JobsInRangePanel({
-  jobDesc,
-  salaryMin,
-  salaryMax,
-}: {
-  jobDesc: string
-  salaryMin: number
-  salaryMax: number
-}) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [jobs, setJobs] = useState<SalarySearchJob[]>([])
-  const [fetched, setFetched] = useState(false)
-  const fmt = (v: number | null) => (v != null ? `$${v.toLocaleString()}` : '—')
-
-  const load = async () => {
-    if (fetched) { setOpen(true); return }
-    setOpen(true)
-    setLoading(true)
-    try {
-      const res = await salaryApi.search(jobDesc, salaryMin, salaryMax, 10)
-      setJobs(res.jobs)
-      setFetched(true)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Card>
-      <CardBody>
-        <button
-          onClick={open ? () => setOpen(false) : load}
-          className="flex items-center gap-2 text-sm font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300"
-        >
-          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          Find jobs in this salary range ({fmt(salaryMin)}–{fmt(salaryMax)})
-        </button>
-
-        {open && (
-          <div className="mt-4">
-            {loading ? (
-              <div className="flex items-center gap-2 text-sm text-slate-500 py-4">
-                <Loader2 className="w-4 h-4 animate-spin" /> Searching similar active listings…
-              </div>
-            ) : jobs.length === 0 ? (
-              <p className="text-sm text-slate-500 py-4">No active jobs found in this salary range.</p>
+    <div
+      className={`rounded-xl border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all ${ringCls}`}
+    >
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            {job.job_url ? (
+              <a
+                href={job.job_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-base font-semibold text-slate-900 hover:text-indigo-600 transition-colors line-clamp-2 dark:text-slate-100 dark:hover:text-indigo-400"
+              >
+                {job.title}
+                <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-50" />
+              </a>
             ) : (
-              <div className="space-y-3">
-                {jobs.map((j) => (
-                  <div key={j.job_uuid} className="flex items-start justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-700 last:border-0">
-                    <div className="flex-1 min-w-0">
-                      {j.job_url ? (
-                        <a
-                          href={j.job_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline truncate"
-                        >
-                          {j.title} <ExternalLink className="w-3 h-3 shrink-0" />
-                        </a>
-                      ) : (
-                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate block">{j.title}</span>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                        {j.company_name && (
-                          <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{j.company_name}</span>
-                        )}
-                        {j.location && (
-                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{j.location}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                      <div className="font-medium text-violet-700 dark:text-violet-300">
-                        {j.salary_min != null ? (j.salary_max != null ? `${fmt(j.salary_min)}–${fmt(j.salary_max)}` : fmt(j.salary_min)) : '—'}
-                      </div>
-                      <div className="text-slate-400">{(j.similarity_score * 100).toFixed(0)}% match</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <span className="text-base font-semibold text-slate-900 dark:text-slate-100 line-clamp-2 block">
+                {job.title}
+              </span>
             )}
+
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {job.company_name && (
+                <span className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+                  <Building2 className="w-3.5 h-3.5 shrink-0" />
+                  {job.company_name}
+                </span>
+              )}
+              {salaryText ? (
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                  {salaryText}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400 dark:text-slate-500 italic">No salary listed</span>
+              )}
+              {job.is_active === false && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+                  Expired
+                </span>
+              )}
+            </div>
           </div>
-        )}
-      </CardBody>
-    </Card>
+
+          <div className={`shrink-0 px-3 py-1.5 rounded-full border text-sm font-semibold tabular-nums ${scoreCls}`}>
+            {scorePct}% match
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -299,8 +213,8 @@ const HOW_IT_WORKS = [
   {
     icon: FileText,
     step: '1',
-    title: 'Paste the job title and description',
-    detail: 'Include the full JD so we can find the most similar active roles.',
+    title: 'Enter the job title and description',
+    detail: 'Enter the title and paste the full JD so we can find the most similar active roles.',
   },
   {
     icon: TrendingUp,
@@ -374,7 +288,8 @@ type PageState = 'form' | 'loading' | 'result'
 
 export function LowballContent() {
   const [state, setState] = useState<PageState>('form')
-  const [jobDesc, setJobDesc] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [salary, setSalary] = useState('')
   const [result, setResult] = useState<LowballResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -385,7 +300,7 @@ export function LowballContent() {
     setState('loading')
     try {
       const salaryValue = salary ? parseInt(salary, 10) : undefined
-      const data = await lowballApi.check(jobDesc, salaryValue)
+      const data = await lowballApi.check(title, description, salaryValue)
       setResult(data)
       setState('result')
     } catch (err: unknown) {
@@ -398,6 +313,9 @@ export function LowballContent() {
     setState('form')
     setResult(null)
     setError(null)
+    setTitle('')
+    setDescription('')
+    setSalary('')
   }
 
   const fmt = (v: number) => `$${v.toLocaleString()}`
@@ -417,7 +335,7 @@ export function LowballContent() {
         </div>
         <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
           Explore the pay range for any role in Singapore — powered by live MCF data.
-          Enter a job description to see market rates, or add an offered salary to check if you're being lowballed.
+          Enter the job title and description to see market rates, or add an offered salary to check if you're being lowballed.
         </p>
       </div>
 
@@ -430,18 +348,28 @@ export function LowballContent() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Job title and description
+                    Job title
                   </label>
-                  <p className="mb-2 text-xs text-slate-400 dark:text-slate-500">
-                    Include the job title and full description for the most accurate results.
-                  </p>
+                  <Input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    placeholder="e.g. Senior Software Engineer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Job description
+                  </label>
                   <textarea
-                    value={jobDesc}
-                    onChange={(e) => setJobDesc(e.target.value)}
-                    rows={9}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={8}
                     required
                     minLength={20}
-                    placeholder="e.g. Senior Software Engineer — We are looking for…"
+                    placeholder="Paste the full job description here…"
                     className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y leading-relaxed"
                   />
                 </div>
@@ -588,22 +516,18 @@ export function LowballContent() {
               </p>
             )}
 
-            {/* Jobs in salary range */}
-            {hasMarketData && result.market_p25 != null && result.market_p75 != null && (
-              <JobsInRangePanel
-                jobDesc={jobDesc}
-                salaryMin={result.market_p25}
-                salaryMax={result.market_p75}
-              />
-            )}
-
             {/* Similar jobs */}
             {result.similar_jobs.length > 0 && (
-              <Card>
-                <CardBody>
-                  <SimilarJobsTable jobs={result.similar_jobs} />
-                </CardBody>
-              </Card>
+              <div>
+                <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                  {result.similar_jobs.length} similar role{result.similar_jobs.length !== 1 ? 's' : ''}
+                </h2>
+                <div className="space-y-3">
+                  {result.similar_jobs.map((job) => (
+                    <SimilarJobCard key={job.job_uuid} job={job} />
+                  ))}
+                </div>
+              </div>
             )}
 
             <button

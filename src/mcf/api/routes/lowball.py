@@ -9,9 +9,11 @@ from pydantic import BaseModel
 
 from mcf.api.auth import get_optional_user
 from mcf.api.deps import get_embedder, get_store
-from mcf.lib.embeddings.job_text import structure_salary_query
+from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
 
 router = APIRouter()
+
+_cleaner = make_openrouter_cleaner_from_env()
 
 
 # ---------------------------------------------------------------------------
@@ -20,7 +22,8 @@ router = APIRouter()
 
 
 class LowballCheckRequest(BaseModel):
-    job_description: str
+    title: str
+    description: str
     salary: int | None = None  # single optional salary value (SGD/month)
     top_k: int = 20
 
@@ -38,12 +41,12 @@ class LowballResult(BaseModel):
 
 
 class SalarySearchRequest(BaseModel):
-    job_description: str
+    title: str
+    description: str
     salary_min: int | None = None
     salary_max: int | None = None
     top_k: int = 25
     offset: int = 0
-    structured_query: bool = True
 
 
 class SalarySearchJob(BaseModel):
@@ -102,7 +105,9 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
     """Check if an offered salary is competitive for a described role."""
     store = get_store()
     embedder = get_embedder()
-    vector = embedder.embed_text(body.job_description)
+    cleaned = _cleaner.clean(body.description, body.title) if _cleaner else body.description
+    job_text = f"Job Title: {body.title}\nDescription: {cleaned}"
+    vector = embedder.embed_text(job_text)
 
     ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
@@ -165,8 +170,9 @@ def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optiona
     """Semantic job search filtered by salary range."""
     store = get_store()
     embedder = get_embedder()
-    query_text = structure_salary_query(body.job_description) if body.structured_query else body.job_description
-    vector = embedder.embed_text(query_text)
+    cleaned = _cleaner.clean(body.description, body.title) if _cleaner else body.description
+    job_text = f"Job Title: {body.title}\nDescription: {cleaned}"
+    vector = embedder.embed_text(job_text)
 
     # All embedded jobs (active + inactive) — for richer percentile calculation
     ranked_all = store.get_all_embedded_job_ids_ranked(vector)
