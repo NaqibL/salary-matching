@@ -75,19 +75,24 @@ class SalarySearchResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float]) -> list[dict]:
-    return [
-        {
+def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k: int) -> list[dict]:
+    result = []
+    for j in jobs:
+        raw_desc = j.get("description") or ""
+        result.append({
             "job_uuid": j["job_uuid"],
             "title": j["title"],
-            "company_name": j["company_name"],
+            "company_name": j.get("company_name"),
+            "location": j.get("location"),
             "job_url": j.get("job_url"),
             "salary_min": j.get("salary_min"),
             "salary_max": j.get("salary_max"),
+            "is_active": j.get("is_active", True),
+            "description": raw_desc[:300] if raw_desc else None,
             "similarity_score": round(uuid_to_score.get(j["job_uuid"], 0.0), 4),
-        }
-        for j in jobs
-    ]
+        })
+    result.sort(key=lambda x: x["similarity_score"], reverse=True)
+    return result[:top_k]
 
 
 def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
@@ -116,7 +121,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
 
     jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()))
     salary_jobs = [j for j in jobs if j.get("salary_min") is not None]
-    similar = _build_similar_jobs(jobs[:body.top_k], uuid_to_score)
+    similar = _build_similar_jobs(jobs, uuid_to_score, body.top_k)
 
     # Compute market percentiles regardless of whether salary was provided
     if len(salary_jobs) < 5:

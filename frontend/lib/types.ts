@@ -70,11 +70,13 @@ export interface SimilarJob {
   job_uuid: string
   title: string
   company_name: string | null
+  location: string | null
   job_url: string | null
   salary_min: number | null
   salary_max: number | null
   similarity_score: number
   is_active?: boolean
+  description?: string | null
 }
 
 export interface SalarySearchJob {
