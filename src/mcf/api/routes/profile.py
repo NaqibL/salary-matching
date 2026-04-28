@@ -159,6 +159,21 @@ def compute_taste(user_id: str = Depends(get_current_user)):
 # ---------------------------------------------------------------------------
 
 
+def _llm_preprocess_resume(raw_text: str) -> str | None:
+    from mcf.lib.embeddings.llm_resume_cleaner import make_resume_cleaner_from_env
+
+    cleaner = make_resume_cleaner_from_env()
+    if cleaner is None:
+        return None
+    # Strip PII before sending to external API, then cap size
+    sanitized = preprocess_resume_text(raw_text)[:15_000]
+    try:
+        return cleaner.clean(sanitized)
+    except Exception:
+        logging.warning("LLM resume cleaning failed, falling back to heuristic")
+        return None
+
+
 def _process_resume_text(
     store: Storage, user_id: str, resume_text: str, storage_path: str | None = None
 ) -> dict:
@@ -182,7 +197,7 @@ def _process_resume_text(
             store.update_profile(profile_id=profile_id, resume_storage_path=storage_path)
 
     embedder = get_embedder()
-    preprocessed = preprocess_resume_text(resume_text)
+    preprocessed = _llm_preprocess_resume(resume_text) or preprocess_resume_text(resume_text)
     try:
         embedding = embedder.embed_resume(preprocessed)
     except Exception as e:
