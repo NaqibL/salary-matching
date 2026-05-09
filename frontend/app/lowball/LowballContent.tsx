@@ -352,7 +352,9 @@ export function LowballContent() {
   const selectedCompany = companies.includes(companyInput) ? companyInput : ''
 
   useEffect(() => {
-    companiesApi.list().then(setCompanies).catch(() => {})
+    companiesApi.list()
+      .then(list => { console.log('[companies] loaded', list.length); setCompanies(list) })
+      .catch(err => console.error('[companies] failed to load', err))
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -430,12 +432,13 @@ export function LowballContent() {
                       <span className="font-normal text-slate-400">(optional)</span>
                     </label>
                     <div className="relative">
-                      <Input
+                      <input
                         type="text"
                         list="company-datalist"
                         value={companyInput}
                         onChange={(e) => setCompanyInput(e.target.value)}
                         placeholder="e.g. Google"
+                        className="h-8 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                       />
                       {companyInput && (
                         <button
