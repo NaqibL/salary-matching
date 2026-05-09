@@ -110,4 +110,5 @@ export interface LowballResult {
   salary_coverage: number
   total_matched: number
   similar_jobs: SimilarJob[]
+  company_similar_jobs?: SimilarJob[] | null
 }

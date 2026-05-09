@@ -1739,6 +1739,19 @@ class DuckDBStore(Storage):
         cols = ["job_uuid", "title", "company_name", "location", "job_url", "salary_min", "salary_max", "last_seen_at", "is_active", "description"]
         return [dict(zip(cols, row)) for row in rows]
 
+    def get_distinct_companies(self) -> list[str]:
+        rows = self._con.execute(
+            "SELECT DISTINCT company_name FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL ORDER BY company_name"
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
+        rows = self._con.execute(
+            "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND company_name = ?",
+            [company_name],
+        ).fetchall()
+        return {r[0] for r in rows}
+
     def upsert_taste_embedding(self, *, profile_id: str, model_name: str, embedding: Sequence[float]) -> None:
         """Store a taste-profile embedding.
 

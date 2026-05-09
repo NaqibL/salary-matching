@@ -5,7 +5,7 @@ from __future__ import annotations
 from statistics import quantiles as _quantiles
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from mcf.api.auth import get_optional_user
 from mcf.api.deps import get_embedder, get_store
@@ -22,10 +22,11 @@ _cleaner = make_openrouter_cleaner_from_env()
 
 
 class LowballCheckRequest(BaseModel):
-    title: str
-    description: str
-    salary: int | None = None  # single optional salary value (SGD/month)
-    top_k: int = 20
+    title: str = Field(max_length=500)
+    description: str = Field(max_length=20_000)
+    salary: int | None = Field(default=None, ge=0, le=500_000)
+    top_k: int = Field(default=20, ge=1, le=100)
+    company_name: str | None = Field(default=None, max_length=200)
 
 
 class LowballResult(BaseModel):
@@ -38,6 +39,7 @@ class LowballResult(BaseModel):
     salary_coverage: int
     total_matched: int
     similar_jobs: list[dict]
+    company_similar_jobs: list[dict] | None = None
 
 
 class SalarySearchRequest(BaseModel):
@@ -116,6 +118,17 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
 
     ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
+    # Company-specific results (computed before early returns so all branches can include it)
+    company_similar_jobs = None
+    if body.company_name:
+        company_uuids = store.get_active_job_uuids_by_company(body.company_name)
+        company_ranked = [(uuid, dist) for uuid, dist, _ in ranked if uuid in company_uuids][: body.top_k]
+        if company_ranked:
+            c_uuids = [uuid for uuid, _ in company_ranked]
+            c_scores = {uuid: round(1.0 - dist, 4) for uuid, dist in company_ranked}
+            c_jobs = store.get_jobs_with_salary_by_uuids(c_uuids)
+            company_similar_jobs = _build_similar_jobs(c_jobs, c_scores, body.top_k)
+
     top_slice = ranked[: body.top_k * 5]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
 
@@ -129,7 +142,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
             verdict="insufficient_data", offered_salary=body.salary,
             percentile=None, market_p25=None, market_p50=None, market_p75=None,
             salary_coverage=len(salary_jobs), total_matched=len(jobs),
-            similar_jobs=similar,
+            similar_jobs=similar, company_similar_jobs=company_similar_jobs,
         )
 
     salaries = sorted(j["salary_min"] for j in salary_jobs)
@@ -141,7 +154,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
             verdict="market_data", offered_salary=None,
             percentile=None, market_p25=p25, market_p50=p50, market_p75=p75,
             salary_coverage=len(salary_jobs), total_matched=len(jobs),
-            similar_jobs=similar,
+            similar_jobs=similar, company_similar_jobs=company_similar_jobs,
         )
 
     # Salary provided — compute verdict and percentile
@@ -161,7 +174,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
         verdict=verdict, offered_salary=offered, percentile=percentile,
         market_p25=p25, market_p50=p50, market_p75=p75,
         salary_coverage=len(salary_jobs), total_matched=len(jobs),
-        similar_jobs=similar,
+        similar_jobs=similar, company_similar_jobs=company_similar_jobs,
     )
 
 

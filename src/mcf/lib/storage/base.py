@@ -385,6 +385,16 @@ class Storage(ABC):
     def get_jobs_with_salary_by_uuids(self, job_uuids: list[str]) -> list[dict]:
         """Return job_uuid, title, company_name, job_url, salary_min, salary_max for given UUIDs."""
 
+    @abstractmethod
+    def get_distinct_companies(self) -> list[str]:
+        """Return sorted list of distinct company_name values from active jobs."""
+        ...
+
+    @abstractmethod
+    def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
+        """Return UUIDs of all active jobs from the given company."""
+        ...
+
     def reset_profile_ratings(self, user_id: str) -> dict:
         """Reset job interactions and taste profile for a user (for testing).
         Returns counts of deleted rows. Override in store implementations."""

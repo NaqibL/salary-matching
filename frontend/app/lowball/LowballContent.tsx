@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { lowballApi } from '@/lib/api'
+import { useState, useEffect, useRef } from 'react'
+import { lowballApi, companiesApi } from '@/lib/api'
 import type { LowballResult, SimilarJob } from '@/lib/types'
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
@@ -18,6 +18,7 @@ import {
   Building2,
   MapPin,
   Clock,
+  X,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -190,7 +191,7 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
       </div>
 
       {/* Footer */}
-      {isActive && job.job_url ? (
+      {isActive && job.job_url?.startsWith('https://') ? (
         <div className="border-t border-slate-100 dark:border-slate-700">
           <a
             href={job.job_url}
@@ -342,14 +343,60 @@ export function LowballContent() {
   const [result, setResult] = useState<LowballResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Company autocomplete
+  const [companies, setCompanies] = useState<string[]>([])
+  const [companyInput, setCompanyInput] = useState('')
+  const [selectedCompany, setSelectedCompany] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'company'>('all')
+  const companyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    companiesApi.list().then(setCompanies).catch(() => {})
+  }, [])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (companyRef.current && !companyRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filteredCompanies = companyInput
+    ? companies.filter(c => c.toLowerCase().includes(companyInput.toLowerCase())).slice(0, 8)
+    : []
+
+  const handleCompanyInput = (value: string) => {
+    setCompanyInput(value)
+    setSelectedCompany('')
+    setShowDropdown(value.length > 0)
+  }
+
+  const handleCompanySelect = (company: string) => {
+    setCompanyInput(company)
+    setSelectedCompany(company)
+    setShowDropdown(false)
+  }
+
+  const clearCompany = () => {
+    setCompanyInput('')
+    setSelectedCompany('')
+    setShowDropdown(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setState('loading')
     try {
       const salaryValue = salary ? parseInt(salary, 10) : undefined
-      const data = await lowballApi.check(title, description, salaryValue)
+      const data = await lowballApi.check(title, description, salaryValue, selectedCompany || undefined)
       setResult(data)
+      setActiveTab('all')
       setState('result')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -364,6 +411,9 @@ export function LowballContent() {
     setTitle('')
     setDescription('')
     setSalary('')
+    setCompanyInput('')
+    setSelectedCompany('')
+    setActiveTab('all')
   }
 
   const fmt = (v: number) => `$${v.toLocaleString()}`
@@ -394,17 +444,66 @@ export function LowballContent() {
           <Card>
             <CardBody>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Job title
-                  </label>
-                  <Input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
-                    placeholder="e.g. Senior Software Engineer"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Job title
+                    </label>
+                    <Input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                      placeholder="e.g. Senior Software Engineer"
+                    />
+                  </div>
+
+                  <div ref={companyRef} className="relative">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Company{' '}
+                      <span className="font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        value={companyInput}
+                        onChange={(e) => handleCompanyInput(e.target.value)}
+                        onFocus={() => companyInput.length > 0 && setShowDropdown(true)}
+                        placeholder="e.g. Google"
+                        autoComplete="off"
+                      />
+                      {companyInput && (
+                        <button
+                          type="button"
+                          onClick={clearCompany}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {showDropdown && filteredCompanies.length > 0 && (
+                      <ul className="absolute z-10 mt-1 w-full max-h-52 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg">
+                        {filteredCompanies.map((company) => (
+                          <li key={company}>
+                            <button
+                              type="button"
+                              onMouseDown={() => handleCompanySelect(company)}
+                              className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                            >
+                              {company}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {selectedCompany && (
+                      <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <Building2 className="w-3 h-3" />
+                        Company tab will appear in results
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -564,25 +663,68 @@ export function LowballContent() {
               </p>
             )}
 
-            {/* Similar jobs */}
+            {/* Similar jobs — single list or tabbed when company results are available */}
             {result.similar_jobs.length > 0 && (() => {
-              const activeCount = result.similar_jobs.filter(j => j.is_active !== false).length
-              const totalCount = result.similar_jobs.length
+              const hasCompanyTab = result.company_similar_jobs != null
+              const displayJobs = hasCompanyTab && activeTab === 'company'
+                ? result.company_similar_jobs!
+                : result.similar_jobs
+              const activeCount = displayJobs.filter(j => j.is_active !== false).length
+              const totalCount = displayJobs.length
+
               return (
                 <div>
-                  <div className="flex items-baseline gap-2 mb-3">
+                  <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
                     <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300">
                       Similar roles
                     </h2>
-                    <span className="text-sm text-slate-400 dark:text-slate-500">
+                    {hasCompanyTab ? (
+                      <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('all')}
+                          className={`px-3 py-1.5 font-medium transition-colors ${
+                            activeTab === 'all'
+                              ? 'bg-indigo-600 text-white'
+                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          All matches
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('company')}
+                          className={`px-3 py-1.5 font-medium transition-colors border-l border-slate-200 dark:border-slate-700 ${
+                            activeTab === 'company'
+                              ? 'bg-indigo-600 text-white'
+                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {selectedCompany || 'Company'} roles
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400 dark:text-slate-500">
+                        {activeCount} active · {totalCount - activeCount} historical
+                      </span>
+                    )}
+                  </div>
+                  {hasCompanyTab && (
+                    <p className="mb-3 text-sm text-slate-400 dark:text-slate-500">
                       {activeCount} active · {totalCount - activeCount} historical
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    {result.similar_jobs.map((job) => (
-                      <SimilarJobCard key={job.job_uuid} job={job} />
-                    ))}
-                  </div>
+                    </p>
+                  )}
+                  {displayJobs.length > 0 ? (
+                    <div className="space-y-3">
+                      {displayJobs.map((job) => (
+                        <SimilarJobCard key={job.job_uuid} job={job} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400 dark:text-slate-500 py-4 text-center">
+                      No active listings found for {selectedCompany} matching this role.
+                    </p>
+                  )}
                 </div>
               )
             })()}

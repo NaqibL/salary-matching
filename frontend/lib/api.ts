@@ -305,6 +305,7 @@ export const lowballApi = {
     title: string,
     description: string,
     salary?: number,
+    companyName?: string,
     topK = 20,
   ): Promise<LowballResult> => {
     const { data } = await supabase.auth.getSession()
@@ -319,6 +320,7 @@ export const lowballApi = {
         title,
         description,
         salary: salary ?? null,
+        company_name: companyName ?? null,
         top_k: topK,
       }),
     })
@@ -326,6 +328,14 @@ export const lowballApi = {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.detail || 'Lowball check failed')
     }
+    return res.json()
+  },
+}
+
+export const companiesApi = {
+  list: async (): Promise<string[]> => {
+    const res = await fetch('/api/companies')
+    if (!res.ok) return []
     return res.json()
   },
 }

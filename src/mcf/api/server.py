@@ -14,7 +14,7 @@ from fastapi import HTTPException
 
 from mcf.api.config import settings
 from mcf.api.deps import _make_store, close_store, set_embedder, set_store
-from mcf.api.routes import admin, dashboard, jobs, lowball, matches, profile
+from mcf.api.routes import admin, companies, dashboard, jobs, lowball, matches, profile
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +95,7 @@ app.include_router(profile.router)
 app.include_router(matches.router)
 app.include_router(admin.router)
 app.include_router(lowball.router)
+app.include_router(companies.router)
 
 
 # ---------------------------------------------------------------------------
