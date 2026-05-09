@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export async function GET() {
-  const res = await fetch(`${API_BASE_URL}/api/companies`)
+  const res = await fetch(`${API_BASE_URL}/api/companies`, { cache: 'no-store' })
   if (!res.ok) {
     return NextResponse.json([], { status: 200 })
   }
