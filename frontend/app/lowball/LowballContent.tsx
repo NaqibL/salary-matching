@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { lowballApi, companiesApi } from '@/lib/api'
 import type { LowballResult, SimilarJob } from '@/lib/types'
 import { Layout } from '../components/layout'
@@ -346,47 +346,14 @@ export function LowballContent() {
   // Company autocomplete
   const [companies, setCompanies] = useState<string[]>([])
   const [companyInput, setCompanyInput] = useState('')
-  const [selectedCompany, setSelectedCompany] = useState('')
-  const [showDropdown, setShowDropdown] = useState(false)
   const [activeTab, setActiveTab] = useState<'all' | 'company'>('all')
-  const companyRef = useRef<HTMLDivElement>(null)
+
+  // selectedCompany is valid only when the typed value exactly matches a DB company
+  const selectedCompany = companies.includes(companyInput) ? companyInput : ''
 
   useEffect(() => {
     companiesApi.list().then(setCompanies).catch(() => {})
   }, [])
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (companyRef.current && !companyRef.current.contains(e.target as Node)) {
-        setShowDropdown(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  const filteredCompanies = companyInput
-    ? companies.filter(c => c.toLowerCase().includes(companyInput.toLowerCase())).slice(0, 8)
-    : []
-
-  const handleCompanyInput = (value: string) => {
-    setCompanyInput(value)
-    setSelectedCompany('')
-    setShowDropdown(value.length > 0)
-  }
-
-  const handleCompanySelect = (company: string) => {
-    setCompanyInput(company)
-    setSelectedCompany(company)
-    setShowDropdown(false)
-  }
-
-  const clearCompany = () => {
-    setCompanyInput('')
-    setSelectedCompany('')
-    setShowDropdown(false)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -412,7 +379,6 @@ export function LowballContent() {
     setDescription('')
     setSalary('')
     setCompanyInput('')
-    setSelectedCompany('')
     setActiveTab('all')
   }
 
@@ -458,7 +424,7 @@ export function LowballContent() {
                     />
                   </div>
 
-                  <div ref={companyRef} className="relative">
+                  <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       Company{' '}
                       <span className="font-normal text-slate-400">(optional)</span>
@@ -466,37 +432,25 @@ export function LowballContent() {
                     <div className="relative">
                       <Input
                         type="text"
+                        list="company-datalist"
                         value={companyInput}
-                        onChange={(e) => handleCompanyInput(e.target.value)}
-                        onFocus={() => companyInput.length > 0 && setShowDropdown(true)}
+                        onChange={(e) => setCompanyInput(e.target.value)}
                         placeholder="e.g. Google"
                         autoComplete="off"
                       />
                       {companyInput && (
                         <button
                           type="button"
-                          onClick={clearCompany}
+                          onClick={() => setCompanyInput('')}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
-                    {showDropdown && filteredCompanies.length > 0 && (
-                      <ul className="absolute z-10 mt-1 w-full max-h-52 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg">
-                        {filteredCompanies.map((company) => (
-                          <li key={company}>
-                            <button
-                              type="button"
-                              onMouseDown={() => handleCompanySelect(company)}
-                              className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
-                            >
-                              {company}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <datalist id="company-datalist">
+                      {companies.map(c => <option key={c} value={c} />)}
+                    </datalist>
                     {selectedCompany && (
                       <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                         <Building2 className="w-3 h-3" />
