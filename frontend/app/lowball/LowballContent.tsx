@@ -436,7 +436,6 @@ export function LowballContent() {
                         value={companyInput}
                         onChange={(e) => setCompanyInput(e.target.value)}
                         placeholder="e.g. Google"
-                        autoComplete="off"
                       />
                       {companyInput && (
                         <button
