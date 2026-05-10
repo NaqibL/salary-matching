@@ -204,7 +204,6 @@ def run_incremental_crawl(
                         print(f"Warning: job classification failed, skipping: {e}")
 
         store.update_daily_stats(run.run_id)
-        store.delete_inactive_job_embeddings()
         store.finish_run(
             run.run_id,
             total_seen=len(seen_set),
