@@ -123,6 +123,16 @@ class Storage(ABC):
         """Set the description field for a single job row."""
         raise NotImplementedError
 
+    def update_llm_extracted_fields(
+        self,
+        job_uuid: str,
+        *,
+        min_years_experience: int | None,
+        llm_fields_json: dict | None,
+    ) -> None:
+        """Persist LLM-extracted fields for a job. Called by the embedder after the LLM pass."""
+        raise NotImplementedError
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return MCF job UUIDs where categories_json is NULL or empty (need backfill).
         Used by backfill-rich-fields to populate rich metadata from the MCF API."""

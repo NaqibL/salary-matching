@@ -36,6 +36,17 @@ class PostgresStore(Storage):
             maxconn=8,
             dsn=database_url,
         )
+        self.ensure_schema()
+
+    def ensure_schema(self) -> None:
+        """Add new columns to existing tables if they don't exist yet."""
+        migrations = [
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS min_years_experience INTEGER",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS llm_fields_json TEXT",
+        ]
+        with self._cur() as cur:
+            for ddl in migrations:
+                cur.execute(ddl)
 
     def close(self) -> None:
         self._pool.closeall()
@@ -170,6 +181,19 @@ class PostgresStore(Storage):
     def update_job_description(self, job_uuid: str, description: str) -> None:
         with self._cur() as cur:
             cur.execute("UPDATE jobs SET description = %s WHERE job_uuid = %s", [description, job_uuid])
+
+    def update_llm_extracted_fields(
+        self,
+        job_uuid: str,
+        *,
+        min_years_experience: int | None,
+        llm_fields_json: dict | None,
+    ) -> None:
+        with self._cur() as cur:
+            cur.execute(
+                "UPDATE jobs SET min_years_experience = %s, llm_fields_json = %s WHERE job_uuid = %s",
+                [min_years_experience, json.dumps(llm_fields_json) if llm_fields_json else None, job_uuid],
+            )
 
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return job UUIDs where categories_json is NULL or empty."""
@@ -661,7 +685,7 @@ class PostgresStore(Storage):
     def get_all_active_jobs(self) -> list[dict]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid, title, skills_json, position_levels_json, description"
+                "SELECT job_uuid, title, skills_json, position_levels_json, description, min_years_experience"
                 " FROM jobs WHERE is_active = TRUE"
             )
             rows = cur.fetchall()
@@ -672,6 +696,7 @@ class PostgresStore(Storage):
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
                 "description": r[4],
+                "min_years_experience": r[5],
             }
             for r in rows
         ]
@@ -679,7 +704,7 @@ class PostgresStore(Storage):
     def get_active_jobs_without_embeddings(self) -> list[dict]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description"
+                "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.min_years_experience"
                 " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
                 " WHERE j.is_active = TRUE AND e.job_uuid IS NULL"
             )
@@ -691,6 +716,7 @@ class PostgresStore(Storage):
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
                 "description": r[4],
+                "min_years_experience": r[5],
             }
             for r in rows
         ]

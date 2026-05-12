@@ -114,6 +114,8 @@ class DuckDBStore(Storage):
             "ALTER TABLE jobs ADD COLUMN posted_date DATE",
             "ALTER TABLE jobs ADD COLUMN expiry_date DATE",
             "ALTER TABLE jobs ADD COLUMN description TEXT",
+            "ALTER TABLE jobs ADD COLUMN min_years_experience INTEGER",
+            "ALTER TABLE jobs ADD COLUMN llm_fields_json TEXT",
         ]:
             try:
                 self._con.execute(_col_ddl)
@@ -318,6 +320,18 @@ class DuckDBStore(Storage):
 
     def update_job_description(self, job_uuid: str, description: str) -> None:
         self._con.execute("UPDATE jobs SET description = ? WHERE job_uuid = ?", [description, job_uuid])
+
+    def update_llm_extracted_fields(
+        self,
+        job_uuid: str,
+        *,
+        min_years_experience: int | None,
+        llm_fields_json: dict | None,
+    ) -> None:
+        self._con.execute(
+            "UPDATE jobs SET min_years_experience = ?, llm_fields_json = ? WHERE job_uuid = ?",
+            [min_years_experience, json.dumps(llm_fields_json) if llm_fields_json else None, job_uuid],
+        )
 
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return job UUIDs where categories_json is NULL or empty."""
@@ -741,7 +755,7 @@ class DuckDBStore(Storage):
 
     def get_all_active_jobs(self) -> list[dict]:
         rows = self._con.execute(
-            "SELECT job_uuid, title, skills_json, position_levels_json, description"
+            "SELECT job_uuid, title, skills_json, position_levels_json, description, min_years_experience"
             " FROM jobs WHERE is_active = TRUE"
         ).fetchall()
         return [
@@ -751,13 +765,14 @@ class DuckDBStore(Storage):
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
                 "description": r[4],
+                "min_years_experience": r[5],
             }
             for r in rows
         ]
 
     def get_active_jobs_without_embeddings(self) -> list[dict]:
         rows = self._con.execute(
-            "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description"
+            "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.min_years_experience"
             " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
             " WHERE j.is_active = TRUE AND e.job_uuid IS NULL"
         ).fetchall()
@@ -768,6 +783,7 @@ class DuckDBStore(Storage):
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
                 "description": r[4],
+                "min_years_experience": r[5],
             }
             for r in rows
         ]

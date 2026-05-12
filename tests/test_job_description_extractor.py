@@ -20,6 +20,7 @@ import os
 import pytest
 
 from mcf.lib.embeddings.job_description_extractor import (
+    LLMCleanResult,
     _heuristic_token_count,
     _score_block,
     _split_into_blocks,
@@ -320,18 +321,19 @@ class TestPassthrough:
 # ---------------------------------------------------------------------------
 
 class _MockLLMCleaner:
-    """Mock LLM cleaner that records calls and returns cleaned text."""
+    """Mock LLM cleaner that records calls and returns LLMCleanResult."""
 
     def __init__(self, threshold: int = 10):
         self.calls: list[tuple[str, str | None]] = []
         self.threshold = threshold
 
-    def clean(self, description: str, title: str | None) -> str:
+    def clean(self, description: str, title: str | None) -> LLMCleanResult:
         self.calls.append((description, title))
         # Simulate extractive cleaning: return only lines with "Requirement"
         lines = description.splitlines()
         kept = [l for l in lines if "Requirement" in l or "require" in l.lower()]
-        return "\n".join(kept) if kept else description
+        cleaned = "\n".join(kept) if kept else description
+        return LLMCleanResult(cleaned_text=cleaned)
 
     def should_clean(self, description: str) -> bool:
         return len(description.split()) > self.threshold
@@ -433,23 +435,23 @@ class TestBuildJobTextIntegration:
 
     def test_output_contains_description_field(self):
         job = self._make_job(_BOILERPLATE_FRONT)
-        text = build_job_text_from_normalized(job)
+        text, _ = build_job_text_from_normalized(job)
         assert "Description:" in text
 
     def test_output_contains_title(self):
         job = self._make_job(_BOILERPLATE_FRONT)
-        text = build_job_text_from_normalized(job)
+        text, _ = build_job_text_from_normalized(job)
         assert "Job Title: Senior Data Engineer" in text
 
     def test_output_contains_skills(self):
         job = self._make_job(_BOILERPLATE_FRONT)
-        text = build_job_text_from_normalized(job)
+        text, _ = build_job_text_from_normalized(job)
         assert "Required Skills:" in text
         assert "Python" in text
 
     def test_boilerplate_not_in_description_field(self):
         job = self._make_job(_BOILERPLATE_FRONT)
-        text = build_job_text_from_normalized(job)
+        text, _ = build_job_text_from_normalized(job)
         # Extract just the description portion
         desc_part = text.split("Description:", 1)[-1] if "Description:" in text else ""
         assert "work-life balance" not in desc_part
@@ -457,7 +459,7 @@ class TestBuildJobTextIntegration:
 
     def test_high_signal_in_description_field(self):
         job = self._make_job(_BOILERPLATE_FRONT)
-        text = build_job_text_from_normalized(job)
+        text, _ = build_job_text_from_normalized(job)
         desc_part = text.split("Description:", 1)[-1] if "Description:" in text else text
         # Requirements section content should be in the output
         assert "Python" in desc_part or "SQL" in desc_part or "AWS" in desc_part
@@ -476,7 +478,7 @@ class TestBuildJobTextIntegration:
 
     def test_none_description_handled(self):
         job = self._make_job(None)  # type: ignore[arg-type]
-        text = build_job_text_from_normalized(job)
+        text, _ = build_job_text_from_normalized(job)
         assert "Description:" not in text
         assert "Job Title:" in text
 

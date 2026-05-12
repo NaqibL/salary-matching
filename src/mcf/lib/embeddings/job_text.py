@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from mcf.lib.embeddings.job_description_extractor import extract_high_signal_description
+from mcf.lib.embeddings.job_description_extractor import LLMCleanResult, extract_high_signal_description
 from mcf.lib.sources.base import NormalizedJob
 
 # ---------------------------------------------------------------------------
@@ -164,61 +164,106 @@ def _format_seniority(
 def build_job_text_from_normalized(
     normalized: NormalizedJob,
     token_counter: Callable[[str], int] | None = None,
-) -> str:
+) -> tuple[str, LLMCleanResult | None]:
     """Build embedding text from a NormalizedJob (source-agnostic).
+
+    Returns (embedding_text, llm_result) where llm_result is non-None only
+    when the LLM cleaning pass ran.  Callers should persist llm_result via
+    ``store.update_llm_extracted_fields`` so extracted fields are available
+    for filtering and future re-embeds.
 
     Args:
         normalized: The normalized job object.
-        token_counter: Optional callable mapping text → token count.  When
-            provided (e.g. ``embedder.count_tokens``), the description is
-            clipped using exact tokenizer counts.  Defaults to the heuristic
-            ``len(words) * 4/3`` approximation.
+        token_counter: Optional callable mapping text → token count.
     """
+    llm_result: LLMCleanResult | None = None
+    description_text: str | None = None
+
+    if normalized.description:
+        description_text, diags = extract_high_signal_description(
+            description=normalized.description,
+            title=normalized.title,
+            token_counter=token_counter,
+        )
+        llm_result = diags.get("llm_result")
+
+    # Use inferred_seniority from LLM as fallback when the scraper provided no position_levels
+    effective_position_levels = normalized.position_levels
+    if not effective_position_levels and llm_result and llm_result.inferred_seniority:
+        effective_position_levels = [llm_result.inferred_seniority]
+
+    # Use canonical_skills from LLM if available, else fall back to scraped skills
+    effective_skills = (
+        llm_result.canonical_skills
+        if llm_result and llm_result.canonical_skills
+        else normalized.skills
+    )
+
     parts: list[str] = []
     if normalized.title:
         parts.append(f"Job Title: {normalized.title}")
-    if normalized.skills:
-        parts.append(f"Required Skills: {', '.join(normalized.skills)}")
-    seniority = _format_seniority(normalized.position_levels, None)
+    if effective_skills:
+        parts.append(f"Required Skills: {', '.join(effective_skills)}")
+    seniority = _format_seniority(effective_position_levels, None)
     if seniority:
         parts.append(seniority)
     role_types = _extract_role_types(normalized.title, normalized.description)
     if role_types:
         parts.append(f"Role Type: {', '.join(role_types)}")
-    if normalized.description:
-        description_text, _ = extract_high_signal_description(
-            description=normalized.description,
-            title=normalized.title,
-            token_counter=token_counter,
-        )
+    if description_text:
         parts.append(f"Description: {description_text}")
-    return "\n".join(parts)
+    return "\n".join(parts), llm_result
 
 
 def build_job_text_from_dict(
     job: dict,
     token_counter: Callable[[str], int] | None = None,
-) -> str:
+) -> tuple[str, LLMCleanResult | None]:
     """Build embedding text from a job dict (as returned by Storage.get_all_active_jobs).
 
     Used by the re-embed CLI command where NormalizedJob objects are not available.
     Expected keys: title, skills (list[str]), position_levels (list[str]),
                    min_years_experience (int | None), description (str | None).
 
+    Returns (embedding_text, llm_result).  Callers should persist llm_result
+    via ``store.update_llm_extracted_fields`` when it is non-None.
+
     Args:
         job: Job dict from storage.
-        token_counter: Optional callable mapping text → token count.  When
-            provided (e.g. ``embedder.count_tokens``), the description is
-            clipped using exact tokenizer counts.  Defaults to the heuristic
-            ``len(words) * 4/3`` approximation.
+        token_counter: Optional callable mapping text → token count.
     """
+    llm_result: LLMCleanResult | None = None
+    description_text: str | None = None
+
+    if job.get("description"):
+        description_text, diags = extract_high_signal_description(
+            description=job["description"],
+            title=job.get("title"),
+            token_counter=token_counter,
+        )
+        llm_result = diags.get("llm_result")
+
+    # Use inferred_seniority from LLM as fallback when the scraper provided no position_levels.
+    # For the dict path, min_years_experience is already persisted from a previous LLM pass.
+    scraped_levels = job.get("position_levels") or []
+    effective_position_levels = scraped_levels
+    if not effective_position_levels and llm_result and llm_result.inferred_seniority:
+        effective_position_levels = [llm_result.inferred_seniority]
+
+    # Prefer LLM canonical skills over raw scraped skills
+    effective_skills = (
+        llm_result.canonical_skills
+        if llm_result and llm_result.canonical_skills
+        else (job.get("skills") or [])
+    )
+
     parts: list[str] = []
     if job.get("title"):
         parts.append(f"Job Title: {job['title']}")
-    if job.get("skills"):
-        parts.append(f"Required Skills: {', '.join(job['skills'])}")
+    if effective_skills:
+        parts.append(f"Required Skills: {', '.join(effective_skills)}")
     seniority = _format_seniority(
-        job.get("position_levels") or [],
+        effective_position_levels,
         job.get("min_years_experience"),
     )
     if seniority:
@@ -226,11 +271,6 @@ def build_job_text_from_dict(
     role_types = _extract_role_types(job.get("title"), job.get("description"))
     if role_types:
         parts.append(f"Role Type: {', '.join(role_types)}")
-    if job.get("description"):
-        description_text, _ = extract_high_signal_description(
-            description=job["description"],
-            title=job.get("title"),
-            token_counter=token_counter,
-        )
+    if description_text:
         parts.append(f"Description: {description_text}")
-    return "\n".join(parts)
+    return "\n".join(parts), llm_result

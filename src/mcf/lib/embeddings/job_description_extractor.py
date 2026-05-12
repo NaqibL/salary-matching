@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
 # ---------------------------------------------------------------------------
@@ -381,6 +382,26 @@ def _select_blocks(
 # ---------------------------------------------------------------------------
 
 
+@dataclass
+class LLMCleanResult:
+    """Structured output from the LLM cleaning pass.
+
+    ``cleaned_text`` is always populated.  All other fields are optional —
+    the LLM should only populate them when it can extract them with high
+    confidence.  ``None`` means "not found / uncertain"; callers must treat
+    these as hints, not authoritative data.
+
+    Fields that the scraper already provides (position_levels, salary,
+    employment_types) are not included here — the LLM should not override
+    authoritative API data.
+    """
+
+    cleaned_text: str
+    min_years_experience: int | None = None
+    canonical_skills: list[str] | None = None
+    inferred_seniority: str | None = None
+
+
 class LLMJobCleaner(Protocol):
     """Interface for an optional LLM-assisted extractive cleaner.
 
@@ -388,32 +409,24 @@ class LLMJobCleaner(Protocol):
     free-form summarizers.  They are only called at ingestion/re-embed time,
     never at query or retrieval time.
 
-    To integrate a Claude-based implementation:
+    To integrate a new implementation:
       1. Create a class that satisfies this Protocol.
       2. Call ``register_llm_cleaner(your_instance)`` at app startup.
       3. Set env var ``JOB_EXTRACTOR_LLM_ENABLED=1``.
-
-    Implementation contract:
-      - MUST preserve exact wording of requirements, skills, tools, experience.
-      - MUST remove marketing fluff, legal text, benefits, application instructions.
-      - MUST NOT paraphrase, summarize, or invent content.
-      - MUST NOT be called at query/retrieval time.
     """
 
-    def clean(self, description: str, title: str | None) -> str:
-        """Return an extractively cleaned version of *description*.
+    def clean(self, description: str, title: str | None) -> LLMCleanResult:
+        """Return a structured result with cleaned text and extracted fields.
 
-        The returned text should contain only original sentences/bullets from
-        the input — no paraphrasing, no hallucinated content.
+        ``cleaned_text`` must contain only content from the input — no
+        paraphrasing, no hallucinated content.  It should be formatted to
+        mirror how a candidate would describe what they want, to close the
+        query-document embedding gap.
         """
         ...
 
     def should_clean(self, description: str) -> bool:
         """Return True if this description warrants LLM cleaning.
-
-        Typical triggers:
-          - Word count exceeds ``JOB_EXTRACTOR_LLM_THRESHOLD`` (default 800).
-          - Heuristic extraction confidence is low (few high-scoring blocks).
 
         This method must be cheap — no API calls.
         """
@@ -486,6 +499,7 @@ def extract_high_signal_description(
           - ``block_scores``: list of (score, first_40_chars) for debug logging
     """
     counter = token_counter or _heuristic_token_count
+    llm_result: LLMCleanResult | None = None
 
     # ------------------------------------------------------------------
     # 1. Passthrough for short descriptions
@@ -506,6 +520,7 @@ def extract_high_signal_description(
             "blocks_selected": 1,
             "tokens_used": counter(clipped),
             "block_scores": [],
+            "llm_result": None,
         }
 
     # ------------------------------------------------------------------
@@ -513,7 +528,8 @@ def extract_high_signal_description(
     # ------------------------------------------------------------------
     cleaner = get_llm_cleaner()
     if cleaner is not None and cleaner.should_clean(description):
-        description = cleaner.clean(description, title)
+        llm_result = cleaner.clean(description, title)
+        description = llm_result.cleaned_text
 
     # ------------------------------------------------------------------
     # 3. Split into blocks
@@ -527,6 +543,7 @@ def extract_high_signal_description(
             "blocks_selected": 0,
             "tokens_used": counter(description[:500]),
             "block_scores": [],
+            "llm_result": llm_result,
         }
 
     # ------------------------------------------------------------------
@@ -576,6 +593,7 @@ def extract_high_signal_description(
             "blocks_selected": 0,
             "tokens_used": counter(best_block),
             "block_scores": [(s, b[:40]) for s, _, b in blocks_with_scores],
+            "llm_result": llm_result,
         }
 
     extracted = "\n".join(selected)
@@ -586,5 +604,6 @@ def extract_high_signal_description(
         "blocks_selected": len(selected),
         "tokens_used": tokens_used,
         "block_scores": [(s, b[:40]) for s, _, b in blocks_with_scores],
+        "llm_result": llm_result,
     }
     return extracted, diagnostics

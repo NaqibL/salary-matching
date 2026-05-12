@@ -44,6 +44,7 @@ def _notify_crawl_complete() -> None:
 from mcf.lib.embeddings.base import EmbedderProtocol
 from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
+from mcf.lib.embeddings.job_description_extractor import LLMCleanResult
 from mcf.lib.embeddings.job_text import build_job_text_from_normalized
 from mcf.lib.sources.base import NormalizedJob
 from mcf.lib.sources.mcf_source import MCFJobSource
@@ -135,11 +136,12 @@ def run_incremental_crawl(
                 batch_size = cfg.batch_size if cfg and hasattr(cfg, "batch_size") else 32
 
             # Phase 1: Fetch job details and upsert (no embeddings yet)
-            jobs_to_embed: list[tuple[NormalizedJob, str]] = []  # (normalized, job_text)
+            # Tuple: (normalized, job_text, llm_result)
+            jobs_to_embed: list[tuple[NormalizedJob, str, LLMCleanResult | None]] = []
             for external_id in added:
                 normalized = job_source.get_job_detail(external_id)
                 job_uuid = normalized.job_uuid
-                job_text = build_job_text_from_normalized(normalized)
+                job_text, llm_result = build_job_text_from_normalized(normalized)
 
                 store.upsert_new_job_detail(
                     run_id=run.run_id,
@@ -160,25 +162,35 @@ def run_incremental_crawl(
                 )
 
                 if job_text:
-                    jobs_to_embed.append((normalized, job_text))
+                    jobs_to_embed.append((normalized, job_text, llm_result))
 
             if embed:
                 # Phase 2: Batch embed and upsert (10–30x faster than one-by-one with GPU)
                 embedded: list[tuple[str, list[float]]] = []  # (job_uuid, embedding)
                 for i in range(0, len(jobs_to_embed), batch_size):
                     batch = jobs_to_embed[i : i + batch_size]
-                    texts = [jt for _, jt in batch]
+                    texts = [jt for _, jt, _ in batch]
                     try:
                         embeddings = _embedder.embed_texts(texts)
-                        for (normalized, _), emb in zip(batch, embeddings):
+                        for (normalized, _, llm_result), emb in zip(batch, embeddings):
                             store.upsert_embedding(
                                 job_uuid=normalized.job_uuid,
                                 model_name=_embedder.model_name,
                                 embedding=emb,
                             )
+                            if llm_result is not None:
+                                store.update_llm_extracted_fields(
+                                    normalized.job_uuid,
+                                    min_years_experience=llm_result.min_years_experience,
+                                    llm_fields_json={
+                                        "min_years_experience": llm_result.min_years_experience,
+                                        "canonical_skills": llm_result.canonical_skills,
+                                        "inferred_seniority": llm_result.inferred_seniority,
+                                    },
+                                )
                             embedded.append((normalized.job_uuid, emb))
                     except Exception as e:
-                        for normalized, _ in batch:
+                        for normalized, _, _ in batch:
                             print(f"Warning: Failed to generate embedding for job {normalized.job_uuid}: {e}")
 
                 # Phase 3: Classify all new jobs in one batch (role cluster + experience tier + multi-label)

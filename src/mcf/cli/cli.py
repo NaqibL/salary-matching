@@ -134,13 +134,13 @@ def crawl_incremental(
 
     # Wire LLM cleaner if configured (only relevant when embed=True)
     if not no_embed:
-        from mcf.lib.embeddings.llm_cleaner import OpenRouterJobCleaner
+        from mcf.lib.embeddings.llm_cleaner import GeminiFlashCleaner
         from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
         import mcf.lib.embeddings.job_description_extractor as _jde
         from mcf.api.config import settings
 
         if settings.openrouter_api_key and settings.job_extractor_llm_enabled:
-            _llm_cleaner = OpenRouterJobCleaner(
+            _llm_cleaner = GeminiFlashCleaner(
                 api_key=settings.openrouter_api_key,
                 model=settings.openrouter_model,
             )
@@ -755,14 +755,14 @@ def re_embed(
             raise typer.Exit(1)
 
     # Wire LLM cleaner if configured
-    from mcf.lib.embeddings.llm_cleaner import OpenRouterJobCleaner
+    from mcf.lib.embeddings.llm_cleaner import GeminiFlashCleaner
     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
     import mcf.lib.embeddings.job_description_extractor as _jde
     from mcf.api.config import settings
 
     _llm_cleaner = None
     if settings.openrouter_api_key and settings.job_extractor_llm_enabled:
-        _llm_cleaner = OpenRouterJobCleaner(
+        _llm_cleaner = GeminiFlashCleaner(
             api_key=settings.openrouter_api_key,
             model=settings.openrouter_model,
         )
@@ -821,10 +821,11 @@ def re_embed(
 
             texts: list[str] = []
             uuids: list[str] = []
+            llm_results: list = []
             embedded = 0
 
             for job in all_jobs:
-                job_text = build_job_text_from_dict(job)
+                job_text, llm_result = build_job_text_from_dict(job)
 
                 if not job_text:
                     progress.advance(task)
@@ -832,28 +833,49 @@ def re_embed(
 
                 texts.append(job_text)
                 uuids.append(job["job_uuid"])
+                llm_results.append(llm_result)
 
                 if len(texts) >= batch_size:
                     embeddings = embedder.embed_texts(texts)
-                    for uuid, emb in zip(uuids, embeddings):
+                    for uuid, emb, lr in zip(uuids, embeddings, llm_results):
                         store.upsert_embedding(
                             job_uuid=uuid,
                             model_name=embedder.model_name,
                             embedding=emb,
                         )
+                        if lr is not None:
+                            store.update_llm_extracted_fields(
+                                uuid,
+                                min_years_experience=lr.min_years_experience,
+                                llm_fields_json={
+                                    "min_years_experience": lr.min_years_experience,
+                                    "canonical_skills": lr.canonical_skills,
+                                    "inferred_seniority": lr.inferred_seniority,
+                                },
+                            )
                     embedded += len(texts)
                     progress.advance(task, len(texts))
-                    texts, uuids = [], []
+                    texts, uuids, llm_results = [], [], []
 
             # Flush remaining
             if texts:
                 embeddings = embedder.embed_texts(texts)
-                for uuid, emb in zip(uuids, embeddings):
+                for uuid, emb, lr in zip(uuids, embeddings, llm_results):
                     store.upsert_embedding(
                         job_uuid=uuid,
                         model_name=embedder.model_name,
                         embedding=emb,
                     )
+                    if lr is not None:
+                        store.update_llm_extracted_fields(
+                            uuid,
+                            min_years_experience=lr.min_years_experience,
+                            llm_fields_json={
+                                "min_years_experience": lr.min_years_experience,
+                                "canonical_skills": lr.canonical_skills,
+                                "inferred_seniority": lr.inferred_seniority,
+                            },
+                        )
                 embedded += len(texts)
                 progress.advance(task, len(texts))
 
