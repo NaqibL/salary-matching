@@ -2,17 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Briefcase, BarChart2, HelpCircle, Bookmark, Scale, Home, User } from 'lucide-react'
+import { BarChart2, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/matches', label: 'Resume Matching', icon: Briefcase },
-  { href: '/saved', label: 'Saved Jobs', icon: Bookmark },
+  { href: '/lowball', label: 'Salary Checker', icon: Scale },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
-  { href: '/lowball', label: 'Lowball Checker', icon: Scale },
-  { href: '/how-it-works', label: 'How it works', icon: HelpCircle },
-  { href: '/profile', label: 'Profile', icon: User },
 ]
 
 export interface SidebarProps {
@@ -32,9 +27,9 @@ export default function Sidebar({ userSlot }: SidebarProps) {
           <Link
             href="/"
             className="flex items-center gap-2 text-lg font-semibold text-slate-900 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-lg transition-colors"
-            aria-label="MCF Job Matcher home"
+            aria-label="SG Salary Check home"
           >
-            <span className="text-xl leading-tight">MCF</span>
+            <span className="text-xl leading-tight">SG Salary</span>
           </Link>
         </div>
 

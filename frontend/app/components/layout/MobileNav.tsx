@@ -3,17 +3,12 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Briefcase, BarChart2, HelpCircle, Bookmark, Home, Scale, User } from 'lucide-react'
+import { Menu, X, BarChart2, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/matches', label: 'Matches', icon: Briefcase },
-  { href: '/saved', label: 'Saved', icon: Bookmark },
+  { href: '/lowball', label: 'Salary Checker', icon: Scale },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
-  { href: '/lowball', label: 'Lowball', icon: Scale },
-  { href: '/how-it-works', label: 'How it works', icon: HelpCircle },
-  { href: '/profile', label: 'Profile', icon: User },
 ]
 
 export interface MobileNavProps {
@@ -85,7 +80,7 @@ export default function MobileNav({ open, onToggle, userSlot }: MobileNavProps) 
               onClick={onToggle}
               className="text-lg font-semibold text-slate-900 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-lg transition-colors"
             >
-              MCF
+              SG Salary
             </Link>
             <button
               type="button"

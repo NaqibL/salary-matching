@@ -7,8 +7,8 @@ import PageTransition from './components/PageTransition'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Job Matcher',
-  description: 'Job matching dashboard',
+  title: 'SG Salary Check',
+  description: 'Know your market value — see salary ranges for any role in Singapore from live job listings.',
 }
 
 export default function RootLayout({
