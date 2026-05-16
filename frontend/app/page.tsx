@@ -56,8 +56,6 @@ export default function HomePage() {
     setState('idle')
     setResult(null)
     setError(null)
-    setTitle('')
-    setDescription('')
     setSalary('')
   }
 
@@ -109,6 +107,11 @@ export default function HomePage() {
                 placeholder="Paste the full job description here…"
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-y leading-relaxed"
               />
+              {description.length > 0 && description.length < 20 && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  At least 20 characters needed — paste the full job description for accurate results.
+                </p>
+              )}
             </div>
 
             <div>

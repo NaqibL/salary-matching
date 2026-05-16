@@ -400,10 +400,7 @@ export function LowballContent() {
     setState('form')
     setResult(null)
     setError(null)
-    setTitle('')
-    setDescription('')
     setSalary('')
-    setCompanyInput('')
     setActiveTab('all')
   }
 
@@ -498,6 +495,11 @@ export function LowballContent() {
                     placeholder="Paste the full job description here…"
                     className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y leading-relaxed"
                   />
+                  {description.length > 0 && description.length < 20 && (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                      At least 20 characters needed — paste the full job description for accurate results.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -535,8 +537,10 @@ export function LowballContent() {
             </CardBody>
           </Card>
 
-          {/* Right: info panel */}
-          <HowItWorksPanel />
+          {/* Right: info panel — hidden on mobile to reduce scroll */}
+          <div className="hidden lg:block">
+            <HowItWorksPanel />
+          </div>
         </div>
       )}
 
@@ -546,7 +550,9 @@ export function LowballContent() {
           <CardBody>
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500 dark:text-slate-400">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-              <p className="text-sm font-medium">Analysing market data…</p>
+              <p className="text-sm font-medium">
+                Analysing{title ? ` "${title}"` : ' market data'}…
+              </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 Searching similar active listings
               </p>
@@ -643,6 +649,14 @@ export function LowballContent() {
             )}
 
             {/* Similar jobs — single list or tabbed when company results are available */}
+            {result.similar_jobs.length === 0 && result.verdict !== 'insufficient_data' && (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-6 py-10 text-center">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">No similar roles found</p>
+                <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                  Try adding more detail to the job description, or broaden the title.
+                </p>
+              </div>
+            )}
             {result.similar_jobs.length > 0 && (() => {
               const hasCompanyTab = result.company_similar_jobs != null
               const displayJobs = hasCompanyTab && activeTab === 'company'
