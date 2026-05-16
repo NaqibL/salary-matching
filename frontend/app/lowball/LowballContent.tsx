@@ -158,6 +158,16 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
               ) : (
                 <span className="text-xs text-slate-400 dark:text-slate-500 italic">No salary listed</span>
               )}
+              {job.inferred_seniority && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  {job.inferred_seniority}
+                </span>
+              )}
+              {job.min_years_experience != null && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400">
+                  {job.min_years_experience}+ yrs exp
+                </span>
+              )}
               {!isActive && (
                 <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
                   <Clock className="w-3 h-3" />
@@ -165,6 +175,19 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
                 </span>
               )}
             </div>
+
+            {job.canonical_skills && job.canonical_skills.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {job.canonical_skills.slice(0, 8).map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-2 py-0.5 text-xs rounded-md bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className={`shrink-0 px-3 py-1.5 rounded-full border text-sm font-semibold tabular-nums ${scoreCls}`}>

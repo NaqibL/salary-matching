@@ -1678,7 +1678,7 @@ class PostgresStore(Storage):
             return []
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description "
+                "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description, min_years_experience, llm_fields_json "
                 "FROM jobs WHERE job_uuid = ANY(%s)",
                 (job_uuids,),
             )

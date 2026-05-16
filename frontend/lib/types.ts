@@ -77,6 +77,9 @@ export interface SimilarJob {
   similarity_score: number
   is_active?: boolean
   description?: string | null
+  min_years_experience?: number | null
+  inferred_seniority?: string | null
+  canonical_skills?: string[] | null
 }
 
 export interface SalarySearchJob {

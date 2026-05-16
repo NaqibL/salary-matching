@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json as _json
 from statistics import quantiles as _quantiles
 
 from fastapi import APIRouter, Depends
@@ -81,6 +82,8 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
     result = []
     for j in jobs:
         raw_desc = j.get("description") or ""
+        llm_raw = j.get("llm_fields_json")
+        llm = _json.loads(llm_raw) if isinstance(llm_raw, str) else (llm_raw or {})
         result.append({
             "job_uuid": j["job_uuid"],
             "title": j["title"],
@@ -92,6 +95,9 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
             "is_active": j.get("is_active", True),
             "description": raw_desc or None,
             "similarity_score": round(uuid_to_score.get(j["job_uuid"], 0.0), 4),
+            "min_years_experience": j.get("min_years_experience"),
+            "inferred_seniority": llm.get("inferred_seniority"),
+            "canonical_skills": llm.get("canonical_skills"),
         })
     result.sort(key=lambda x: x["similarity_score"], reverse=True)
     return result[:top_k]

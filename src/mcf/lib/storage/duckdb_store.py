@@ -1748,11 +1748,11 @@ class DuckDBStore(Storage):
             return []
         placeholders = ", ".join("?" * len(job_uuids))
         rows = self._con.execute(
-            f"SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description "
+            f"SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description, min_years_experience, llm_fields_json "
             f"FROM jobs WHERE job_uuid IN ({placeholders})",
             job_uuids,
         ).fetchall()
-        cols = ["job_uuid", "title", "company_name", "location", "job_url", "salary_min", "salary_max", "last_seen_at", "is_active", "description"]
+        cols = ["job_uuid", "title", "company_name", "location", "job_url", "salary_min", "salary_max", "last_seen_at", "is_active", "description", "min_years_experience", "llm_fields_json"]
         return [dict(zip(cols, row)) for row in rows]
 
     def get_distinct_companies(self) -> list[str]:
