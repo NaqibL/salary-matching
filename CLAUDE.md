@@ -132,21 +132,31 @@ Read the relevant agent file before starting work in that area:
 
 ## Current roadmap (priority order)
 
+### Performance — salary checker query latency
+
+The `/api/lowball/check` endpoint is slow. Three root causes, in order of impact:
+
+1. **LLM clean on every query** — `_cleaner.clean()` in `src/mcf/api/routes/lowball.py` fires a network call to OpenRouter/Gemini on every request before embedding. The LLM clean was designed for ingestion (indexing job descriptions at crawl time). For a real-time user query, embedding the raw description is sufficient. Fix: skip `_cleaner` in the lowball route entirely.
+
+2. **No pgvector HNSW index** — `job_embeddings.embedding` has no ANN index. The `<=>` cosine query in `get_all_embedded_job_ids_ranked` does an exact KNN scan across every row. Fix: add index in Supabase — `CREATE INDEX ON job_embeddings USING hnsw (embedding vector_cosine_ops);` — then set `SET hnsw.ef_search = 100` at query time.
+
+3. **No response cache on `/api/lowball/check`** — unlike the matches API, every lowball request re-embeds and re-queries even if the same role is checked repeatedly. Fix: add a short TTL response cache (10–15 min) keyed on `(title, description_hash, salary, company)`, following the same pattern as `src/mcf/api/cache/response.py`.
+
+Also note: the active-jobs pool cache (15-min TTL, pre-stacked numpy matrix in `src/mcf/api/cache/job_pool.py`) is only used by the matches route. The lowball route bypasses it and hits the DB fresh every time.
+
 ### Client-facing (salary checker + dashboard)
 
-1. **Richer salary results** — expose `min_years_experience`, `inferred_seniority`, and `canonical_skills` (already in DB from LLM cleaning) on the similar-roles cards in `/lowball`. Update the jobs API response → `LowballResult`/`SimilarJob` types → `SimilarJobCard` component.
-
-2. **Salary checker UX polish** — improve the homepage (`/`) and `/lowball` experience: clearer result state, better mobile layout, empty/error states.
-
-3. **Dashboard improvements** — extend market analytics with seniority breakdowns and skills trend data now available from `llm_fields_json`.
+- ~~**Richer salary results**~~ — done. `min_years_experience`, `inferred_seniority`, `canonical_skills` now surface on similar-roles cards.
+- ~~**Salary checker UX polish**~~ — done. Loading context, empty state, smarter reset, mobile layout, description hint.
+- ~~**Consolidate `/` and `/lowball`**~~ — done. `/` is now the full checker; `/lowball` redirects.
+- **Dashboard improvements** — extend market analytics with seniority breakdowns and skills trend data now available from `llm_fields_json`.
+- **Filters on similar roles** — client-side filtering of the already-fetched top-20 results by seniority, active-only, min experience, has-salary. No backend changes needed for v1.
 
 ### Personal use only (matching pipeline — do not expose publicly)
 
-4. **Filters on matches page** — seniority chips, min-years range, salary slider, employment type chips. Data already in DB. Needs filter params on matching API + filter panel on `frontend/app/matches/page.tsx`.
-
-5. **Richer job cards on matches** — experience badge, seniority tag, skill chips on `JobCard`.
-
-6. **Experience level on candidate profile** — `target_seniority` and `years_experience` to profile DB + API + UI. Soft boost/penalty in matching pipeline.
+- **Filters on matches page** — seniority chips, min-years range, salary slider, employment type chips. Data already in DB. Needs filter params on matching API + filter panel on `frontend/app/matches/page.tsx`.
+- **Richer job cards on matches** — experience badge, seniority tag, skill chips on `JobCard`.
+- **Experience level on candidate profile** — `target_seniority` and `years_experience` to profile DB + API + UI. Soft boost/penalty in matching pipeline.
 
 ---
 
