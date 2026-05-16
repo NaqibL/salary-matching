@@ -1,7 +1,5 @@
-'use client'
-
-import { LowballContent } from './LowballContent'
+import { redirect } from 'next/navigation'
 
 export default function LowballPage() {
-  return <LowballContent />
+  redirect('/')
 }

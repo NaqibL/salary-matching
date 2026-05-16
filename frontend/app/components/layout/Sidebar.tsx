@@ -6,7 +6,7 @@ import { BarChart2, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/lowball', label: 'Salary Checker', icon: Scale },
+  { href: '/', label: 'Salary Checker', icon: Scale },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
 ]
 
