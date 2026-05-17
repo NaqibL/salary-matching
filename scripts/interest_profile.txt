@@ -1,0 +1,6 @@
+I am a fresh graduate data scientist and AI engineer with experience in LLM pipelines, RAG systems,
+agentic workflows, and data engineering. I am looking for junior or associate-level roles that offer
+ownership of a problem space — not ad-hoc reporting or dashboard maintenance. I am drawn to roles
+involving AI engineering, applied machine learning, data analytics, or business intelligence.
+I have a preference for fintech and high-paying industries, but am open to any domain with complex
+data challenges. I want to build things end-to-end, not just contribute to a piece of a larger pipeline.
