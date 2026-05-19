@@ -97,7 +97,8 @@ def _llm_seniority_check(title: str, company: str | None, description: str | Non
         f"Job title: {title}\n"
         f"Company: {company or 'Unknown'}\n"
         f"Description snippet: {snippet}\n\n"
-        "Is this role appropriate for a fresh graduate or someone with 0-2 years of experience?\n"
+        "Is this role appropriate for a fresh graduate or someone with 0-2 years of experience? "
+        "Internships, temporary attachments, and student programmes should be answered NO.\n"
         "Reply with only: YES or NO"
     )
     payload = {
@@ -170,6 +171,9 @@ def main(dry_run: bool = False) -> None:
         position_levels_by_uuid: dict[str, list[str]] = {
             r["job_uuid"]: r["position_levels"] for r in new_job_records
         }
+        employment_types_by_uuid: dict[str, list[str]] = {
+            r["job_uuid"]: r["employment_types"] for r in new_job_records
+        }
         print(f"  {len(new_uuids)} new jobs found")
 
         if not new_uuids:
@@ -207,6 +211,9 @@ def main(dry_run: bool = False) -> None:
             if job.get("predicted_tier") in _SENIOR_TIERS:
                 continue
             if _is_senior_by_position_levels(position_levels_by_uuid.get(uuid, [])):
+                continue
+            emp_types = {t.lower() for t in employment_types_by_uuid.get(uuid, [])}
+            if "internship" in emp_types:
                 continue
             filtered.append(job)
 

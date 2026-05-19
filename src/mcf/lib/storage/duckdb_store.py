@@ -792,7 +792,7 @@ class DuckDBStore(Storage):
         from datetime import timedelta
         cutoff = _utcnow() - timedelta(days=days)
         rows = self._con.execute(
-            "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description"
+            "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.employment_types_json"
             " FROM jobs j JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
             " WHERE j.is_active = TRUE AND e.embedded_at >= ?",
             [cutoff],
@@ -804,6 +804,7 @@ class DuckDBStore(Storage):
                 "skills": json.loads(r[2]) if r[2] else [],
                 "position_levels": json.loads(r[3]) if r[3] else [],
                 "description": r[4],
+                "employment_types": json.loads(r[5]) if r[5] else [],
             }
             for r in rows
         ]
