@@ -151,6 +151,7 @@ Also note: the active-jobs pool cache (15-min TTL, pre-stacked numpy matrix in `
 - ~~**Consolidate `/` and `/lowball`**~~ — done. `/` is now the full checker; `/lowball` redirects.
 - **Dashboard improvements** — extend market analytics with seniority breakdowns and skills trend data now available from `llm_fields_json`.
 - **Filters on similar roles** — client-side filtering of the already-fetched top-20 results by seniority, active-only, min experience, has-salary. No backend changes needed for v1.
+- **Company dropdown canonicalization** — run `scripts/canonicalize_companies.py` first to populate `company_canonical`. Then update two storage methods: (1) `get_distinct_companies()` — use `DISTINCT COALESCE(company_canonical, company_name)` so duplicates collapse in the autocomplete; (2) `get_active_job_uuids_by_company()` — match on `company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)` so the company results tab still works after canonicalization. Both DuckDB and Postgres stores need updating.
 
 ### Personal use only (matching pipeline — do not expose publicly)
 

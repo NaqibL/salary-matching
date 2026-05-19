@@ -43,6 +43,13 @@ class PostgresStore(Storage):
         migrations = [
             "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS min_years_experience INTEGER",
             "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS llm_fields_json TEXT",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS company_canonical TEXT",
+            """CREATE TABLE IF NOT EXISTS company_aliases (
+                raw_name TEXT PRIMARY KEY,
+                canonical_name TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )""",
+            "CREATE INDEX IF NOT EXISTS company_aliases_canonical_idx ON company_aliases(canonical_name)",
         ]
         with self._cur() as cur:
             for ddl in migrations:

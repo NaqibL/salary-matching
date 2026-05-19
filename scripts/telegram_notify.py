@@ -223,8 +223,8 @@ def main(dry_run: bool = False) -> None:
         api_key = os.environ.get("OPENROUTER_API_KEY")
         finalists: list[dict] = []
         if api_key and filtered:
-            print(f"Running LLM seniority check on {min(len(filtered), 15)} jobs...")
-            for job in filtered[:15]:
+            print(f"Running LLM seniority check on {min(len(filtered), 30)} jobs...")
+            for job in filtered[:30]:
                 ok = _llm_seniority_check(
                     job.get("title", ""),
                     job.get("company_name"),
@@ -238,9 +238,9 @@ def main(dry_run: bool = False) -> None:
         else:
             if not api_key:
                 print("OPENROUTER_API_KEY not set — skipping LLM check, keeping all finalists")
-            finalists = filtered[:15]
+            finalists = filtered[:30]
 
-        top_jobs = finalists[:10]
+        top_jobs = finalists[:30]
         digest = _format_digest(top_jobs)
 
         print("\n--- Digest ---")
