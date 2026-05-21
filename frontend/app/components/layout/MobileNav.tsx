@@ -3,12 +3,13 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X, BarChart2, Scale } from 'lucide-react'
+import { Menu, X, BarChart2, Building2, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
   { href: '/', label: 'Salary Checker', icon: Scale },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
+  { href: '/companies', label: 'Companies', icon: Building2 },
 ]
 
 export interface MobileNavProps {

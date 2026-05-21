@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart2, Scale } from 'lucide-react'
+import { BarChart2, Building2, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
   { href: '/', label: 'Salary Checker', icon: Scale },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
+  { href: '/companies', label: 'Companies', icon: Building2 },
 ]
 
 export interface SidebarProps {
