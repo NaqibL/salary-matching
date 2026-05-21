@@ -1722,6 +1722,16 @@ class PostgresStore(Storage):
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, row)) for row in cur.fetchall()]
 
+    def get_top_companies(self, limit: int = 20) -> list[dict]:
+        with self._cur() as cur:
+            cur.execute(
+                "SELECT COALESCE(company_canonical, company_name) AS name, COUNT(*) AS active_count "
+                "FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL "
+                "GROUP BY 1 ORDER BY 2 DESC LIMIT %s",
+                (limit,),
+            )
+            return [{"name": r[0], "active_count": r[1]} for r in cur.fetchall()]
+
     # === Match recording ===
 
     def record_match(

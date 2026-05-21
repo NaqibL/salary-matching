@@ -1783,6 +1783,15 @@ class DuckDBStore(Storage):
         ).fetchall()
         return [dict(zip(cols, row)) for row in rows]
 
+    def get_top_companies(self, limit: int = 20) -> list[dict]:
+        rows = self._con.execute(
+            "SELECT COALESCE(company_canonical, company_name) AS name, COUNT(*) AS active_count "
+            "FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL "
+            "GROUP BY 1 ORDER BY 2 DESC LIMIT ?",
+            [limit],
+        ).fetchall()
+        return [{"name": r[0], "active_count": r[1]} for r in rows]
+
     def upsert_taste_embedding(self, *, profile_id: str, model_name: str, embedding: Sequence[float]) -> None:
         """Store a taste-profile embedding.
 

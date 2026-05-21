@@ -42,6 +42,11 @@ export interface Match {
   salary_max?: number | null
 }
 
+export interface TopCompany {
+  name: string
+  active_count: number
+}
+
 export interface CompanyJob {
   job_uuid: string
   title: string

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections import Counter
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +14,8 @@ from pydantic import BaseModel
 
 from mcf.api.deps import get_store
 from mcf.lib.storage.base import Storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -23,10 +27,10 @@ router = APIRouter()
 
 class CompanyJob(BaseModel):
     job_uuid: str
-    title: str
+    title: str | None
     salary_min: int | None
     salary_max: int | None
-    last_seen_at: str
+    last_seen_at: str | None
     employment_types: list[str]
     position_levels: list[str]
     min_years_experience: int | None
@@ -45,9 +49,14 @@ class CompanyProfileResponse(BaseModel):
     avg_min_experience: float | None
     position_levels: dict[str, int]
     employment_types: dict[str, int]
-    top_skills: list[list]
+    top_skills: list[list[Any]]
     active_jobs: list[CompanyJob]
     recent_closed: list[CompanyJob]
+
+
+class TopCompany(BaseModel):
+    name: str
+    active_count: int
 
 
 # ---------------------------------------------------------------------------
@@ -104,13 +113,26 @@ def list_companies(store: Storage = Depends(get_store)) -> list[str]:
     return store.get_distinct_companies()
 
 
+@router.get("/api/companies/popular")
+def get_popular_companies(
+    limit: int = 20,
+    store: Storage = Depends(get_store),
+) -> list[TopCompany]:
+    """Return top companies by active job count."""
+    return [TopCompany(**row) for row in store.get_top_companies(limit)]
+
+
 @router.get("/api/companies/{company_name}/profile")
 def get_company_profile(
     company_name: str,
     store: Storage = Depends(get_store),
 ) -> CompanyProfileResponse:
     """Return aggregated profile for a company (active + historical jobs)."""
-    jobs = store.get_all_jobs_by_company(company_name)
+    try:
+        jobs = store.get_all_jobs_by_company(company_name)
+    except Exception:
+        logger.exception("get_all_jobs_by_company failed for %r", company_name)
+        raise HTTPException(status_code=500, detail="Failed to fetch company jobs")
     if not jobs:
         raise HTTPException(status_code=404, detail="Company not found")
 
