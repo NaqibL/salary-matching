@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -60,22 +61,27 @@ No explanation, no markdown fences. Example:
 _DEDUP_SYSTEM = """\
 You are deduplicating canonical company names from Singapore job listings.
 
-You will receive a JSON array of all distinct canonical names.
-Find groups of names that refer to the same real-world company.
+You will receive a JSON array of company names IN RANDOM ORDER.
+Your task: find names that are clearly the SAME real-world company — not just similar-sounding.
 
-Rules:
-- Only group names you are confident refer to the same company.
-- The FIRST name in each group should be the best form: shortest and most widely recognised.
-  e.g. prefer "Google" over "Google Asia Pacific", "DBS Bank" over "DBS Bank Limited".
-- Include parent/subsidiary collapses: "Google Asia Pacific" belongs under "Google".
-- Do NOT merge genuinely distinct companies (e.g. "Grab" and "Gojek" are different).
+STRICT rules:
+- You must KNOW this company from your training data. If you don't recognise a company,
+  leave it alone. Do NOT guess.
+- Do NOT group based on shared words or name similarity alone.
+  "Asia Advance Human Resource" and "Asiabuilt Engineering" are DIFFERENT companies even
+  though both start with "Asia". Only merge if you are certain they are the same entity.
+- Valid merges: brand variants, subsidiaries, or legal-suffix duplicates of well-known companies.
+  e.g. "Google" / "Google Asia Pacific" → same company (you know Google operates in Asia).
+  e.g. "Standard Chartered" / "Standard Chartered Bank" → same company.
+- The FIRST name in each group must be the best canonical form (shortest, most recognised).
+- When in doubt, do NOT merge. False merges are much worse than missed merges.
 
-Return ONLY a JSON array of groups. Each group is a list of names (best form first).
-If there are no duplicates at all, return [].
+Return ONLY a JSON array of groups. Each group is a list of 2+ names.
+If you find nothing to merge with confidence, return [].
 No explanation, no markdown fences.
 
 Example output:
-[["Google", "Google Asia Pacific", "Google Singapore"], ["DBS Bank", "DBS"]]
+[["Google", "Google Asia Pacific"], ["Standard Chartered", "Standard Chartered Bank"]]
 """
 
 
@@ -180,6 +186,28 @@ def pass1_canonicalize(
     return mapping
 
 
+def _word_tokens(name: str) -> set[str]:
+    """Return the set of lowercase alphabetic words in a company name."""
+    return {w.lower() for w in re.findall(r"[a-zA-Z]+", name) if len(w) > 1}
+
+
+def _sanity_check_group(winner: str, losers: list[str]) -> list[str]:
+    """Return only losers that share at least one word with the winner.
+
+    This rejects false merges like 'Asiabuilt Engineering' → 'Asia Advance Human Resource'
+    where the LLM grouped companies by alphabetical proximity rather than identity.
+    """
+    winner_words = _word_tokens(winner)
+    accepted = []
+    for loser in losers:
+        shared = winner_words & _word_tokens(loser)
+        if shared:
+            accepted.append(loser)
+        else:
+            print(f"    REJECT (no shared word): '{loser}' → '{winner}'")
+    return accepted
+
+
 def pass2_dedup(
     cur,
     client: httpx.Client,
@@ -187,31 +215,27 @@ def pass2_dedup(
     dry_run: bool,
     batch_size: int = 600,
 ) -> int:
-    """Send all canonical names to LLM; it returns duplicate groups to merge."""
+    """Send all canonical names to LLM (shuffled); it returns duplicate groups to merge."""
     print("\n=== Pass 2: full-list deduplication ===")
 
     cur.execute("SELECT DISTINCT canonical_name FROM company_aliases ORDER BY canonical_name")
     canonicals = [r[0] for r in cur.fetchall()]
+    canonical_set = set(canonicals)
     print(f"  {len(canonicals)} distinct canonical names")
 
     if not canonicals:
         print("  Nothing to deduplicate.")
         return 0
 
-    # Split into alphabetical batches with a one-letter overlap at boundaries so
-    # names near a split point appear in both adjacent batches.
-    # For most SG job boards this fits in one batch (~few hundred canonical names).
+    # Shuffle to remove alphabetical-proximity bias that causes the LLM to group
+    # unrelated companies just because they sort adjacently.
+    shuffled = canonicals[:]
+    random.shuffle(shuffled)
+
     merges: dict[str, str] = {}  # loser → winner
 
-    batches: list[list[str]] = []
-    for i in range(0, len(canonicals), batch_size):
-        chunk = canonicals[i : i + batch_size]
-        # Include last 10 names of previous batch as overlap to catch boundary duplicates
-        if i > 0:
-            chunk = canonicals[max(0, i - 10) : i + batch_size]
-        batches.append(chunk)
-
-    print(f"  Sending {len(batches)} batch(es) to LLM")
+    batches: list[list[str]] = [shuffled[i : i + batch_size] for i in range(0, len(shuffled), batch_size)]
+    print(f"  Sending {len(batches)} batch(es) to LLM (shuffled order)")
 
     for b_idx, batch in enumerate(batches):
         user_msg = json.dumps(batch, ensure_ascii=False)
@@ -232,13 +256,15 @@ def pass2_dedup(
         for group in groups:
             if not isinstance(group, list) or len(group) < 2:
                 continue
-            # Validate all names are known canonicals (guards against LLM hallucination)
-            valid = [n for n in group if isinstance(n, str) and n.strip() in canonicals]
+            # Guard against LLM hallucinating names not in our canonical list
+            valid = [n.strip() for n in group if isinstance(n, str) and n.strip() in canonical_set]
             if len(valid) < 2:
                 continue
-            winner = valid[0].strip()
-            for loser in valid[1:]:
-                loser = loser.strip()
+            winner = valid[0]
+            losers = valid[1:]
+            # Sanity check: reject losers that share no word with winner
+            losers = _sanity_check_group(winner, losers)
+            for loser in losers:
                 if loser != winner:
                     merges[loser] = winner
                     print(f"    MERGE: '{loser}' → '{winner}'")
@@ -297,7 +323,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Canonicalize company names via LLM")
     parser.add_argument("--dry-run", action="store_true", help="Run without writing to DB")
     parser.add_argument("--batch", type=int, default=200, help="Names per LLM call (default 200)")
-    parser.add_argument("--skip-second-pass", action="store_true", help="Skip cross-batch duplicate merge")
+    parser.add_argument("--skip-second-pass", action="store_true", help="Skip dedup pass")
+    parser.add_argument("--reset", action="store_true", help="Wipe company_aliases and company_canonical, then re-run from scratch")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -324,6 +351,15 @@ def main() -> None:
     )
     cur.execute("CREATE INDEX IF NOT EXISTS company_aliases_canonical_idx ON company_aliases(canonical_name)")
     cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS company_canonical TEXT")
+
+    if args.reset:
+        if args.dry_run:
+            print("[dry-run] would wipe company_aliases and clear jobs.company_canonical")
+        else:
+            print("=== RESET: wiping company_aliases and jobs.company_canonical ===")
+            cur.execute("DELETE FROM company_aliases")
+            cur.execute("UPDATE jobs SET company_canonical = NULL")
+            print("  Reset complete.")
 
     # Only process raw names not already in company_aliases
     cur.execute(
