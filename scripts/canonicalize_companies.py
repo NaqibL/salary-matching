@@ -357,6 +357,7 @@ def main() -> None:
             print("[dry-run] would wipe company_aliases and clear jobs.company_canonical")
         else:
             print("=== RESET: wiping company_aliases and jobs.company_canonical ===")
+            cur.execute("SET statement_timeout = 0")
             cur.execute("DELETE FROM company_aliases")
             cur.execute("UPDATE jobs SET company_canonical = NULL")
             print("  Reset complete.")
