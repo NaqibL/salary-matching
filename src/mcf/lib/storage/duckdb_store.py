@@ -1758,14 +1758,14 @@ class DuckDBStore(Storage):
 
     def get_distinct_companies(self) -> list[str]:
         rows = self._con.execute(
-            "SELECT DISTINCT company_name FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL ORDER BY company_name"
+            "SELECT DISTINCT COALESCE(company_canonical, company_name) FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL ORDER BY 1"
         ).fetchall()
         return [r[0] for r in rows]
 
     def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
         rows = self._con.execute(
-            "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND company_name = ?",
-            [company_name],
+            "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND (company_canonical = ? OR (company_canonical IS NULL AND company_name = ?))",
+            [company_name, company_name],
         ).fetchall()
         return {r[0] for r in rows}
 

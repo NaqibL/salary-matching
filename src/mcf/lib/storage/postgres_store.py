@@ -1696,15 +1696,15 @@ class PostgresStore(Storage):
     def get_distinct_companies(self) -> list[str]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT DISTINCT company_name FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL ORDER BY company_name"
+                "SELECT DISTINCT COALESCE(company_canonical, company_name) FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL ORDER BY 1"
             )
             return [r[0] for r in cur.fetchall()]
 
     def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND company_name = %s",
-                (company_name,),
+                "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND (company_canonical = %s OR (company_canonical IS NULL AND company_name = %s))",
+                (company_name, company_name),
             )
             return {r[0] for r in cur.fetchall()}
 
