@@ -1769,6 +1769,20 @@ class DuckDBStore(Storage):
         ).fetchall()
         return {r[0] for r in rows}
 
+    def get_all_jobs_by_company(self, company_name: str) -> list[dict]:
+        cols = [
+            "job_uuid", "title", "salary_min", "salary_max", "is_active",
+            "first_seen_at", "last_seen_at", "employment_types_json",
+            "position_levels_json", "llm_fields_json", "min_years_experience",
+            "job_url", "job_source",
+        ]
+        rows = self._con.execute(
+            f"SELECT {', '.join(cols)} FROM jobs "
+            "WHERE company_canonical = ? OR (company_canonical IS NULL AND company_name = ?)",
+            [company_name, company_name],
+        ).fetchall()
+        return [dict(zip(cols, row)) for row in rows]
+
     def upsert_taste_embedding(self, *, profile_id: str, model_name: str, embedding: Sequence[float]) -> None:
         """Store a taste-profile embedding.
 

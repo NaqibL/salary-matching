@@ -1708,6 +1708,20 @@ class PostgresStore(Storage):
             )
             return {r[0] for r in cur.fetchall()}
 
+    def get_all_jobs_by_company(self, company_name: str) -> list[dict]:
+        with self._cur() as cur:
+            cur.execute(
+                "SELECT job_uuid, title, salary_min, salary_max, is_active, "
+                "first_seen_at, last_seen_at, employment_types_json, "
+                "position_levels_json, llm_fields_json, min_years_experience, "
+                "job_url, job_source "
+                "FROM jobs "
+                "WHERE company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)",
+                (company_name, company_name),
+            )
+            cols = [d[0] for d in cur.description]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
+
     # === Match recording ===
 
     def record_match(

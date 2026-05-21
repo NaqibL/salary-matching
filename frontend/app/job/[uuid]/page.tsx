@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import useSWR from 'swr'
 import { ArrowLeft, Building2, MapPin, ExternalLink } from 'lucide-react'
@@ -83,10 +84,13 @@ function JobDetailContent() {
         <CardBody className="space-y-4">
           <div className="flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-400">
             {job.company_name && (
-              <span className="flex items-center gap-1.5">
+              <Link
+                href={`/company/${encodeURIComponent(job.company_name)}`}
+                className="flex items-center gap-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+              >
                 <Building2 size={16} className="shrink-0" />
                 {job.company_name}
-              </span>
+              </Link>
             )}
             {job.location && (
               <span className="flex items-center gap-1.5">

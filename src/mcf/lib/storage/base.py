@@ -405,6 +405,11 @@ class Storage(ABC):
         """Return UUIDs of all active jobs from the given company."""
         ...
 
+    @abstractmethod
+    def get_all_jobs_by_company(self, company_name: str) -> list[dict]:
+        """Return all jobs (active and inactive) for the given company."""
+        ...
+
     def reset_profile_ratings(self, user_id: str) -> dict:
         """Reset job interactions and taste profile for a user (for testing).
         Returns counts of deleted rows. Override in store implementations."""

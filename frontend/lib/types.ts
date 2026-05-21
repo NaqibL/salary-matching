@@ -42,6 +42,35 @@ export interface Match {
   salary_max?: number | null
 }
 
+export interface CompanyJob {
+  job_uuid: string
+  title: string
+  salary_min: number | null
+  salary_max: number | null
+  last_seen_at: string
+  employment_types: string[]
+  position_levels: string[]
+  min_years_experience: number | null
+  inferred_seniority: string | null
+  job_url: string | null
+}
+
+export interface CompanyProfile {
+  company_name: string
+  active_count: number
+  total_count: number
+  salary_p25: number | null
+  salary_p50: number | null
+  salary_p75: number | null
+  salary_sample_size: number
+  avg_min_experience: number | null
+  position_levels: Record<string, number>
+  employment_types: Record<string, number>
+  top_skills: [string, number][]
+  active_jobs: CompanyJob[]
+  recent_closed: CompanyJob[]
+}
+
 export interface Profile {
   user_id: string
   profile: any

@@ -1,8 +1,8 @@
 import axios from 'axios'
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile } from './types'
 import { supabase } from './supabase'
 
-export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult }
+export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -336,6 +336,12 @@ export const companiesApi = {
   list: async (): Promise<string[]> => {
     const res = await fetch('/api/companies')
     if (!res.ok) return []
+    return res.json()
+  },
+
+  getProfile: async (name: string): Promise<CompanyProfile> => {
+    const res = await fetch(`/api/company/${encodeURIComponent(name)}`)
+    if (!res.ok) throw new Error(`Company not found: ${name}`)
     return res.json()
   },
 }
