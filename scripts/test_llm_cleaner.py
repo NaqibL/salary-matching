@@ -468,42 +468,39 @@ def run_text(description: str, title: str, cleaner) -> None:
     _run_one(title, description, cleaner)
 
 
-def run_from_db(n: int, db_path: str, cleaner) -> None:
+def run_from_db(n: int, db_url: str, cleaner) -> None:
     """Sample n random jobs from the database and run through the pipeline."""
-    try:
-        import duckdb
-    except ImportError:
-        console.print("[red]duckdb not installed. Run: uv sync[/red]")
+    import psycopg2
+
+    db_url = db_url or os.getenv("DATABASE_URL")
+    if not db_url:
+        console.print("[red]--db-url or DATABASE_URL is required for --from-db[/red]")
         return
 
-    db_path = db_path or os.getenv("DB_PATH", "data/mcf.duckdb")
-    if not Path(db_path).exists():
-        console.print(f"[red]Database not found: {db_path}[/red]")
-        console.print("Pass --db path/to/mcf.duckdb or set DB_PATH env var.")
-        return
-
-    con = duckdb.connect(db_path, read_only=True)
+    conn = psycopg2.connect(db_url)
     try:
-        rows = con.execute(
-            """
-            SELECT title, description, skills_json, position_levels_json, min_years_experience
-            FROM jobs
-            WHERE is_active = TRUE
-              AND description IS NOT NULL
-              AND length(description) > 50
-            ORDER BY random()
-            LIMIT ?
-            """,
-            [n],
-        ).fetchall()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT title, description, skills_json, position_levels_json, min_years_experience
+                FROM jobs
+                WHERE is_active = TRUE
+                  AND description IS NOT NULL
+                  AND length(description) > 50
+                ORDER BY random()
+                LIMIT %s
+                """,
+                (n,),
+            )
+            rows = cur.fetchall()
     finally:
-        con.close()
+        conn.close()
 
     if not rows:
         console.print("[yellow]No jobs with descriptions found in the database.[/yellow]")
         return
 
-    console.print(f"\n[dim]Sampled {len(rows)} jobs from [bold]{db_path}[/bold][/dim]")
+    console.print(f"\n[dim]Sampled {len(rows)} jobs from Postgres[/dim]")
 
     import json as _json
 
@@ -536,14 +533,14 @@ def main() -> None:
             '  uv run python scripts/test_llm_cleaner.py --text "We need a Python developer..."\n'
             "  uv run python scripts/test_llm_cleaner.py --file ~/Desktop/jobdesc.txt\n"
             "  uv run python scripts/test_llm_cleaner.py --from-db 20\n"
-            "  uv run python scripts/test_llm_cleaner.py --from-db 50 --db data/mcf.duckdb\n"
+            "  uv run python scripts/test_llm_cleaner.py --from-db 50 --db-url $DATABASE_URL\n"
         ),
     )
     parser.add_argument("--text", metavar="TEXT", help="Inline job description text to test.")
     parser.add_argument("--file", metavar="FILE", help="Path to a .txt file containing a job description.")
     parser.add_argument("--title", metavar="TITLE", default="Job", help="Job title for --text / --file mode (default: 'Job').")
     parser.add_argument("--from-db", metavar="N", type=int, help="Sample N random jobs from the database.")
-    parser.add_argument("--db", metavar="PATH", default="data/mcf.duckdb", help="DuckDB file path for --from-db (default: data/mcf.duckdb).")
+    parser.add_argument("--db-url", metavar="URL", default=None, help="PostgreSQL connection URL for --from-db (default: DATABASE_URL env var).")
     args = parser.parse_args()
 
     cleaner = _setup_llm()
@@ -557,7 +554,7 @@ def main() -> None:
             sys.exit(1)
         run_text(path.read_text(encoding="utf-8"), args.title or path.stem, cleaner)
     elif args.from_db:
-        run_from_db(args.from_db, args.db, cleaner)
+        run_from_db(args.from_db, args.db_url, cleaner)
     else:
         run_builtin_samples(cleaner)
 

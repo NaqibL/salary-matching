@@ -7,7 +7,6 @@ get_embedder() to obtain the active instances.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -19,19 +18,15 @@ _embedder: EmbedderProtocol | None = None
 
 
 def _make_store() -> Storage:
-    """Return a DuckDBStore or PostgresStore depending on DATABASE_URL."""
+    """Return a PostgresStore using DATABASE_URL."""
     from mcf.api.config import settings
 
-    if settings.database_url:
-        from mcf.lib.storage.postgres_store import PostgresStore
+    if not settings.database_url:
+        raise RuntimeError("DATABASE_URL is required")
 
-        return PostgresStore(settings.database_url)
+    from mcf.lib.storage.postgres_store import PostgresStore
 
-    from mcf.lib.storage.duckdb_store import DuckDBStore
-
-    db_path = Path(settings.db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    return DuckDBStore(str(db_path))
+    return PostgresStore(settings.database_url)
 
 
 def set_store(s: Storage) -> None:

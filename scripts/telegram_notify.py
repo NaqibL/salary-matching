@@ -9,7 +9,7 @@ Live (sends to Telegram):
     uv run python scripts/telegram_notify.py
 
 Required env vars:
-    DATABASE_URL          Postgres connection string (omit for local DuckDB)
+    DATABASE_URL          Postgres connection string (required)
     TELEGRAM_BOT_TOKEN    From BotFather
     TELEGRAM_CHAT_ID      Your personal chat ID
 

@@ -25,14 +25,14 @@ uv run uvicorn mcf.api.server:app --reload --port 8000
 # Frontend
 cd frontend && npm run dev
 
-# Tests (smoke only, real DuckDB, no mocks)
+# Tests (smoke only, real Postgres via DATABASE_URL, skipped if unset)
 uv run pytest tests/ -v
 
 # All CLI commands
 uv run mcf <command>
 ```
 
-Local dev: copy `.env.example` to `.env`. Leave `DATABASE_URL` unset for local DuckDB. Set `ALLOW_ANONYMOUS_LOCAL=true` to skip Supabase auth.
+Local dev: copy `.env.example` to `.env`. Set `DATABASE_URL` to your Supabase connection string. Set `ALLOW_ANONYMOUS_LOCAL=true` to skip Supabase auth.
 
 ---
 
@@ -40,11 +40,11 @@ Local dev: copy `.env.example` to `.env`. Leave `DATABASE_URL` unset for local D
 
 | Rule | Detail |
 |---|---|
-| **Storage interface** | All DB access through `Storage` ABC (`src/mcf/lib/storage/base.py`). Never import `DuckDBStore` or `PostgresStore` directly in routes. |
+| **Storage interface** | All DB access through `Storage` ABC (`src/mcf/lib/storage/base.py`). Never import `PostgresStore` directly in routes. |
 | **Frontend API layer** | All API calls through `frontend/lib/api.ts`. Never use `axios`/`fetch` directly in components. |
-| **DB switching** | `DATABASE_URL` set → Postgres (prod). Unset → DuckDB (local). Handled automatically in server lifespan. |
+| **DB** | `DATABASE_URL` (Postgres/Supabase) is required — no DuckDB fallback. |
 | **Python deps** | `uv add <package>`. `requirements.txt` is auto-generated for Docker — do not hand-edit. |
-| **Tests** | Real DuckDB in temp dirs. No mocks. No external API calls. |
+| **Tests** | Real Postgres via `DATABASE_URL`. No mocks. No external API calls. Tests skip if `DATABASE_URL` is unset. |
 
 ---
 
@@ -168,7 +168,7 @@ Also note: the active-jobs pool cache (15-min TTL, pre-stacked numpy matrix in `
 | `/crawl-check` | Report recent crawl run stats, job counts, source health |
 | `/match-debug` | Run matcher, diagnose top results, suggest tuning |
 | `/backfill-status` | Report jobs missing embeddings or LLM fields, estimate backfill time |
-| `/schema-diff` | Surface DuckDB vs Postgres schema and implementation divergences |
+| `/schema-diff` | Surface schema divergences between the Storage ABC and PostgresStore implementation |
 
 ---
 

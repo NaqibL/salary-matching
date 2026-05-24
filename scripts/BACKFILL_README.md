@@ -5,7 +5,7 @@ After applying migration `003_add_rich_job_fields.sql`, existing jobs in your da
 ## Prerequisites
 
 1. **Migration applied**: Run `scripts/migrations/003_add_rich_job_fields.sql` in the Supabase SQL Editor (or your Postgres database).
-2. **Database connection**: `DATABASE_URL` for Postgres, or `--db` for DuckDB.
+2. **Database connection**: Set `DATABASE_URL` in your environment or `.env`.
 
 ## When to Run
 
@@ -25,17 +25,10 @@ uv run mcf backfill-rich-fields
 uv run mcf backfill-rich-fields --db-url "postgresql://..."
 ```
 
-### DuckDB (local)
-
-```bash
-uv run mcf backfill-rich-fields --db data/mcf.duckdb
-```
-
 ### Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--db` | `data/mcf.duckdb` | DuckDB file path |
 | `--db-url` | *(env: DATABASE_URL)* | PostgreSQL connection URL |
 | `--rate-limit`, `-r` | `4` | API requests per second |
 | `--limit`, `-l` | *(none)* | Max jobs to process (for batched runs) |

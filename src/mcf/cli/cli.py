@@ -27,22 +27,16 @@ from mcf.lib.pipeline.incremental_crawl import run_incremental_crawl
 from mcf.lib.sources.cag_source import CareersGovJobSource
 from mcf.lib.sources.mcf_source import MCFJobSource
 from mcf.lib.storage.base import Storage
-from mcf.lib.storage.duckdb_store import DuckDBStore
 
 
-def _open_store(db: Path | None, db_url: str | None) -> tuple[Storage, str]:
-    """Return (store, display_label) based on which option was given.
+def _open_store(db_url: str | None) -> tuple[Storage, str]:
+    """Return (store, display_label) for the Postgres store."""
+    if not db_url:
+        console.print("[bold red]Error:[/bold red] --db-url or DATABASE_URL is required")
+        raise typer.Exit(1)
+    from mcf.lib.storage.postgres_store import PostgresStore
 
-    Priority: --db-url (Postgres) > --db (DuckDB path) > default DuckDB.
-    """
-    if db_url:
-        from mcf.lib.storage.postgres_store import PostgresStore
-
-        return PostgresStore(db_url), f"Postgres: {db_url[:40]}…"
-
-    db_path = db or Path("data/mcf.duckdb")
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    return DuckDBStore(str(db_path)), f"DuckDB: {db_path.resolve()}"
+    return PostgresStore(db_url), f"Postgres: {db_url[:40]}…"
 
 app = typer.Typer(
     name="mcf",
@@ -62,13 +56,9 @@ console = Console()
 
 @app.command("crawl-incremental")
 def crawl_incremental(
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
     rate_limit: Annotated[
         float,
@@ -119,7 +109,7 @@ def crawl_incremental(
         console.print(f"[red]Invalid --source '{source}'. Must be one of: {', '.join(sorted(valid_sources))}[/red]")
         raise typer.Exit(1)
 
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
 
     console.print(f"[bold cyan]Incremental Crawler[/bold cyan]")
     console.print(f"  Source: [magenta]{source}[/magenta]")
@@ -211,13 +201,9 @@ def crawl_incremental(
 
 @app.command("backfill-rich-fields")
 def backfill_rich_fields(
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
     rate_limit: Annotated[
         float,
@@ -241,7 +227,7 @@ def backfill_rich_fields(
     Fetches job details from the MCF API and updates jobs that have NULL categories_json.
     Run locally; large datasets may take hours. Use --limit for batched runs.
     """
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
 
     try:
         job_uuids = store.get_job_uuids_needing_rich_backfill(limit=limit)
@@ -333,13 +319,9 @@ def backfill_rich_fields(
 
 @app.command("backfill-descriptions")
 def backfill_descriptions(
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
     rate_limit: Annotated[
         float,
@@ -355,7 +337,7 @@ def backfill_descriptions(
     Fetches each job from the MCF API, strips HTML, and saves the plain-text description.
     Run with --limit for batched runs (e.g. --limit 5000 per day to avoid rate limits).
     """
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
 
     try:
         job_uuids = store.get_job_uuids_needing_description_backfill(limit=limit)
@@ -420,13 +402,9 @@ def backfill_descriptions(
 
 @app.command("backfill-job-daily-stats")
 def backfill_job_daily_stats(
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
     limit_days: Annotated[
         int,
@@ -443,7 +421,7 @@ def backfill_job_daily_stats(
     category/employment_type/position_level so dashboard charts show full time series.
     Run once to catch up; the crawler will keep job_daily_stats updated going forward.
     """
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
 
     try:
         console.print("[bold cyan]Backfill job_daily_stats[/bold cyan]")
@@ -472,17 +450,13 @@ def process_resume(
         str,
         typer.Option("--user-id", "-u", help="User ID (default: default_user)"),
     ] = "default_user",
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
 ) -> None:
     """Process resume from file and create profile for matching."""
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
 
     try:
         if not resume_path.exists():
@@ -552,17 +526,13 @@ def match_jobs(
         bool,
         typer.Option("--exclude-interacted/--include-interacted", help="Exclude jobs user has interacted with"),
     ] = True,
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
 ) -> None:
     """Find matching jobs for uploaded resume."""
-    store, _ = _open_store(db, db_url)
+    store, _ = _open_store(db_url)
     
     try:
         # Get profile
@@ -648,16 +618,9 @@ def mark_interaction(
             help="User ID (default: default_user)",
         ),
     ] = "default_user",
-    db: Annotated[
-        Optional[Path],
-        typer.Option(
-            "--db",
-            help="DuckDB file path (default: data/mcf.duckdb)",
-        ),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
 ) -> None:
     """Mark a job as interacted with (viewed, dismissed, applied, etc.)."""
@@ -666,7 +629,7 @@ def mark_interaction(
         console.print("Valid types: viewed, dismissed, applied, saved")
         raise typer.Exit(1)
 
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
 
     try:
         # Verify job exists
@@ -692,17 +655,13 @@ def reset_ratings_cli(
         str,
         typer.Option("--user-id", "-u", help="User ID (default: default_user)"),
     ] = "default_user",
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
         typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
 ) -> None:
     """Reset job interactions and taste profile for a user (for testing)."""
-    store, _ = _open_store(db, db_url)
+    store, _ = _open_store(db_url)
     try:
         result = store.reset_profile_ratings(user_id)
         console.print("[bold green]Reset complete[/bold green]")
@@ -715,13 +674,9 @@ def reset_ratings_cli(
 
 @app.command("re-embed")
 def re_embed(
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
     db_url: Annotated[
         Optional[str],
-        typer.Option("--db-url", help="PostgreSQL connection URL (overrides --db)", envvar="DATABASE_URL"),
+        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
     ] = None,
     batch_size: Annotated[
         int,
@@ -747,13 +702,6 @@ def re_embed(
     You should also re-run 'mcf process-resume' afterwards so that the
     candidate embedding uses the same model as the jobs.
     """
-    if not db_url:
-        db_path = db or Path("data/mcf.duckdb")
-        if not db_path.exists():
-            console.print(f"[bold red]Error:[/bold red] Database not found at {db_path}")
-            console.print("Run 'mcf crawl-incremental' first to create the database.")
-            raise typer.Exit(1)
-
     # Wire LLM cleaner if configured
     from mcf.lib.embeddings.llm_cleaner import GeminiFlashCleaner
     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
@@ -769,7 +717,7 @@ def re_embed(
         register_llm_cleaner(_llm_cleaner)
         _jde._LLM_ENABLED = True
 
-    store, db_display = _open_store(db, db_url)
+    store, db_display = _open_store(db_url)
     try:
         if since_days is not None:
             try:
@@ -887,138 +835,6 @@ def re_embed(
                       "embedding with the new model.")
     finally:
         store.close()
-
-
-@app.command("export-to-postgres")
-def export_to_postgres(
-    db: Annotated[
-        Optional[Path],
-        typer.Option("--db", help="DuckDB file path (default: data/mcf.duckdb)"),
-    ] = None,
-    db_url: Annotated[
-        str,
-        typer.Option("--db-url", help="PostgreSQL connection URL", envvar="DATABASE_URL"),
-    ] = "",
-) -> None:
-    """Export job data from DuckDB to PostgreSQL (Supabase).
-
-    Use after a local crawl: crawl to DuckDB, then run this to upload.
-    Exports: crawl_runs, jobs, job_run_status, job_embeddings.
-    User data (profiles, interactions) is not exported.
-    """
-    if not db_url:
-        console.print("[bold red]Error:[/bold red] --db-url or DATABASE_URL is required")
-        raise typer.Exit(1)
-
-    db_path = db or Path("data/mcf.duckdb")
-    if not db_path.exists():
-        console.print(f"[bold red]Error:[/bold red] DuckDB not found at {db_path}")
-        console.print(f"Run 'mcf crawl-incremental --db {db_path}' first.")
-        raise typer.Exit(1)
-
-    import duckdb
-    from psycopg2.extras import execute_values
-
-    duck_con = duckdb.connect(str(db_path), read_only=True)
-    pg_con = __import__("psycopg2").connect(db_url)
-    pg_con.autocommit = True
-
-    def pg_cur():
-        return pg_con.cursor()
-
-    try:
-        # 1. crawl_runs
-        rows = duck_con.execute("SELECT run_id, started_at, finished_at, kind, categories_json, total_seen, added, maintained, removed FROM crawl_runs").fetchall()
-        if rows:
-            with pg_cur() as cur:
-                execute_values(
-                    cur,
-                    """
-                    INSERT INTO crawl_runs(run_id, started_at, finished_at, kind, categories_json, total_seen, added, maintained, removed)
-                    VALUES %s ON CONFLICT (run_id) DO NOTHING
-                    """,
-                    rows,
-                )
-            console.print(f"[green]crawl_runs:[/green] {len(rows):,} rows")
-        else:
-            console.print("[yellow]crawl_runs:[/yellow] empty")
-
-        # 2. jobs
-        rows = duck_con.execute(
-            "SELECT job_uuid, job_source, first_seen_run_id, last_seen_run_id, is_active, first_seen_at, last_seen_at, title, company_name, location, job_url, skills_json FROM jobs"
-        ).fetchall()
-        if rows:
-            with pg_cur() as cur:
-                execute_values(
-                    cur,
-                    """
-                    INSERT INTO jobs(job_uuid, job_source, first_seen_run_id, last_seen_run_id, is_active, first_seen_at, last_seen_at, title, company_name, location, job_url, skills_json)
-                    VALUES %s ON CONFLICT (job_uuid) DO NOTHING
-                    """,
-                    rows,
-                )
-            console.print(f"[green]jobs:[/green] {len(rows):,} rows")
-        else:
-            console.print("[yellow]jobs:[/yellow] empty")
-
-        # 3. job_run_status (batch to avoid huge INSERT)
-        rows = duck_con.execute("SELECT run_id, job_uuid, status FROM job_run_status").fetchall()
-        if rows:
-            batch_size = 5000
-            with pg_cur() as cur:
-                for i in range(0, len(rows), batch_size):
-                    batch = rows[i : i + batch_size]
-                    execute_values(
-                        cur,
-                        "INSERT INTO job_run_status(run_id, job_uuid, status) VALUES %s ON CONFLICT (run_id, job_uuid) DO NOTHING",
-                        batch,
-                    )
-            console.print(f"[green]job_run_status:[/green] {len(rows):,} rows")
-        else:
-            console.print("[yellow]job_run_status:[/yellow] empty")
-
-        # 4. job_embeddings (batch - can be large)
-        rows = duck_con.execute("SELECT job_uuid, model_name, embedding_json, dim, embedded_at FROM job_embeddings").fetchall()
-        if rows:
-            # Detect target schema: embedding_json, embedding (vector), or both
-            with pg_cur() as cur:
-                cur.execute(
-                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'job_embeddings' AND column_name IN ('embedding_json', 'embedding')"
-                )
-                cols = {r[0] for r in cur.fetchall()}
-            has_json = "embedding_json" in cols
-            has_vector = "embedding" in cols
-
-            if has_json and has_vector:
-                insert_sql = "INSERT INTO job_embeddings(job_uuid, model_name, embedding_json, embedding, dim, embedded_at) VALUES %s ON CONFLICT (job_uuid) DO NOTHING"
-                template = "(%s, %s, %s, %s::vector, %s, %s)"
-                batch_rows = [(r[0], r[1], r[2], r[2], r[3], r[4]) for r in rows]  # emb_json used for both
-            elif has_json:
-                insert_sql = "INSERT INTO job_embeddings(job_uuid, model_name, embedding_json, dim, embedded_at) VALUES %s ON CONFLICT (job_uuid) DO NOTHING"
-                template = None
-                batch_rows = rows
-            elif has_vector:
-                insert_sql = "INSERT INTO job_embeddings(job_uuid, model_name, embedding, dim, embedded_at) VALUES %s ON CONFLICT (job_uuid) DO NOTHING"
-                template = "(%s, %s, %s::vector, %s, %s)"
-                batch_rows = rows
-            else:
-                console.print("[bold red]Error:[/bold red] job_embeddings has neither embedding_json nor embedding column. Run scripts/schema.sql first.")
-                raise typer.Exit(1)
-
-            batch_size = 1000
-            with pg_cur() as cur:
-                for i in range(0, len(batch_rows), batch_size):
-                    batch = batch_rows[i : i + batch_size]
-                    execute_values(cur, insert_sql, batch, template=template if template else None)
-            console.print(f"[green]job_embeddings:[/green] {len(rows):,} rows")
-        else:
-            console.print("[yellow]job_embeddings:[/yellow] empty")
-
-        console.print()
-        console.print("[bold green]Export complete![/bold green]")
-    finally:
-        duck_con.close()
-        pg_con.close()
 
 
 @app.command("db-context")

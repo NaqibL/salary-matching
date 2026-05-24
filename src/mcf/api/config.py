@@ -15,10 +15,7 @@ class Settings(BaseSettings):
     """
 
     # --- Database ---
-    # Set DATABASE_URL to a postgres:// connection string to use PostgreSQL
-    # (e.g. Supabase). Leave unset to fall back to local DuckDB.
     database_url: str | None = None
-    db_path: str = os.getenv("DB_PATH", "data/mcf.duckdb")
 
     # --- Supabase (optional, enables auth + file storage) ---
     supabase_url: str | None = None

@@ -24,9 +24,8 @@ class RunStats:
 class Storage(ABC):
     """Abstract storage interface.
 
-    Both DuckDBStore (local) and PostgresStore (hosted) implement this interface,
-    allowing the entire application to switch backends via a single DATABASE_URL
-    environment variable without touching any other code.
+    PostgresStore implements this interface. All DB access in routes goes through
+    here — never import PostgresStore directly.
     """
 
     # === Crawl runs ===

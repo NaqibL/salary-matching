@@ -2,22 +2,20 @@
 
 ## Purpose
 
-Provides a database-agnostic abstraction over all persistence operations. The `Storage` abstract base class defines ~36 methods covering jobs, embeddings, user profiles, ratings, and analytics. Two concrete implementations (`DuckDBStore`, `PostgresStore`) allow the same application code to run against a local DuckDB file (dev) or a managed PostgreSQL database (production) via a single env var switch.
+Provides a database-agnostic abstraction over all persistence operations. The `Storage` abstract base class defines the complete interface (~36 methods) covering jobs, embeddings, user profiles, ratings, and analytics. `PostgresStore` is the sole concrete implementation, backed by Supabase Postgres in production and local dev.
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `base.py` | `Storage` ABC — complete interface contract, ~36 abstract methods |
-| `duckdb_store.py` | DuckDB implementation (~2000 lines). Used when `DATABASE_URL` is not set. |
-| `postgres_store.py` | PostgreSQL/Supabase implementation. Used when `DATABASE_URL` is set. |
+| `base.py` | `Storage` ABC — complete interface contract |
+| `postgres_store.py` | PostgreSQL/Supabase implementation — the only store |
 
 ## Dependencies
 
 | Package | Use |
 |---|---|
-| `duckdb` | Local columnar DB (dev/test) |
-| `psycopg2` | PostgreSQL adapter (production) |
+| `psycopg2` | PostgreSQL adapter |
 | `numpy` | Embedding arrays stored/retrieved as binary |
 
 ## Internal Dependencies
@@ -32,11 +30,9 @@ Provides a database-agnostic abstraction over all persistence operations. The `S
 store.get_job(uuid: str) -> dict | None
 store.upsert_job(job: NormalizedJob) -> None
 store.get_active_job_ids() -> list[str]
-store.get_active_job_ids_ranked(query_embedding: np.ndarray) -> list[tuple[str, float, datetime | None]]
 
 # Embeddings
 store.upsert_job_embedding(uuid: str, embedding: np.ndarray) -> None
-store.get_job_embeddings(uuids: list[str]) -> dict[str, np.ndarray]
 store.get_all_active_job_embeddings() -> tuple[list[str], np.ndarray]
 
 # User profiles
@@ -52,26 +48,17 @@ store.get_dashboard_summary() -> dict
 store.get_active_jobs_by_date() -> list[dict]
 ```
 
-## How the Switch Works
+## Configuration
 
-In `src/mcf/api/server.py` lifespan:
-```python
-def _make_store() -> Storage:
-    if settings.database_url:
-        from mcf.lib.storage.postgres_store import PostgresStore
-        return PostgresStore(settings.database_url)
-    else:
-        from mcf.lib.storage.duckdb_store import DuckDBStore
-        return DuckDBStore(str(db_path))
-```
+`DATABASE_URL` (Postgres connection string) is required. Set it in `.env` for local dev — see `.env.example`.
 
 ## State Management
 
-The `Storage` object is a singleton initialised at startup (FastAPI lifespan) and injected into route handlers via `Depends(get_store)`. It manages its own connection lifecycle. DuckDB uses a single in-process connection; Postgres uses a connection pool.
+The `Storage` object is a singleton initialised at startup (FastAPI lifespan) and injected into route handlers via `Depends(get_store)`. It manages its own connection lifecycle.
 
 ## Testing
 
-Tests use a real DuckDB instance (no mocking). The DuckDB file is created fresh for each test session via the `TestClient` fixture.
+Tests require `DATABASE_URL` to be set. They are skipped automatically when it is not.
 
 ```bash
 uv run pytest tests/ -v
@@ -79,5 +66,5 @@ uv run pytest tests/ -v
 
 ## Common Modifications
 
-- **Add a new DB operation**: See [Adding a New Storage Method](../../../.ai/common-tasks.md#adding-a-new-storage-method)
-- **Schema changes**: Add `CREATE TABLE IF NOT EXISTS` or `ALTER TABLE` in both `duckdb_store.py` and `postgres_store.py` schema setup methods
+- **Add a new DB operation**: Add an abstract method to `base.py`, implement it in `postgres_store.py`.
+- **Schema changes**: Apply via `ALTER TABLE` in Supabase SQL editor and update `ensure_schema()` in `postgres_store.py`.

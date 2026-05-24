@@ -1,5 +1,7 @@
 """Smoke tests — verify the FastAPI app starts and key routes respond correctly."""
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -7,18 +9,14 @@ from mcf.api.server import app
 
 
 @pytest.fixture(scope="session")
-def client(tmp_path_factory):
-    """TestClient backed by a fresh empty DuckDB, isolated from any .env settings.
+def client():
+    """TestClient backed by the real Postgres DB (DATABASE_URL required).
 
-    Using a temp DB means:
-    - No DATABASE_URL → no Postgres (avoids production DB in tests)
-    - No stale embeddings at wrong dimensions → no 500s from dimension mismatches
-    - Tests check structure (keys/types), not non-zero data, so empty DB is fine
+    Tests check structure (keys/types), not non-zero data, so an empty or
+    sparse DB is fine. Skip the whole suite if DATABASE_URL is not set.
     """
-    db_dir = tmp_path_factory.mktemp("db")
-    from mcf.api.config import settings
-    settings.database_url = None
-    settings.db_path = str(db_dir / "test.duckdb")
+    if not os.environ.get("DATABASE_URL"):
+        pytest.skip("DATABASE_URL not set — skipping smoke tests")
     with TestClient(app) as c:
         yield c
 

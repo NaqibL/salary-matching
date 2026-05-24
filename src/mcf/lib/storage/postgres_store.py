@@ -1,9 +1,6 @@
 """PostgreSQL-backed storage for incremental crawling and embeddings.
 
-Uses psycopg2. All JSON fields are stored as TEXT for portability (matching
-the DuckDB store), so no pgvector or JSONB extension is required.
-
-The DATABASE_URL must be a libpq-style connection string, e.g.:
+Uses psycopg2. DATABASE_URL must be a libpq-style connection string, e.g.:
   postgresql://user:password@host:5432/dbname?sslmode=require
 """
 
@@ -27,7 +24,7 @@ def _utcnow() -> datetime:
 
 
 class PostgresStore(Storage):
-    """PostgreSQL-backed persistence layer — mirrors DuckDBStore API exactly."""
+    """PostgreSQL-backed persistence layer (Supabase)."""
 
     def __init__(self, database_url: str) -> None:
         self._url = database_url

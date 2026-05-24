@@ -8,7 +8,7 @@ Required env vars:
     TELEGRAM_CHAT_ID
 
 Optional:
-    DATABASE_URL          (omit for local DuckDB)
+    DATABASE_URL          (required)
     INTEREST_PROFILE_PATH (default: scripts/interest_profile.txt)
 """
 
