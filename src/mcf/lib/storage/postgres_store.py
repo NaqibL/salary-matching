@@ -1711,7 +1711,7 @@ class PostgresStore(Storage):
                 "SELECT job_uuid, title, salary_min, salary_max, is_active, "
                 "first_seen_at, last_seen_at, employment_types_json, "
                 "position_levels_json, llm_fields_json, min_years_experience, "
-                "job_url, job_source "
+                "job_url "
                 "FROM jobs "
                 "WHERE company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)",
                 (company_name, company_name),

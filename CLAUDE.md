@@ -19,14 +19,15 @@ When working on the frontend, default to improving the salary checker and dashbo
 ## Quick start
 
 ```bash
-# Backend
-uv run uvicorn mcf.api.server:app --reload --port 8000
+# Backend (note: use python -m uvicorn, not uv run uvicorn — script path bug on Windows)
+uv run python -m uvicorn mcf.api.server:app --reload --port 8000
 
 # Frontend
 cd frontend && npm run dev
 
 # Tests (smoke only, real Postgres via DATABASE_URL, skipped if unset)
-uv run pytest tests/ -v
+# note: use python -m pytest, not uv run pytest — same Windows script path bug
+uv run python -m pytest tests/ -v
 
 # All CLI commands
 uv run mcf <command>
