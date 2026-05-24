@@ -380,8 +380,9 @@ def main() -> None:
     parser.add_argument("--dedup-batch", type=int, default=600, help="Names per LLM call in Pass 2 dedup (default 600)")
     args = parser.parse_args()
 
+    needs_llm = not args.skip_first_pass or not args.skip_second_pass
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
-    if not api_key:
+    if needs_llm and not api_key:
         sys.exit("OPENROUTER_API_KEY is not set")
 
     db_url = os.environ.get("DATABASE_URL", "")
