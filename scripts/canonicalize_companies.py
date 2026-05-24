@@ -38,6 +38,7 @@ load_dotenv()
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+POPULAR_FILTER_MODEL = os.environ.get("OPENROUTER_POPULAR_MODEL", "deepseek/deepseek-v4-flash")
 
 _CANONICALIZE_SYSTEM = """\
 You are cleaning company names scraped from Singapore job listings.
@@ -85,6 +86,54 @@ Example output:
 """
 
 
+_POPULAR_FILTER_SYSTEM = """\
+You are filtering a list of company names scraped from Singapore job listings.
+
+Return ONLY the names you confidently recognise as well-known companies — international brands,
+major regional employers, Singapore government bodies, statutory boards, universities, hospitals,
+or large local conglomerates (e.g. CapitaLand, Grab, Sea, ST Engineering).
+
+Rules:
+- Include a name only if you are certain you know this real-world company.
+- Exclude generic recruitment agencies, staffing firms, and names you don't recognise.
+- Do NOT guess or infer. If unsure, leave it out.
+
+Return ONLY a JSON array of the names you recognise, preserving them exactly as given.
+No explanation, no markdown fences. Example:
+["GOOGLE ASIA PACIFIC PTE. LTD.", "DBS BANK LTD", "NATIONAL UNIVERSITY OF SINGAPORE"]
+"""
+
+
+def filter_popular_names(
+    client: httpx.Client,
+    api_key: str,
+    raw_names: list[str],
+    batch_size: int = 500,
+) -> list[str]:
+    """Ask the LLM to filter raw_names down to only well-known companies."""
+    total = len(raw_names)
+    print(f"\n=== Popular filter: scanning {total} names (model={POPULAR_FILTER_MODEL}, batch={batch_size}) ===")
+
+    popular: list[str] = []
+    for i in range(0, total, batch_size):
+        batch = raw_names[i : i + batch_size]
+        raw_output = _call_llm(client, api_key, _POPULAR_FILTER_SYSTEM, json.dumps(batch, ensure_ascii=False), model=POPULAR_FILTER_MODEL)
+        if raw_output is None:
+            print(f"  batch {i // batch_size + 1}: LLM call failed, skipping")
+            continue
+        parsed = _parse_json(raw_output)
+        if not isinstance(parsed, list):
+            print(f"  batch {i // batch_size + 1}: unexpected output format, skipping")
+            continue
+        valid = [n for n in parsed if isinstance(n, str) and n.strip() in set(batch)]
+        popular.extend(valid)
+        done = min(i + batch_size, total)
+        print(f"  {done}/{total} — {len(valid)} popular names found in this batch")
+
+    print(f"Popular filter done. {len(popular)} well-known names identified out of {total}.")
+    return popular
+
+
 def _parse_json(text: str) -> dict | list | None:
     """Extract the first JSON object or array from an LLM response."""
     text = text.strip()
@@ -103,6 +152,7 @@ def _call_llm(
     system: str,
     user_content: str,
     retries: int = 3,
+    model: str | None = None,
 ) -> str | None:
     for attempt in range(retries):
         try:
@@ -110,7 +160,7 @@ def _call_llm(
                 OPENROUTER_URL,
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
-                    "model": MODEL,
+                    "model": model or MODEL,
                     "messages": [
                         {"role": "system", "content": system},
                         {"role": "user", "content": user_content},
@@ -323,8 +373,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Canonicalize company names via LLM")
     parser.add_argument("--dry-run", action="store_true", help="Run without writing to DB")
     parser.add_argument("--batch", type=int, default=200, help="Names per LLM call (default 200)")
+    parser.add_argument("--skip-first-pass", action="store_true", help="Skip Pass 1 canonicalization (use existing company_aliases)")
     parser.add_argument("--skip-second-pass", action="store_true", help="Skip dedup pass")
     parser.add_argument("--reset", action="store_true", help="Wipe company_aliases and company_canonical, then re-run from scratch")
+    parser.add_argument("--popular-only", action="store_true", help="Pre-filter to well-known companies using DeepSeek before canonicalizing")
+    parser.add_argument("--dedup-batch", type=int, default=600, help="Names per LLM call in Pass 2 dedup (default 600)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -375,13 +428,20 @@ def main() -> None:
     print(f"Raw company names to process: {len(raw_names)}")
 
     with httpx.Client() as http:
-        if not raw_names:
+        if args.skip_first_pass:
+            print("Skipping Pass 1 (--skip-first-pass set).")
+        elif not raw_names:
             print("Nothing new to canonicalize in Pass 1.")
         else:
+            if args.popular_only:
+                raw_names = filter_popular_names(http, api_key, raw_names)
+                if not raw_names:
+                    print("Popular filter returned no names. Exiting.")
+                    return
             pass1_canonicalize(cur, http, api_key, raw_names, args.batch, args.dry_run)
 
         if not args.skip_second_pass:
-            pass2_dedup(cur, http, api_key, args.dry_run)
+            pass2_dedup(cur, http, api_key, args.dry_run, batch_size=args.dedup_batch)
 
     apply_to_jobs(cur, args.dry_run)
 

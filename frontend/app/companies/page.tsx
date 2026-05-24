@@ -105,7 +105,7 @@ export default function CompaniesPage() {
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">
               <TrendingUp size={14} />
-              Most active
+              Most hiring
             </h2>
             {popularLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
