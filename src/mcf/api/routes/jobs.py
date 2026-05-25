@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from mcf.api.auth import get_current_user
+from mcf.api.auth import get_current_user, get_optional_user
 from mcf.api.cache.response import TTL_JOB_DETAIL, cache_response, invalidate_matches_for_user
 from mcf.api.cache.matches import invalidate_user
 from mcf.api.config import settings
@@ -71,7 +71,7 @@ def mark_interaction(
 @cache_response(TTL_JOB_DETAIL, "job", key_builder=lambda job_uuid, **_: job_uuid)
 def get_job_detail(
     job_uuid: str,
-    user_id: str = Depends(get_current_user),
+    user_id: str | None = Depends(get_optional_user),
 ):
     """Return full job details by UUID. Used for prefetching and job detail page."""
     store = get_store()

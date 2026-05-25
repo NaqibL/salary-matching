@@ -11,8 +11,6 @@ import NavUserActions from '@/app/components/NavUserActions'
 import { Card, CardBody, PageHeader } from '@/components/design'
 import { Button } from '@/components/ui/button'
 import type { JobDetail } from '@/lib/types'
-import AuthGate from '@/app/components/AuthGate'
-
 function JobDetailContent() {
   const params = useParams()
   const router = useRouter()
@@ -123,9 +121,5 @@ function JobDetailContent() {
 }
 
 export default function JobDetailPage() {
-  return (
-    <AuthGate>
-      {() => <JobDetailContent />}
-    </AuthGate>
-  )
+  return <JobDetailContent />
 }
