@@ -47,6 +47,7 @@ class PostgresStore(Storage):
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )""",
             "CREATE INDEX IF NOT EXISTS company_aliases_canonical_idx ON company_aliases(canonical_name)",
+            "ALTER TABLE company_aliases ADD COLUMN IF NOT EXISTS is_excluded BOOLEAN NOT NULL DEFAULT FALSE",
         ]
         with self._cur() as cur:
             for ddl in migrations:
