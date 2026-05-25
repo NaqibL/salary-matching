@@ -512,6 +512,7 @@ class PostgresStore(Storage):
     ) -> list[tuple[str, float, datetime | None]]:
         emb_str = json.dumps([float(x) for x in query_embedding])
         with self._cur() as cur:
+            cur.execute("SET hnsw.ef_search = 100")
             cur.execute(
                 """
                 SELECT j.job_uuid,
@@ -536,6 +537,7 @@ class PostgresStore(Storage):
     ) -> list[tuple[str, float, datetime | None]]:
         emb_str = json.dumps([float(x) for x in query_embedding])
         with self._cur() as cur:
+            cur.execute("SET hnsw.ef_search = 100")
             cur.execute(
                 """
                 SELECT j.job_uuid,
