@@ -1693,7 +1693,15 @@ class PostgresStore(Storage):
     def get_distinct_companies(self) -> list[str]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT DISTINCT COALESCE(company_canonical, company_name) FROM jobs WHERE is_active = TRUE AND company_name IS NOT NULL ORDER BY 1"
+                """
+                SELECT DISTINCT COALESCE(company_canonical, company_name)
+                FROM jobs
+                WHERE is_active = TRUE AND company_name IS NOT NULL
+                  AND COALESCE(company_canonical, company_name) NOT IN (
+                      SELECT canonical_name FROM company_aliases WHERE is_excluded = TRUE
+                  )
+                ORDER BY 1
+                """
             )
             return [r[0] for r in cur.fetchall()]
 
@@ -1722,9 +1730,15 @@ class PostgresStore(Storage):
     def get_top_companies(self, limit: int = 20) -> list[dict]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT company_canonical AS name, COUNT(*) AS active_count "
-                "FROM jobs WHERE is_active = TRUE AND company_canonical IS NOT NULL "
-                "GROUP BY 1 ORDER BY 2 DESC LIMIT %s",
+                """
+                SELECT company_canonical AS name, COUNT(*) AS active_count
+                FROM jobs
+                WHERE is_active = TRUE AND company_canonical IS NOT NULL
+                  AND company_canonical NOT IN (
+                      SELECT canonical_name FROM company_aliases WHERE is_excluded = TRUE
+                  )
+                GROUP BY 1 ORDER BY 2 DESC LIMIT %s
+                """,
                 (limit,),
             )
             return [{"name": r[0], "active_count": r[1]} for r in cur.fetchall()]
