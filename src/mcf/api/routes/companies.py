@@ -30,6 +30,7 @@ class CompanyJob(BaseModel):
     title: str | None
     salary_min: int | None
     salary_max: int | None
+    first_seen_at: str | None
     last_seen_at: str | None
     employment_types: list[str]
     position_levels: list[str]
@@ -93,6 +94,7 @@ def _to_company_job(job: dict) -> CompanyJob:
         title=job["title"],
         salary_min=job.get("salary_min"),
         salary_max=job.get("salary_max"),
+        first_seen_at=_to_iso(job.get("first_seen_at")),
         last_seen_at=_to_iso(job.get("last_seen_at")),
         employment_types=_parse_json_list(job.get("employment_types_json")),
         position_levels=_parse_json_list(job.get("position_levels_json")),

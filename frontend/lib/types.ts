@@ -52,6 +52,7 @@ export interface CompanyJob {
   title: string
   salary_min: number | null
   salary_max: number | null
+  first_seen_at: string | null
   last_seen_at: string
   employment_types: string[]
   position_levels: string[]
