@@ -21,14 +21,7 @@ export default function NavUserActions() {
   if (session === undefined) return null
 
   if (!session) {
-    return (
-      <Link
-        href="/matches"
-        className="text-sm font-medium text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-      >
-        Sign In
-      </Link>
-    )
+    return null
   }
 
   const handleSignOut = async () => {
