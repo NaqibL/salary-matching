@@ -173,7 +173,7 @@ def get_company_profile(
 
     top_skills = [[skill, count] for skill, count in skill_counter.most_common(20)]
 
-    active_jobs_raw = sorted(
+    active_jobs_all = sorted(
         [j for j in jobs if j.get("is_active")],
         key=lambda j: _to_iso(j.get("last_seen_at")),
         reverse=True,
@@ -186,7 +186,7 @@ def get_company_profile(
 
     return CompanyProfileResponse(
         company_name=company_name,
-        active_count=len(active_jobs_raw),
+        active_count=len(active_jobs_all),
         total_count=len(jobs),
         salary_p25=p25,
         salary_p50=p50,
@@ -196,6 +196,6 @@ def get_company_profile(
         position_levels=dict(pl_counter),
         employment_types=dict(et_counter),
         top_skills=top_skills,
-        active_jobs=[_to_company_job(j) for j in active_jobs_raw],
+        active_jobs=[_to_company_job(j) for j in active_jobs_all[:10]],
         recent_closed=[_to_company_job(j) for j in closed_jobs_raw],
     )
