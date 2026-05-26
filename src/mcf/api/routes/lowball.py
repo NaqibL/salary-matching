@@ -103,6 +103,13 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
     return result[:top_k]
 
 
+def _effective_salary(job: dict) -> int | None:
+    lo, hi = job.get("salary_min"), job.get("salary_max")
+    if lo is not None and hi is not None:
+        return (lo + hi) // 2
+    return lo
+
+
 def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
     qs = _quantiles(salaries, n=4)  # [p25, p50, p75]
     return int(qs[0]), int(qs[1]), int(qs[2])
@@ -151,7 +158,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
         )
 
-    salaries = sorted(j["salary_min"] for j in salary_jobs)
+    salaries = sorted(_effective_salary(j) for j in salary_jobs)
     p25, p50, p75 = _salary_percentiles(salaries)
 
     # No salary provided — return market data only
@@ -220,7 +227,10 @@ def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optiona
     # Percentile pool: top-500 from ALL embedded, regardless of active/salary range
     top_500_uuids = [uuid for uuid, _, _ in ranked_all[:500]]
     salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids)
-    salary_values = sorted(j["salary_min"] for j in salary_pool if j.get("salary_min") is not None)
+    salary_values = sorted(
+        s for j in salary_pool
+        if (s := _effective_salary(j)) is not None
+    )
 
     p25 = p50 = p75 = None
     if len(salary_values) >= 5:
