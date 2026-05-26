@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import useSWR from 'swr'
 import {
   BarChart,
@@ -17,7 +16,6 @@ import {
   History,
   TrendingUp,
   Clock,
-  ExternalLink,
 } from 'lucide-react'
 import { companiesApi } from '@/lib/api'
 import type { CompanyProfile, CompanyJob } from '@/lib/types'
@@ -82,15 +80,25 @@ function JobRow({ job, muted = false }: { job: CompanyJob; muted?: boolean }) {
   const seniority = job.inferred_seniority ?? job.position_levels[0] ?? null
   const et = job.employment_types[0] ?? null
 
+  const titleEl = job.job_url ? (
+    <a
+      href={job.job_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
+    >
+      {job.title}
+    </a>
+  ) : (
+    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate block">
+      {job.title}
+    </span>
+  )
+
   return (
     <div className={`flex items-start justify-between gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0 ${muted ? 'opacity-60' : ''}`}>
       <div className="min-w-0">
-        <Link
-          href={`/job/${job.job_uuid}`}
-          className="text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
-        >
-          {job.title}
-        </Link>
+        {titleEl}
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
           {salary && <span>{salary}</span>}
           {seniority && <span>{seniority}</span>}
@@ -100,24 +108,14 @@ function JobRow({ job, muted = false }: { job: CompanyJob; muted?: boolean }) {
           )}
         </div>
       </div>
-      <div className="shrink-0 flex items-center gap-2">
-        {recency && (
+      {recency && (
+        <div className="shrink-0">
           <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap flex items-center gap-1">
             <Clock size={11} />
             {recency}
           </span>
-        )}
-        {job.job_url && (
-          <a
-            href={job.job_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-400 hover:text-indigo-500"
-          >
-            <ExternalLink size={13} />
-          </a>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
