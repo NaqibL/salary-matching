@@ -76,7 +76,7 @@ function formatRecency(isoStr: string): string {
 
 function JobRow({ job, muted = false }: { job: CompanyJob; muted?: boolean }) {
   const salary = formatSalary(job.salary_min, job.salary_max)
-  const recency = formatRecency(job.last_seen_at ?? job.first_seen_at)
+  const recency = formatRecency(job.first_seen_at ?? job.last_seen_at)
   const seniority = job.inferred_seniority ?? job.position_levels[0] ?? null
   const et = job.employment_types[0] ?? null
 

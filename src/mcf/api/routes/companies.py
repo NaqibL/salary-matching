@@ -175,7 +175,7 @@ def get_company_profile(
 
     active_jobs_all = sorted(
         [j for j in jobs if j.get("is_active")],
-        key=lambda j: _to_iso(j.get("last_seen_at")),
+        key=lambda j: _to_iso(j.get("first_seen_at")),
         reverse=True,
     )
     closed_jobs_raw = sorted(
