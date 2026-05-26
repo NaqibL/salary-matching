@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import useSWR from 'swr'
 import {
@@ -19,8 +18,6 @@ import {
   TrendingUp,
   Clock,
   ExternalLink,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react'
 import { companiesApi } from '@/lib/api'
 import type { CompanyProfile, CompanyJob } from '@/lib/types'
@@ -130,8 +127,6 @@ function JobRow({ job, muted = false }: { job: CompanyJob; muted?: boolean }) {
 // ---------------------------------------------------------------------------
 
 export default function CompanyContent({ companyName }: { companyName: string }) {
-  const [showClosed, setShowClosed] = useState(false)
-
   const { data: profile, error, isLoading } = useSWR<CompanyProfile>(
     `company-profile-${companyName}`,
     () => companiesApi.getProfile(companyName),
@@ -343,55 +338,6 @@ export default function CompanyContent({ companyName }: { companyName: string })
           </div>
         )}
 
-        {/* Top skills */}
-        {profile.top_skills.length > 0 && (
-          <Card>
-            <CardBody>
-              <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3">
-                Top skills
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {profile.top_skills.map(([skill, count]) => (
-                  <span
-                    key={skill}
-                    className="px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium"
-                  >
-                    {skill} ×{count}
-                  </span>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Recently closed */}
-        {profile.recent_closed.length > 0 && (
-          <Card>
-            <CardBody>
-              <button
-                type="button"
-                onClick={() => setShowClosed((v) => !v)}
-                className="w-full flex items-center justify-between text-base font-semibold text-slate-700 dark:text-slate-300"
-              >
-                <span className="flex items-center gap-2">
-                  <History size={16} />
-                  Recently closed
-                  <span className="text-xs font-normal text-slate-400">
-                    ({profile.recent_closed.length})
-                  </span>
-                </span>
-                {showClosed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </button>
-              {showClosed && (
-                <div className="mt-3">
-                  {profile.recent_closed.map((job) => (
-                    <JobRow key={job.job_uuid} job={job} muted />
-                  ))}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        )}
       </div>
     </Layout>
   )
