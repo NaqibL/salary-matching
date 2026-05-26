@@ -10,11 +10,11 @@ from pydantic import BaseModel, Field
 
 from mcf.api.auth import get_optional_user
 from mcf.api.deps import get_embedder, get_store
-from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
+from mcf.lib.embeddings.base import EmbedderProtocol
+from mcf.lib.embeddings.job_description_extractor import extract_high_signal_description
+from mcf.lib.storage.base import Storage
 
 router = APIRouter()
-
-_cleaner = make_openrouter_cleaner_from_env()
 
 
 # ---------------------------------------------------------------------------
@@ -121,12 +121,15 @@ def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
 
 
 @router.post("/api/lowball/check")
-def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optional_user)):
+def check_lowball(
+    body: LowballCheckRequest,
+    _: str | None = Depends(get_optional_user),
+    store: Storage = Depends(get_store),
+    embedder: EmbedderProtocol = Depends(get_embedder),
+):
     """Check if an offered salary is competitive for a described role."""
-    store = get_store()
-    embedder = get_embedder()
-    cleaned = _cleaner.clean(body.description, body.title) if _cleaner else body.description
-    job_text = f"Job Title: {body.title}\nDescription: {cleaned}"
+    description_text, _ = extract_high_signal_description(body.description, body.title)
+    job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     vector = embedder.embed_text(job_text)
 
     ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
@@ -158,7 +161,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
         )
 
-    salaries = sorted(_effective_salary(j) for j in salary_jobs)
+    salaries = sorted(s for j in salary_jobs if (s := _effective_salary(j)) is not None)
     p25, p50, p75 = _salary_percentiles(salaries)
 
     # No salary provided — return market data only
@@ -166,7 +169,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
         return LowballResult(
             verdict="market_data", offered_salary=None,
             percentile=None, market_p25=p25, market_p50=p50, market_p75=p75,
-            salary_coverage=len(salary_jobs), total_matched=len(jobs),
+            salary_coverage=len(salaries), total_matched=len(jobs),
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
         )
 
@@ -186,7 +189,7 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
     return LowballResult(
         verdict=verdict, offered_salary=offered, percentile=percentile,
         market_p25=p25, market_p50=p50, market_p75=p75,
-        salary_coverage=len(salary_jobs), total_matched=len(jobs),
+        salary_coverage=len(salaries), total_matched=len(jobs),
         similar_jobs=similar, company_similar_jobs=company_similar_jobs,
     )
 
@@ -197,12 +200,15 @@ def check_lowball(body: LowballCheckRequest, _: str | None = Depends(get_optiona
 
 
 @router.post("/api/salary/search")
-def salary_search(body: SalarySearchRequest, _: str | None = Depends(get_optional_user)):
+def salary_search(
+    body: SalarySearchRequest,
+    _: str | None = Depends(get_optional_user),
+    store: Storage = Depends(get_store),
+    embedder: EmbedderProtocol = Depends(get_embedder),
+):
     """Semantic job search filtered by salary range."""
-    store = get_store()
-    embedder = get_embedder()
-    cleaned = _cleaner.clean(body.description, body.title) if _cleaner else body.description
-    job_text = f"Job Title: {body.title}\nDescription: {cleaned}"
+    description_text, _ = extract_high_signal_description(body.description, body.title)
+    job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     vector = embedder.embed_text(job_text)
 
     # All embedded jobs (active + inactive) — for richer percentile calculation

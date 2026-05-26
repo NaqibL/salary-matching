@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from mcf.api.deps import get_store
@@ -117,7 +117,7 @@ def list_companies(store: Storage = Depends(get_store)) -> list[str]:
 
 @router.get("/api/companies/popular")
 def get_popular_companies(
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
     store: Storage = Depends(get_store),
 ) -> list[TopCompany]:
     """Return top companies by active job count."""
