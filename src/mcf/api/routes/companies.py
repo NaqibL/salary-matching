@@ -75,6 +75,13 @@ def _parse_json_list(raw) -> list:
         return []
 
 
+def _effective_salary(job: dict) -> int | None:
+    lo, hi = job.get("salary_min"), job.get("salary_max")
+    if lo is not None and hi is not None:
+        return (lo + hi) // 2
+    return lo
+
+
 def _to_iso(val) -> str:
     if val is None:
         return ""
@@ -138,8 +145,8 @@ def get_company_profile(
     if not jobs:
         raise HTTPException(status_code=404, detail="Company not found")
 
-    # salary percentiles
-    salaries = [j["salary_min"] for j in jobs if j.get("salary_min") is not None]
+    # salary percentiles — use midpoint to match lowball checker behaviour
+    salaries = [s for j in jobs if (s := _effective_salary(j)) is not None]
     if len(salaries) >= 4:
         p25 = int(np.percentile(salaries, 25))
         p50 = int(np.percentile(salaries, 50))

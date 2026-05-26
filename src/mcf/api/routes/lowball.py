@@ -44,12 +44,12 @@ class LowballResult(BaseModel):
 
 
 class SalarySearchRequest(BaseModel):
-    title: str
-    description: str
-    salary_min: int | None = None
-    salary_max: int | None = None
-    top_k: int = 25
-    offset: int = 0
+    title: str = Field(max_length=500)
+    description: str = Field(max_length=20_000)
+    salary_min: int | None = Field(default=None, ge=0, le=500_000)
+    salary_max: int | None = Field(default=None, ge=0, le=500_000)
+    top_k: int = Field(default=25, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
 
 
 class SalarySearchJob(BaseModel):
