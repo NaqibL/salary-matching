@@ -187,7 +187,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
           {[
             {
               icon: <Briefcase size={18} className="text-indigo-500" />,
-              label: 'Active openings',
+              label: 'Latest openings',
               value: profile.active_count,
             },
             {
@@ -244,12 +244,12 @@ export default function CompanyContent({ companyName }: { companyName: string })
           </Card>
         )}
 
-        {/* Active openings */}
+        {/* Latest openings */}
         <Card>
           <CardBody>
             <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
               <Briefcase size={16} />
-              Active openings
+              Latest openings
               <span className="ml-auto text-xs font-normal text-slate-400">
                 {profile.active_jobs.length} role{profile.active_jobs.length !== 1 ? 's' : ''}
               </span>
