@@ -2,5 +2,9 @@ I am a fresh graduate data scientist and AI engineer with experience in LLM pipe
 agentic workflows, and data engineering. I am looking for junior or associate-level roles that offer
 ownership of a problem space — not ad-hoc reporting or dashboard maintenance. I am drawn to roles
 involving AI engineering, applied machine learning, data analytics, or business intelligence.
+I am also open to technical consulting, solution engineering, and AI implementation roles where I
+would work with clients to deploy AI or data products — roles that combine technical depth with
+customer-facing problem solving. This includes techno-functional roles at technology companies
+involving system integration, API development, or AI platform adoption.
 I have a preference for fintech and high-paying industries, but am open to any domain with complex
 data challenges. I want to build things end-to-end, not just contribute to a piece of a larger pipeline.
