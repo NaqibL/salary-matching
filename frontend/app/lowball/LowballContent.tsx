@@ -7,6 +7,7 @@ import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
 import { Input } from '@/components/ui/input'
+import CompanyCombobox from '@/components/ui/CompanyCombobox'
 import {
   Scale,
   ExternalLink,
@@ -18,7 +19,6 @@ import {
   Building2,
   MapPin,
   Clock,
-  X,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -451,28 +451,12 @@ export function LowballContent() {
                       Company{' '}
                       <span className="font-normal text-slate-400">(optional)</span>
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        list="company-datalist"
-                        value={companyInput}
-                        onChange={(e) => setCompanyInput(e.target.value)}
-                        placeholder="e.g. Google"
-                        className="h-8 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
-                      />
-                      {companyInput && (
-                        <button
-                          type="button"
-                          onClick={() => setCompanyInput('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    <datalist id="company-datalist">
-                      {companies.map(c => <option key={c} value={c} />)}
-                    </datalist>
+                    <CompanyCombobox
+                      companies={companies}
+                      value={companyInput}
+                      onChange={setCompanyInput}
+                      loading={companies.length === 0}
+                    />
                     {selectedCompany && (
                       <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                         <Building2 className="w-3 h-3" />
