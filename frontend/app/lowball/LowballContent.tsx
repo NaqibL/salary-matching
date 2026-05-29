@@ -368,16 +368,22 @@ export function LowballContent() {
 
   // Company autocomplete
   const [companies, setCompanies] = useState<string[]>([])
+  const [companyAliases, setCompanyAliases] = useState<Record<string, string>>({})
   const [companyInput, setCompanyInput] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'company'>('all')
 
-  // selectedCompany is valid only when the typed value exactly matches a DB company
-  const selectedCompany = companies.includes(companyInput) ? companyInput : ''
+  // selectedCompany: exact match OR resolved via alias map
+  const selectedCompany = companies.includes(companyInput)
+    ? companyInput
+    : (companyAliases[companyInput] ?? '')
 
   useEffect(() => {
     companiesApi.list()
       .then(list => { console.log('[companies] loaded', list.length); setCompanies(list) })
       .catch(err => console.error('[companies] failed to load', err))
+    companiesApi.aliases()
+      .then(map => setCompanyAliases(map))
+      .catch(err => console.error('[companies/aliases] failed to load', err))
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -453,6 +459,7 @@ export function LowballContent() {
                     </label>
                     <CompanyCombobox
                       companies={companies}
+                      aliasMap={companyAliases}
                       value={companyInput}
                       onChange={setCompanyInput}
                       loading={companies.length === 0}

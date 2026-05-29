@@ -339,6 +339,12 @@ export const companiesApi = {
     return res.json()
   },
 
+  aliases: async (): Promise<Record<string, string>> => {
+    const res = await fetch('/api/companies/aliases')
+    if (!res.ok) return {}
+    return res.json()
+  },
+
   getPopular: async (limit = 20): Promise<TopCompany[]> => {
     const res = await fetch(`/api/companies/popular?limit=${limit}`)
     if (!res.ok) return []

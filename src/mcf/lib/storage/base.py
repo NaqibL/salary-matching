@@ -405,6 +405,11 @@ class Storage(ABC):
         ...
 
     @abstractmethod
+    def get_company_alias_map(self) -> dict[str, str]:
+        """Return mapping of raw_name → canonical_name for all non-self aliases."""
+        ...
+
+    @abstractmethod
     def get_all_jobs_by_company(self, company_name: str) -> list[dict]:
         """Return all jobs (active and inactive) for the given company."""
         ...

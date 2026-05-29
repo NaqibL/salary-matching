@@ -124,6 +124,13 @@ def list_companies(store: Storage = Depends(get_store)) -> list[str]:
     return store.get_distinct_companies()
 
 
+@router.get("/api/companies/aliases")
+@cache_response(ttl_seconds=TTL_DASHBOARD, key_prefix="companies:aliases", key_builder=lambda **_: "all")
+def list_company_aliases(store: Storage = Depends(get_store)) -> dict[str, str]:
+    """Return raw_name → canonical_name alias map for autocomplete matching."""
+    return store.get_company_alias_map()
+
+
 @router.get("/api/companies/popular")
 def get_popular_companies(
     limit: int = Query(default=20, ge=1, le=100),

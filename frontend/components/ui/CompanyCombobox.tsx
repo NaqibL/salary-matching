@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 interface CompanyComboboxProps {
   companies: string[]
+  aliasMap?: Record<string, string>
   value: string
   onChange: (val: string) => void
   loading?: boolean
@@ -14,6 +15,7 @@ interface CompanyComboboxProps {
 
 export default function CompanyCombobox({
   companies,
+  aliasMap = {},
   value,
   onChange,
   loading = false,
@@ -23,11 +25,36 @@ export default function CompanyCombobox({
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Build a reverse map: canonical → [aliases] for matching
+  const canonicalAliases = useMemo(() => {
+    const map: Record<string, string[]> = {}
+    for (const [raw, canonical] of Object.entries(aliasMap)) {
+      if (!map[canonical]) map[canonical] = []
+      map[canonical].push(raw.toLowerCase())
+    }
+    return map
+  }, [aliasMap])
+
   const filtered =
     value.trim().length > 0
-      ? companies
-          .filter((c) => c.toLowerCase().includes(value.toLowerCase()))
-          .slice(0, 8)
+      ? (() => {
+          const q = value.toLowerCase()
+          return companies
+            .filter((c) => {
+              const cl = c.toLowerCase()
+              if (cl.includes(q)) return true
+              return (canonicalAliases[c] ?? []).some((a) => a.includes(q))
+            })
+            .sort((a, b) => {
+              const al = a.toLowerCase()
+              const bl = b.toLowerCase()
+              const aStarts = al.startsWith(q) || (canonicalAliases[a] ?? []).some((x) => x.startsWith(q))
+              const bStarts = bl.startsWith(q) || (canonicalAliases[b] ?? []).some((x) => x.startsWith(q))
+              if (aStarts !== bStarts) return aStarts ? -1 : 1
+              return a.localeCompare(b)
+            })
+            .slice(0, 8)
+        })()
       : []
 
   // Close on click outside

@@ -1713,10 +1713,36 @@ class PostgresStore(Storage):
     def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
         with self._cur() as cur:
             cur.execute(
-                "SELECT job_uuid FROM jobs WHERE is_active = TRUE AND (company_canonical = %s OR (company_canonical IS NULL AND company_name = %s))",
-                (company_name, company_name),
+                """
+                SELECT job_uuid FROM jobs
+                WHERE is_active = TRUE AND (
+                    company_canonical = %s
+                    OR (company_canonical IS NULL AND company_name = %s)
+                    OR company_canonical = (
+                        SELECT canonical_name FROM company_aliases
+                        WHERE raw_name = %s AND canonical_name IS NOT NULL
+                        LIMIT 1
+                    )
+                )
+                """,
+                (company_name, company_name, company_name),
             )
             return {r[0] for r in cur.fetchall()}
+
+    def get_company_alias_map(self) -> dict[str, str]:
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT raw_name, canonical_name FROM company_aliases
+                WHERE canonical_name IS NOT NULL
+                  AND raw_name != canonical_name
+                  AND is_excluded = FALSE
+                  AND canonical_name NOT IN (
+                      SELECT canonical_name FROM company_aliases WHERE is_excluded = TRUE
+                  )
+                """
+            )
+            return {r[0]: r[1] for r in cur.fetchall()}
 
     def get_all_jobs_by_company(self, company_name: str) -> list[dict]:
         with self._cur() as cur:
