@@ -1697,12 +1697,14 @@ class PostgresStore(Storage):
         with self._cur() as cur:
             cur.execute(
                 """
-                SELECT DISTINCT COALESCE(company_canonical, company_name)
+                SELECT COALESCE(company_canonical, company_name) AS company
                 FROM jobs
-                WHERE is_active = TRUE AND company_name IS NOT NULL
+                WHERE company_name IS NOT NULL
                   AND COALESCE(company_canonical, company_name) NOT IN (
                       SELECT canonical_name FROM company_aliases WHERE is_excluded = TRUE
                   )
+                GROUP BY company
+                HAVING COUNT(*) >= 3 OR SUM(CASE WHEN is_active THEN 1 ELSE 0 END) >= 1
                 ORDER BY 1
                 """
             )

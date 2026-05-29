@@ -12,6 +12,7 @@ import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from mcf.api.cache.response import TTL_DASHBOARD, cache_response
 from mcf.api.deps import get_store
 from mcf.lib.storage.base import Storage
 
@@ -117,6 +118,7 @@ def _to_company_job(job: dict) -> CompanyJob:
 
 
 @router.get("/api/companies")
+@cache_response(ttl_seconds=TTL_DASHBOARD, key_prefix="companies:list", key_builder=lambda **_: "all")
 def list_companies(store: Storage = Depends(get_store)) -> list[str]:
     """Return sorted list of distinct company names from active jobs."""
     return store.get_distinct_companies()
