@@ -9,6 +9,20 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 export const metadata: Metadata = {
   title: 'Lowball',
   description: 'Know your market value — see salary ranges for any role in Singapore from live job listings.',
+  metadataBase: new URL('https://sglowball.vercel.app'),
+  openGraph: {
+    title: 'Lowball — Singapore Salary Checker',
+    description: 'Check if your salary offer is fair. Benchmarks against 135k live MyCareersFuture listings.',
+    url: 'https://sglowball.vercel.app',
+    siteName: 'Lowball',
+    locale: 'en_SG',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Lowball — Singapore Salary Checker',
+    description: 'Check if your salary offer is fair. Benchmarks against 135k live MyCareersFuture listings.',
+  },
 }
 
 export default function RootLayout({
