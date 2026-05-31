@@ -1,4 +1,3 @@
-import axios from 'axios'
 import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany } from './types'
 import { supabase } from './supabase'
 
@@ -6,81 +5,92 @@ export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballR
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-// Debug: log API URL in dev (helps verify Vercel has NEXT_PUBLIC_API_URL set)
 if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
   console.warn('[API] NEXT_PUBLIC_API_URL not set — using localhost. Set it in Vercel for production.')
 }
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
-})
+type Params = Record<string, string | number | boolean | null | undefined>
 
-// Attach the Supabase JWT (if present) to every outgoing request.
-// When auth is disabled on the backend the header is simply ignored.
-api.interceptors.request.use(async (config) => {
+async function apiFetch<T>(
+  path: string,
+  options: { method?: 'GET' | 'POST'; params?: Params; body?: unknown } = {}
+): Promise<T> {
+  const { method = 'GET', params, body } = options
+
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  let url = `${API_BASE_URL}${path}`
+  if (params) {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) {
+      if (v != null) qs.append(k, String(v))
+    }
+    const s = qs.toString()
+    if (s) url += `?${s}`
   }
-  // FormData needs multipart/form-data with boundary — let the browser set it
-  if (config.data instanceof FormData) {
-    delete config.headers['Content-Type']
+
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw Object.assign(new Error(err.detail || res.statusText), {
+      response: { status: res.status, data: err },
+    })
   }
-  return config
-})
+
+  return res.json()
+}
 
 // Jobs API
 export const jobsApi = {
-  getJobDetail: async (jobUuid: string) => {
-    const response = await api.get(`/api/jobs/${jobUuid}`)
-    return response.data as JobDetail
-  },
+  getJobDetail: async (jobUuid: string) =>
+    apiFetch<JobDetail>(`/api/jobs/${jobUuid}`),
 
-  getInterested: async () => {
-    const response = await api.get('/api/jobs/interested')
-    return response.data as { jobs: import('./types').Match[] }
-  },
+  getInterested: async () =>
+    apiFetch<{ jobs: Match[] }>('/api/jobs/interested'),
 
   markInteraction: async (jobUuid: string, interactionType: string) => {
-    const response = await api.post(`/api/jobs/${jobUuid}/interact`, null, {
+    const result = await apiFetch<unknown>(`/api/jobs/${jobUuid}/interact`, {
+      method: 'POST',
       params: { interaction_type: interactionType },
     })
     await revalidateMatches()
-    return response.data
+    return result
   },
 }
 
 // Profile API
 export const profileApi = {
-  get: async () => {
-    const response = await api.get('/api/profile')
-    return response.data as Profile
-  },
+  get: async () =>
+    apiFetch<Profile>('/api/profile'),
 
   processResume: async () => {
-    const response = await api.post('/api/profile/process-resume')
+    const result = await apiFetch<unknown>('/api/profile/process-resume', { method: 'POST' })
     await revalidateMatches()
-    return response.data
+    return result
   },
 
   uploadResume: async (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
 
-    // Use fetch for FormData — axios was sending wrong Content-Type (application/x-www-form-urlencoded)
-    // which caused ERR_NETWORK. Fetch correctly sets multipart/form-data with boundary.
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
     const headers: Record<string, string> = {}
     if (token) headers['Authorization'] = `Bearer ${token}`
 
+    // Don't set Content-Type — browser sets multipart/form-data with boundary
     const res = await fetch(`${API_BASE_URL}/api/profile/upload-resume`, {
       method: 'POST',
       body: formData,
       headers,
-      // Don't set Content-Type — browser sets multipart/form-data; boundary=...
     })
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}))
@@ -94,15 +104,19 @@ export const profileApi = {
   },
 
   computeTaste: async () => {
-    const response = await api.post('/api/profile/compute-taste')
+    const result = await apiFetch<{ ok: boolean; interested: number; not_interested: number; rated_count: number }>(
+      '/api/profile/compute-taste',
+      { method: 'POST' }
+    )
     await revalidateMatches()
-    return response.data as { ok: boolean; interested: number; not_interested: number; rated_count: number }
+    return result
   },
 
-  resetRatings: async () => {
-    const response = await api.post('/api/profile/reset-ratings')
-    return response.data as { interactions_deleted: number; taste_deleted: number; matches_deleted: number }
-  },
+  resetRatings: async () =>
+    apiFetch<{ interactions_deleted: number; taste_deleted: number; matches_deleted: number }>(
+      '/api/profile/reset-ratings',
+      { method: 'POST' }
+    ),
 }
 
 // Matches API — uses Next.js /api/matches route with 15min cache (user_id + mode).
@@ -179,15 +193,11 @@ export async function revalidateMatches(): Promise<void> {
 
 // Discover API
 export const discoverApi = {
-  getStats: async () => {
-    const response = await api.get('/api/discover/stats')
-    return response.data as DiscoverStats
-  },
+  getStats: async () =>
+    apiFetch<DiscoverStats>('/api/discover/stats'),
 }
 
 // Dashboard API
-// getSummary and getJobsOverTimePostedAndRemoved use Next.js cached routes (/api/dashboard/*)
-// for 1h stale-while-revalidate. Other endpoints hit FastAPI directly.
 export const dashboardApi = {
   getSummary: async () => {
     const res = await fetch('/api/dashboard/summary')
@@ -203,9 +213,8 @@ export const dashboardApi = {
       jobs_needing_backfill: number
     }>
   },
-  getSummaryPublic: async () => {
-    const response = await api.get('/api/dashboard/summary-public')
-    return response.data as {
+  getSummaryPublic: async () =>
+    apiFetch<{
       total_jobs: number
       active_jobs: number
       active_jobs_total: number
@@ -213,57 +222,40 @@ export const dashboardApi = {
       by_source: Record<string, number>
       jobs_with_embeddings: number
       jobs_needing_backfill: number
-    }
-  },
+    }>('/api/dashboard/summary-public'),
+
   getJobsOverTimePostedAndRemoved: async (limitDays = 90) => {
-    const res = await fetch(
-      `/api/dashboard/jobs-over-time-posted-and-removed?limit_days=${limitDays}`
-    )
+    const res = await fetch(`/api/dashboard/jobs-over-time-posted-and-removed?limit_days=${limitDays}`)
     if (!res.ok) throw new Error('Failed to fetch jobs over time')
-    return res.json() as Promise<Array<{
-      date: string
-      added_count: number
-      removed_count: number
-    }>>
+    return res.json() as Promise<Array<{ date: string; added_count: number; removed_count: number }>>
   },
   getActiveJobsOverTime: async (limitDays = 90) => {
     const res = await fetch(`/api/dashboard/active-jobs-over-time?limit_days=${limitDays}`)
     if (!res.ok) throw new Error('Failed to fetch active jobs over time')
     return res.json() as Promise<Array<{ date: string; active_count: number }>>
   },
-  getActiveJobsOverTimePublic: async (limitDays = 30) => {
-    const response = await api.get('/api/dashboard/active-jobs-over-time-public', {
-      params: { limit_days: limitDays },
-    })
-    return response.data as Array<{ date: string; active_count: number }>
-  },
+  getActiveJobsOverTimePublic: async (limitDays = 30) =>
+    apiFetch<Array<{ date: string; active_count: number }>>(
+      '/api/dashboard/active-jobs-over-time-public',
+      { params: { limit_days: limitDays } }
+    ),
   getJobsByCategory: async (limitDays = 90, limit = 30) => {
     const res = await fetch(`/api/dashboard/jobs-by-category?limit_days=${limitDays}&limit=${limit}`)
     if (!res.ok) throw new Error('Failed to fetch jobs by category')
     return res.json() as Promise<Array<{ category: string; count: number }>>
   },
-  getJobsByCategoryPublic: async (limitDays = 30, limit = 8) => {
-    const response = await api.get('/api/dashboard/jobs-by-category-public', {
-      params: { limit_days: limitDays, limit },
-    })
-    return response.data as Array<{ category: string; count: number }>
-  },
-  getCategoryTrends: async (category: string, limitDays = 90) => {
-    const response = await api.get('/api/dashboard/category-trends', {
-      params: { category, limit_days: limitDays },
-    })
-    return response.data as Array<{
-      date: string
-      active_count: number
-      added_count: number
-      removed_count: number
-    }>
-  },
-  getCategoryStats: async (category: string) => {
-    const response = await api.get('/api/dashboard/category-stats', {
-      params: { category },
-    })
-    return response.data as {
+  getJobsByCategoryPublic: async (limitDays = 30, limit = 8) =>
+    apiFetch<Array<{ category: string; count: number }>>(
+      '/api/dashboard/jobs-by-category-public',
+      { params: { limit_days: limitDays, limit } }
+    ),
+  getCategoryTrends: async (category: string, limitDays = 90) =>
+    apiFetch<Array<{ date: string; active_count: number; added_count: number; removed_count: number }>>(
+      '/api/dashboard/category-trends',
+      { params: { category, limit_days: limitDays } }
+    ),
+  getCategoryStats: async (category: string) =>
+    apiFetch<{
       active_count: number
       top_employment_type: string | null
       top_position_level: string | null
@@ -271,8 +263,7 @@ export const dashboardApi = {
       employment_types: Array<{ employment_type: string; count: number }>
       position_levels: Array<{ position_level: string; count: number }>
       salary_buckets: Array<{ bucket: string; count: number }>
-    }
-  },
+    }>('/api/dashboard/category-stats', { params: { category } }),
   getJobsByEmploymentType: async (limitDays = 90, limit = 20) => {
     const res = await fetch(`/api/dashboard/jobs-by-employment-type?limit_days=${limitDays}&limit=${limit}`)
     if (!res.ok) throw new Error('Failed to fetch jobs by employment type')

@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useRef, useEffect } from 'react'
-import { api, revalidateMatches } from './api'
+import { jobsApi } from './api'
 
 const BATCH_SIZE = 5
 const BATCH_DELAY_MS = 500
@@ -42,12 +42,9 @@ export function useDebouncedRatings(options?: {
     try {
       await Promise.all(
         batch.map(({ jobUuid, interactionType }) =>
-          api.post(`/api/jobs/${jobUuid}/interact`, null, {
-            params: { interaction_type: interactionType },
-          }),
+          jobsApi.markInteraction(jobUuid, interactionType)
         ),
       )
-      await revalidateMatches()
       onFlushSuccessRef.current?.()
     } catch {
       onFlushErrorRef.current?.()

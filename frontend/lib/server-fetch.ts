@@ -26,6 +26,12 @@ function getAppBaseUrl(): string {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
+  if (process.env.NODE_ENV !== 'development') {
+    console.warn(
+      'Neither NEXT_PUBLIC_APP_URL nor VERCEL_URL is set — SSR self-fetch falling back to localhost:3000. ' +
+      'Set NEXT_PUBLIC_APP_URL in your environment.'
+    )
+  }
   return 'http://localhost:3000'
 }
 

@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.get("/api/jobs/taxonomy")
-def get_job_taxonomy():
+def get_job_taxonomy(_: str | None = Depends(get_optional_user)):
     """Return role cluster taxonomy: list of {id, name} sorted by id."""
     import mcf.matching.classifiers as _cls
     _cls._load()
