@@ -28,9 +28,9 @@ export default function Sidebar({ userSlot }: SidebarProps) {
           <Link
             href="/"
             className="flex items-center gap-2 text-lg font-semibold text-slate-900 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-lg transition-colors"
-            aria-label="SG Salary Check home"
+            aria-label="Lowball home"
           >
-            <span className="text-xl leading-tight">SG Salary</span>
+            <span className="text-xl leading-tight">Lowball</span>
           </Link>
         </div>
 

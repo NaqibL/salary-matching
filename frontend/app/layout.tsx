@@ -7,7 +7,7 @@ import PageTransition from './components/PageTransition'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'SG Salary Check',
+  title: 'Lowball',
   description: 'Know your market value — see salary ranges for any role in Singapore from live job listings.',
 }
 

@@ -81,7 +81,7 @@ export default function MobileNav({ open, onToggle, userSlot }: MobileNavProps) 
               onClick={onToggle}
               className="text-lg font-semibold text-slate-900 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-lg transition-colors"
             >
-              SG Salary
+              Lowball
             </Link>
             <button
               type="button"

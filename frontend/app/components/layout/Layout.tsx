@@ -22,9 +22,9 @@ export default function Layout({ children, userSlot }: LayoutProps) {
         <Link
           href="/"
           className="text-lg font-semibold text-slate-900 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-lg transition-colors"
-          aria-label="SG Salary Check home"
+          aria-label="Lowball home"
         >
-          SG Salary
+          Lowball
         </Link>
         <MobileNav
           open={mobileMenuOpen}
