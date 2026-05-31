@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { getApiBaseUrl } from '../../../lib/server-fetch'
+const API_BASE_URL = getApiBaseUrl()
 
 export async function GET() {
   const res = await fetch(`${API_BASE_URL}/api/jobs/taxonomy`)

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { getApiBaseUrl } from '../../../lib/server-fetch'
+const API_BASE_URL = getApiBaseUrl()
 
 export async function GET() {
   const res = await fetch(`${API_BASE_URL}/api/companies`, { cache: 'no-store' })

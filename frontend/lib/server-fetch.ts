@@ -1,4 +1,21 @@
 /**
+ * Base URL for Railway FastAPI backend. Throws in non-development environments
+ * if NEXT_PUBLIC_API_URL is not set, so misconfigured deploys fail loudly.
+ */
+export function getApiBaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_API_URL
+  if (!url) {
+    if (process.env.NODE_ENV !== 'development') {
+      throw new Error(
+        'NEXT_PUBLIC_API_URL is not set. Configure it in your Vercel environment variables.'
+      )
+    }
+    return 'http://localhost:8000'
+  }
+  return url
+}
+
+/**
  * Base URL for server-side fetch to our own Next.js API routes.
  * Required because relative URLs don't resolve correctly during SSR.
  */

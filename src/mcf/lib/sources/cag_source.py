@@ -19,20 +19,33 @@ from mcf.lib.sources.base import NormalizedJob, clean_description
 # API constants
 # ---------------------------------------------------------------------------
 
-_ALGOLIA_APP_ID = os.environ.get("CAG_ALGOLIA_APP_ID", "3OW7D8B4IZ")
 _ALGOLIA_INDEX = "job_index"
-_ALGOLIA_SEARCH_URL = (
-    f"https://{_ALGOLIA_APP_ID.lower()}-dsn.algolia.net/1/indexes/{_ALGOLIA_INDEX}/query"
-)
-_ALGOLIA_OBJECT_URL = (
-    f"https://{_ALGOLIA_APP_ID.lower()}-dsn.algolia.net/1/indexes/{_ALGOLIA_INDEX}/"
-)
-_ALGOLIA_HEADERS = {
-    "x-algolia-application-id": _ALGOLIA_APP_ID,
-    "x-algolia-api-key": os.environ.get("CAG_ALGOLIA_API_KEY", "32fa71d8b0bc06be1e6395bf8c430107"),
-    "Referer": "https://jobs.careers.gov.sg/",
-    "Content-Type": "application/json",
-}
+
+
+def _get_algolia_headers() -> dict:
+    app_id = os.environ.get("CAG_ALGOLIA_APP_ID")
+    api_key = os.environ.get("CAG_ALGOLIA_API_KEY")
+    if not app_id or not api_key:
+        raise RuntimeError(
+            "CAG crawl requires CAG_ALGOLIA_APP_ID and CAG_ALGOLIA_API_KEY env vars. "
+            "Find these in the Careers@Gov Algolia config."
+        )
+    return {
+        "x-algolia-application-id": app_id,
+        "x-algolia-api-key": api_key,
+        "Referer": "https://jobs.careers.gov.sg/",
+        "Content-Type": "application/json",
+    }
+
+
+def _get_algolia_urls() -> tuple[str, str]:
+    app_id = os.environ.get("CAG_ALGOLIA_APP_ID")
+    if not app_id:
+        raise RuntimeError(
+            "CAG crawl requires CAG_ALGOLIA_APP_ID env var."
+        )
+    base = f"https://{app_id.lower()}-dsn.algolia.net/1/indexes/{_ALGOLIA_INDEX}"
+    return f"{base}/query", f"{base}/"
 
 _SOURCE_ID = "cag"
 _PREFIX = f"{_SOURCE_ID}:"
@@ -217,7 +230,8 @@ class CareersGovJobSource:
         seen: set[str] = set()
         job_uuids: list[str] = []
 
-        with httpx.Client(headers=_ALGOLIA_HEADERS, timeout=30.0) as client:
+        search_url, _ = _get_algolia_urls()
+        with httpx.Client(headers=_get_algolia_headers(), timeout=30.0) as client:
             for i, keyword in enumerate(_LIST_KEYWORDS):
                 payload = {
                     "query": keyword,
@@ -225,7 +239,7 @@ class CareersGovJobSource:
                     "page": 0,
                     "attributesToRetrieve": ["objectID"],
                 }
-                response = client.post(_ALGOLIA_SEARCH_URL, json=payload)
+                response = client.post(search_url, json=payload)
                 response.raise_for_status()
                 data = response.json()
 
@@ -277,10 +291,11 @@ class CareersGovJobSource:
 
         # Fetch all attributes for this object from Algolia
         encoded_id = urllib.parse.quote(object_id, safe="")
-        algolia_url = f"{_ALGOLIA_OBJECT_URL}{encoded_id}"
+        _, object_url_base = _get_algolia_urls()
+        algolia_url = f"{object_url_base}{encoded_id}"
 
         self._wait()
-        with httpx.Client(headers=_ALGOLIA_HEADERS, timeout=30.0) as client:
+        with httpx.Client(headers=_get_algolia_headers(), timeout=30.0) as client:
             response = client.get(algolia_url)
             response.raise_for_status()
             raw = response.json()

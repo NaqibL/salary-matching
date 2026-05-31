@@ -12,8 +12,13 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from fastapi import HTTPException
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from mcf.api.config import settings
 from mcf.api.deps import _make_store, close_store, set_embedder, set_store
+from mcf.api.limiter import limiter
 from mcf.api.routes import admin, companies, dashboard, jobs, lowball, matches, profile
 
 logger = logging.getLogger(__name__)
@@ -21,6 +26,13 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.allow_anonymous_local and settings.auth_enabled:
+        logger.warning(
+            "SECURITY: ALLOW_ANONYMOUS_LOCAL=true is set while auth is enabled "
+            "(SUPABASE_URL/SUPABASE_JWT_SECRET configured). This disables all FastAPI "
+            "authentication. Remove ALLOW_ANONYMOUS_LOCAL from production environment."
+        )
+
     store = _make_store()
     set_store(store)
     from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
@@ -39,6 +51,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Job Matcher API", version="0.1.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 def _add_cors_if_missing(response, request: Request) -> None:
@@ -68,7 +83,7 @@ class CORSEnforcementMiddleware(BaseHTTPMiddleware):
             if not isinstance(exc, HTTPException):
                 logging.error("Unhandled exception on %s: %s\n%s", request.url.path, exc, traceback.format_exc())
             status = exc.status_code if isinstance(exc, HTTPException) else 500
-            detail = exc.detail if isinstance(exc, HTTPException) else str(exc)
+            detail = exc.detail if isinstance(exc, HTTPException) else "Internal server error"
             response = JSONResponse(status_code=status, content={"detail": detail})
         _add_cors_if_missing(response, request)
         return response
@@ -108,19 +123,3 @@ def health():
     """Health check endpoint."""
     return {"status": "ok"}
 
-
-@app.get("/api/cors-check")
-def cors_check(request: Request):
-    """Debug: returns request origin and whether it's in ALLOWED_ORIGINS.
-
-    Use this to verify CORS is configured correctly when upload fails with
-    'CORS missing Allow Origin'. Call from the browser console:
-    fetch('https://your-api.railway.app/api/cors-check').then(r=>r.json()).then(console.log)
-    """
-    origin = request.headers.get("origin", "(none)")
-    allowed = settings.cors_origins
-    return {
-        "request_origin": origin,
-        "allowed_origins": allowed,
-        "origin_allowed": origin in allowed,
-    }

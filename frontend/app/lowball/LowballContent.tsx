@@ -379,7 +379,7 @@ export function LowballContent() {
 
   useEffect(() => {
     companiesApi.list()
-      .then(list => { console.log('[companies] loaded', list.length); setCompanies(list) })
+      .then(list => setCompanies(list))
       .catch(err => console.error('[companies] failed to load', err))
     companiesApi.aliases()
       .then(map => setCompanyAliases(map))

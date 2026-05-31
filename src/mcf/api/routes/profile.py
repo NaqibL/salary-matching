@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import secrets
+
+logger = logging.getLogger(__name__)
 from pathlib import Path
 
 import httpx
@@ -55,8 +57,9 @@ async def process_resume(user_id: str = Depends(get_current_user)):
         try:
             resume_text = extract_resume_text(resume_path)
             return _process_resume_text(store, user_id, resume_text)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to process resume: {e}")
+        except Exception:
+            logger.error("process_resume (local) failed", exc_info=True)
+            raise HTTPException(status_code=500, detail="Failed to process resume")
 
     # Local file missing — try Supabase Storage
     profile = store.get_profile_by_user_id(user_id)
@@ -79,8 +82,9 @@ async def process_resume(user_id: str = Depends(get_current_user)):
         return _process_resume_text(store, user_id, resume_text)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process resume from storage: {e}")
+    except Exception:
+        logger.error("process_resume (storage) failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process resume")
 
 
 @router.post("/api/profile/upload-resume")
@@ -118,9 +122,9 @@ async def upload_resume(
         result = _process_resume_text(store, user_id, resume_text, storage_path=storage_path)
         result["storage_path"] = storage_path
         return result
-    except Exception as e:
-        logging.exception("upload_resume failed")
-        raise HTTPException(status_code=500, detail=f"Failed to process resume: {e}")
+    except Exception:
+        logger.error("upload_resume failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process resume")
 
 
 @router.post("/api/profile/reset-ratings")

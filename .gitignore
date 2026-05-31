@@ -31,3 +31,17 @@ debug-*.log
 notebooks/*.png
 notebooks/.ipynb_checkpoints/
 notebooks/experience_clustering.ipynb
+
+# Personal / sensitive files
+resume.txt
+agent-analysis-summary.txt
+scripts/interest_profile.txt
+scripts/train_output/
+scripts/similarity_*.txt
+scripts/cluster_analysis_output/
+
+# Frontend
+frontend/node_modules/
+
+# Logs
+*.log

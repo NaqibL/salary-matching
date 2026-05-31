@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import { getUserIdFromToken, MATCHES_CACHE_TAG_PREFIX } from '@/lib/jwt-verify'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { getApiBaseUrl } from '../../../lib/server-fetch'
+const API_BASE_URL = getApiBaseUrl()
 const MATCHES_CACHE_SECONDS = 900 // 15 minutes
 
 /**

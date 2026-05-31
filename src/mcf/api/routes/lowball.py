@@ -5,11 +5,12 @@ from __future__ import annotations
 import json as _json
 from statistics import quantiles as _quantiles
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from mcf.api.auth import get_optional_user
 from mcf.api.deps import get_embedder, get_store
+from mcf.api.limiter import limiter
 from mcf.lib.embeddings.base import EmbedderProtocol
 from mcf.lib.embeddings.job_description_extractor import extract_high_signal_description
 from mcf.lib.storage.base import Storage
@@ -121,7 +122,9 @@ def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
 
 
 @router.post("/api/lowball/check")
+@limiter.limit("10/minute")
 def check_lowball(
+    request: Request,
     body: LowballCheckRequest,
     _: str | None = Depends(get_optional_user),
     store: Storage = Depends(get_store),
@@ -200,7 +203,9 @@ def check_lowball(
 
 
 @router.post("/api/salary/search")
+@limiter.limit("10/minute")
 def salary_search(
+    request: Request,
     body: SalarySearchRequest,
     _: str | None = Depends(get_optional_user),
     store: Storage = Depends(get_store),

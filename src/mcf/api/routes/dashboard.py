@@ -4,19 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
-from mcf.api.auth import get_current_user, get_optional_user
+from mcf.api.auth import get_optional_user
 from mcf.api.cache.response import TTL_DASHBOARD, cache_response
 from mcf.api.deps import get_store
 
 router = APIRouter()
-
-
-@router.get("/api/dashboard/summary")
-@cache_response(TTL_DASHBOARD, "dashboard:summary")
-def get_dashboard_summary(user_id: str = Depends(get_current_user)):
-    """Return dashboard summary: total jobs, active, by source (MCF only), jobs with embeddings."""
-    store = get_store()
-    return store.get_dashboard_summary()
 
 
 @router.get("/api/dashboard/summary-public")
@@ -27,17 +19,6 @@ def get_dashboard_summary_public():
     return store.get_dashboard_summary()
 
 
-@router.get("/api/dashboard/jobs-over-time-posted-and-removed")
-@cache_response(TTL_DASHBOARD, "dashboard:jobs-over-time")
-def get_dashboard_jobs_over_time_posted_and_removed(
-    limit_days: int = Query(default=90, ge=1, le=365),
-    user_id: str = Depends(get_current_user),
-):
-    """Return daily added and removed job counts from job_daily_stats."""
-    store = get_store()
-    return store.get_jobs_over_time_posted_and_removed(limit_days=limit_days)
-
-
 @router.get("/api/dashboard/jobs-over-time-posted-and-removed-public")
 @cache_response(TTL_DASHBOARD, "dashboard:jobs-over-time-public")
 def get_dashboard_jobs_over_time_posted_and_removed_public(
@@ -46,17 +27,6 @@ def get_dashboard_jobs_over_time_posted_and_removed_public(
     """Public endpoint for added/removed counts (no auth). Used by Next.js cached routes."""
     store = get_store()
     return store.get_jobs_over_time_posted_and_removed(limit_days=limit_days)
-
-
-@router.get("/api/dashboard/active-jobs-over-time")
-@cache_response(TTL_DASHBOARD, "dashboard:active-jobs-over-time")
-def get_dashboard_active_jobs_over_time(
-    limit_days: int = Query(default=90, ge=1, le=365),
-    user_id: str = Depends(get_current_user),
-):
-    """Return total active jobs per day from job_daily_stats."""
-    store = get_store()
-    return store.get_active_jobs_over_time(limit_days=limit_days)
 
 
 @router.get("/api/dashboard/active-jobs-over-time-public")

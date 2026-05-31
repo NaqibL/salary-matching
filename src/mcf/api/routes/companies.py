@@ -9,11 +9,12 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from mcf.api.cache.response import TTL_DASHBOARD, cache_response
 from mcf.api.deps import get_store
+from mcf.api.limiter import limiter
 from mcf.lib.storage.base import Storage
 
 logger = logging.getLogger(__name__)
@@ -118,8 +119,9 @@ def _to_company_job(job: dict) -> CompanyJob:
 
 
 @router.get("/api/companies")
+@limiter.limit("60/minute")
 @cache_response(ttl_seconds=TTL_DASHBOARD, key_prefix="companies:list", key_builder=lambda **_: "all")
-def list_companies(store: Storage = Depends(get_store)) -> list[str]:
+def list_companies(request: Request, store: Storage = Depends(get_store)) -> list[str]:
     """Return sorted list of distinct company names from active jobs."""
     return store.get_distinct_companies()
 
