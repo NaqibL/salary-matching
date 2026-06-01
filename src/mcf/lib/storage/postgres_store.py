@@ -83,11 +83,17 @@ class PostgresStore(Storage):
             with conn.cursor() as cur:
                 yield cur
             conn.commit()
-        except Exception:
-            conn.rollback()
+        except BaseException:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
             raise
         finally:
-            conn.autocommit = True
+            try:
+                conn.autocommit = True
+            except Exception:
+                pass
             self._pool.putconn(conn)
 
     # === Crawl runs ===
