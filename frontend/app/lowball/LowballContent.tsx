@@ -19,6 +19,8 @@ import {
   Building2,
   MapPin,
   Clock,
+  Users,
+  X,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -371,6 +373,10 @@ export function LowballContent() {
   const [companyAliases, setCompanyAliases] = useState<Record<string, string>>({})
   const [companyInput, setCompanyInput] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'company'>('all')
+  const [trafficNoticeDismissed, setTrafficNoticeDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('traffic_notice_dismissed') === 'true'
+  })
 
   // selectedCompany: exact match OR resolved via alias map
   const selectedCompany = companies.includes(companyInput)
@@ -430,6 +436,27 @@ export function LowballContent() {
           Enter the job title and description to see market rates, or add an offered salary to check if you're being lowballed.
         </p>
       </div>
+
+      {/* ── High-traffic notice banner ───────────────────────────────────── */}
+      {!trafficNoticeDismissed && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-2.5 mb-5 text-sm text-amber-700 dark:text-amber-400">
+          <Users className="w-4 h-4 shrink-0 text-amber-500 dark:text-amber-400" />
+          <p className="flex-1 leading-snug">
+            We&apos;re seeing high traffic right now — results may take a few extra seconds. Thanks for your patience!
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss notice"
+            onClick={() => {
+              localStorage.setItem('traffic_notice_dismissed', 'true')
+              setTrafficNoticeDismissed(true)
+            }}
+            className="shrink-0 rounded-md p-0.5 text-amber-500 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* ── Form state ───────────────────────────────────────────────────── */}
       {state === 'form' && (

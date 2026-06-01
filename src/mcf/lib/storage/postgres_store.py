@@ -194,17 +194,20 @@ class PostgresStore(Storage):
     # === Job lifecycle ===
 
     def existing_job_uuids(self) -> set[str]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute("SELECT job_uuid FROM jobs")
             return {r[0] for r in cur.fetchall()}
 
     def active_job_uuids(self) -> set[str]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE")
             return {r[0] for r in cur.fetchall()}
 
     def active_job_uuids_for_source(self, job_source: str) -> set[str]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute("SELECT job_uuid FROM jobs WHERE is_active = TRUE")
             return {r[0] for r in cur.fetchall()}
 
@@ -213,7 +216,8 @@ class PostgresStore(Storage):
     ) -> set[str]:
         """Get active job UUIDs whose primary category is in `categories`."""
         import json as _json
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute("SELECT job_uuid, categories_json FROM jobs WHERE is_active = TRUE")
             rows = cur.fetchall()
         cats_set = set(categories)
@@ -1778,7 +1782,8 @@ class PostgresStore(Storage):
             return [r[0] for r in cur.fetchall()]
 
     def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT job_uuid FROM jobs

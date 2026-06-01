@@ -80,6 +80,30 @@ Production incident: CPU maxing out on Railway + Supabase 100% CPU, connection p
 
 ---
 
+### 9. `get_active_job_uuids_by_company` hitting statement timeout — FIXED
+**Symptom:** `psycopg2.errors.QueryCanceled: canceling statement due to statement timeout` on `/api/lowball/check` at `postgres_store.py:1782`.
+**Root cause:** Same class of bug as issue #7 — method used `_cur()` (autocommit=True), so `SET LOCAL statement_timeout` would be a no-op. No timeout protection existed at all for this method. The correlated subquery against `company_aliases` is slow enough to hit Supabase's default timeout.
+**Fix:** Switched to `_transaction_cur()` and added `SET LOCAL statement_timeout = 0`, matching the pattern from issue #7.
+**File:** `src/mcf/lib/storage/postgres_store.py` `get_active_job_uuids_by_company()`.
+
+---
+
+### 8. `register_vector` not probing stale SSL sockets — FIXED (5878e6c)
+**Symptom:** `psycopg2.OperationalError: SSL connection has been closed unexpectedly` at `cur.execute("SET LOCAL statement_timeout = 0")` inside `_transaction_cur`. Affected `get_all_jobs_by_company`, `embeddings_cache`, and `/api/lowball/check`. Found in errors.txt.
+**Root cause:** `register_vector(conn)` is used as the liveness check in `_get_conn()`, but for connections where the `vector` type is already registered it skips the OID lookup and returns without sending any bytes — so a dead SSL socket passes the check and the failure only surfaces at the caller's first real `execute()`.
+**Fix:** Added a `SELECT 1` probe immediately after `register_vector` inside `_get_conn()`'s retry loop. Raises `OperationalError` on a dead socket, triggering discard + retry with a fresh connection.
+**File:** `src/mcf/lib/storage/postgres_store.py` `_get_conn()`.
+
+---
+
+### 10. Full-table UUID scans hitting statement timeout during crawl — FIXED
+**Symptom:** `psycopg2.errors.QueryCanceled: canceling statement due to statement timeout` in `existing_job_uuids()` at `postgres_store.py:198`. Crawl aborted.  
+**Root cause:** Same class as issue #7. `existing_job_uuids()`, `active_job_uuids()`, `active_job_uuids_for_source()`, and `active_job_uuids_for_source_and_categories()` all used `_cur()` (autocommit=True). Any `SET LOCAL` would be a no-op, and none was present. All four do full-table scans on `jobs` (130k+ rows) — sufficient to hit Supabase's default statement timeout.  
+**Fix:** Switched all four methods to `_transaction_cur()` and added `SET LOCAL statement_timeout = 0`.  
+**File:** `src/mcf/lib/storage/postgres_store.py` `existing_job_uuids()`, `active_job_uuids()`, `active_job_uuids_for_source()`, `active_job_uuids_for_source_and_categories()`.
+
+---
+
 ## Still Pending
 
 ### High priority
