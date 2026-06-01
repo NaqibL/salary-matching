@@ -510,7 +510,8 @@ class PostgresStore(Storage):
         self,
     ) -> list[tuple[str, list[float], datetime | None]]:
         """Return (job_uuid, embedding, last_seen_at) for all active jobs with embeddings."""
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT j.job_uuid, e.embedding::text, j.last_seen_at
