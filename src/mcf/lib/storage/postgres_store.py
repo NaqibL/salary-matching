@@ -30,7 +30,7 @@ class PostgresStore(Storage):
         self._url = database_url
         self._pool = pg_pool.ThreadedConnectionPool(
             minconn=2,
-            maxconn=30,
+            maxconn=50,
             dsn=database_url,
         )
         self.ensure_schema()
