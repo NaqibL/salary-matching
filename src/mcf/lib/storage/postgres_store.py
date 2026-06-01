@@ -66,6 +66,23 @@ class PostgresStore(Storage):
         finally:
             self._pool.putconn(conn)
 
+    @contextmanager
+    def _transaction_cur(self):
+        """Cursor inside an explicit transaction — required for SET LOCAL to persist across statements.
+        Needed for PgBouncer compatibility (port 6543 transaction mode drops session SETs)."""
+        conn = self._pool.getconn()
+        try:
+            conn.autocommit = False
+            with conn.cursor() as cur:
+                yield cur
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.autocommit = True
+            self._pool.putconn(conn)
+
     # === Crawl runs ===
 
     def begin_run(self, *, kind: str, categories: Sequence[str] | None) -> RunStats:
@@ -512,21 +529,24 @@ class PostgresStore(Storage):
         limit: int = 5000,
     ) -> list[tuple[str, float, datetime | None]]:
         emb_str = json.dumps([float(x) for x in query_embedding])
-        with self._cur() as cur:
-            cur.execute("SET hnsw.ef_search = 100")
+        ef = min(max(limit, 100), 500)
+        with self._transaction_cur() as cur:
+            cur.execute(f"SET LOCAL hnsw.ef_search = {ef}")
             cur.execute(
                 """
-                SELECT j.job_uuid,
-                       (e.embedding <=> %s::vector) AS distance,
-                       j.last_seen_at
-                  FROM jobs j
-                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                SELECT j.job_uuid, ranked.distance, j.last_seen_at
+                  FROM (
+                      SELECT e.job_uuid, (e.embedding <=> %s::vector) AS distance
+                        FROM job_embeddings e
+                       WHERE e.embedding IS NOT NULL
+                       ORDER BY distance ASC
+                       LIMIT %s
+                  ) ranked
+                  JOIN jobs j ON j.job_uuid = ranked.job_uuid
                  WHERE j.is_active = TRUE
-                   AND e.embedding IS NOT NULL
-                 ORDER BY distance ASC
-                 LIMIT %s
+                 ORDER BY ranked.distance ASC
                 """,
-                [emb_str, limit],
+                [emb_str, ef],
             )
             rows = cur.fetchall()
         return [(r[0], float(r[1]), r[2]) for r in rows]
@@ -537,8 +557,9 @@ class PostgresStore(Storage):
         limit: int = 5000,
     ) -> list[tuple[str, float, datetime | None]]:
         emb_str = json.dumps([float(x) for x in query_embedding])
-        with self._cur() as cur:
-            cur.execute(f"SET hnsw.ef_search = {min(max(limit, 100), 500)}")
+        ef = min(max(limit, 100), 500)
+        with self._transaction_cur() as cur:
+            cur.execute(f"SET LOCAL hnsw.ef_search = {ef}")
             cur.execute(
                 """
                 SELECT j.job_uuid, ranked.distance, j.last_seen_at
@@ -552,7 +573,7 @@ class PostgresStore(Storage):
                   JOIN jobs j ON j.job_uuid = ranked.job_uuid
                  ORDER BY ranked.distance ASC
                 """,
-                [emb_str, limit],
+                [emb_str, ef],
             )
             rows = cur.fetchall()
         return [(r[0], float(r[1]), r[2]) for r in rows]
