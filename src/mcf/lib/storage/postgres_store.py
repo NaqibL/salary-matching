@@ -538,17 +538,19 @@ class PostgresStore(Storage):
     ) -> list[tuple[str, float, datetime | None]]:
         emb_str = json.dumps([float(x) for x in query_embedding])
         with self._cur() as cur:
-            cur.execute("SET hnsw.ef_search = 100")
+            cur.execute(f"SET hnsw.ef_search = {min(max(limit, 100), 500)}")
             cur.execute(
                 """
-                SELECT j.job_uuid,
-                       (e.embedding <=> %s::vector) AS distance,
-                       j.last_seen_at
-                  FROM jobs j
-                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                 WHERE e.embedding IS NOT NULL
-                 ORDER BY distance ASC
-                 LIMIT %s
+                SELECT j.job_uuid, ranked.distance, j.last_seen_at
+                  FROM (
+                      SELECT e.job_uuid, (e.embedding <=> %s::vector) AS distance
+                        FROM job_embeddings e
+                       WHERE e.embedding IS NOT NULL
+                       ORDER BY distance ASC
+                       LIMIT %s
+                  ) ranked
+                  JOIN jobs j ON j.job_uuid = ranked.job_uuid
+                 ORDER BY ranked.distance ASC
                 """,
                 [emb_str, limit],
             )
