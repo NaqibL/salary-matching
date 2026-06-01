@@ -66,13 +66,20 @@ class PostgresStore(Storage):
         self._pool.closeall()
 
     def _get_conn(self) -> Any:
-        """Get a live connection from the pool, discarding stale ones on SSL drop."""
+        """Get a live, clean connection from the pool with autocommit=True.
+        Normalises state on fresh/recycled connections and discards stale ones."""
         for attempt in range(2):
             conn = self._pool.getconn()
             try:
+                if not conn.autocommit:
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+                    conn.autocommit = True
                 register_vector(conn)
                 return conn
-            except psycopg2.OperationalError:
+            except (psycopg2.OperationalError, psycopg2.ProgrammingError):
                 self._pool.putconn(conn, close=True)
                 if attempt == 1:
                     raise
@@ -81,7 +88,6 @@ class PostgresStore(Storage):
     def _cur(self):
         conn = self._get_conn()
         try:
-            conn.autocommit = True
             with conn.cursor() as cur:
                 yield cur
         finally:
