@@ -90,11 +90,14 @@ class PostgresStore(Storage):
                 pass
             raise
         finally:
+            restored = False
             try:
+                conn.rollback()  # no-op if committed; clears any aborted state
                 conn.autocommit = True
+                restored = True
             except Exception:
                 pass
-            self._pool.putconn(conn)
+            self._pool.putconn(conn, close=not restored)
 
     # === Crawl runs ===
 
