@@ -49,9 +49,13 @@ class PostgresStore(Storage):
             "CREATE INDEX IF NOT EXISTS company_aliases_canonical_idx ON company_aliases(canonical_name)",
             "ALTER TABLE company_aliases ADD COLUMN IF NOT EXISTS is_excluded BOOLEAN NOT NULL DEFAULT FALSE",
         ]
-        with self._cur() as cur:
-            for ddl in migrations:
-                cur.execute(ddl)
+        try:
+            with self._cur() as cur:
+                for ddl in migrations:
+                    cur.execute(ddl)
+        except Exception as e:
+            import logging
+            logging.warning(f"ensure_schema skipped (columns likely already exist): {e}")
 
     def close(self) -> None:
         self._pool.closeall()
