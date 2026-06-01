@@ -1166,7 +1166,8 @@ class PostgresStore(Storage):
     # === Dashboard ===
 
     def get_dashboard_summary(self) -> dict:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT
@@ -1186,7 +1187,8 @@ class PostgresStore(Storage):
         jobs_with_embeddings = row[3] if row else 0
         inactive_jobs_with_embeddings = row[4] if row else 0
 
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT COUNT(*) FROM jobs
@@ -1548,7 +1550,8 @@ class PostgresStore(Storage):
         ]
 
         # Single pass over filtered rows using a MATERIALIZED CTE
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 WITH filtered AS MATERIALIZED (
@@ -1711,7 +1714,8 @@ class PostgresStore(Storage):
             "$0-1k", "$1k-2k", "$2k-3k", "$3k-4k", "$4k-5k",
             "$5k-6k", "$6k-8k", "$8k-10k", "$10k+", "Not disclosed",
         ]
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT
@@ -1740,7 +1744,7 @@ class PostgresStore(Storage):
     def get_jobs_with_salary_by_uuids(self, job_uuids: list[str]) -> list[dict]:
         if not job_uuids:
             return []
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description, min_years_experience, llm_fields_json "
@@ -1751,7 +1755,8 @@ class PostgresStore(Storage):
             return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     def get_distinct_companies(self) -> list[str]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT COALESCE(company_canonical, company_name) AS company
@@ -1802,7 +1807,8 @@ class PostgresStore(Storage):
             return {r[0]: r[1] for r in cur.fetchall()}
 
     def get_all_jobs_by_company(self, company_name: str) -> list[dict]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 "SELECT job_uuid, title, salary_min, salary_max, is_active, "
                 "first_seen_at, last_seen_at, employment_types_json, "
