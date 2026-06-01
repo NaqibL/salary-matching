@@ -29,8 +29,8 @@ class PostgresStore(Storage):
     def __init__(self, database_url: str) -> None:
         self._url = database_url
         self._pool = pg_pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=8,
+            minconn=2,
+            maxconn=20,
             dsn=database_url,
         )
         self.ensure_schema()
