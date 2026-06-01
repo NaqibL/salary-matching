@@ -33,6 +33,10 @@ class PostgresStore(Storage):
             minconn=2,
             maxconn=50,
             dsn=database_url,
+            keepalives=1,
+            keepalives_idle=60,
+            keepalives_interval=10,
+            keepalives_count=5,
         )
         self.ensure_schema()
 
@@ -61,11 +65,22 @@ class PostgresStore(Storage):
     def close(self) -> None:
         self._pool.closeall()
 
+    def _get_conn(self) -> Any:
+        """Get a live connection from the pool, discarding stale ones on SSL drop."""
+        for attempt in range(2):
+            conn = self._pool.getconn()
+            try:
+                register_vector(conn)
+                return conn
+            except psycopg2.OperationalError:
+                self._pool.putconn(conn, close=True)
+                if attempt == 1:
+                    raise
+
     @contextmanager
     def _cur(self):
-        conn = self._pool.getconn()
+        conn = self._get_conn()
         try:
-            register_vector(conn)
             conn.autocommit = True
             with conn.cursor() as cur:
                 yield cur
@@ -76,9 +91,8 @@ class PostgresStore(Storage):
     def _transaction_cur(self):
         """Cursor inside an explicit transaction — required for SET LOCAL to persist across statements.
         Needed for PgBouncer compatibility (port 6543 transaction mode drops session SETs)."""
-        conn = self._pool.getconn()
+        conn = self._get_conn()
         try:
-            register_vector(conn)
             conn.autocommit = False
             with conn.cursor() as cur:
                 yield cur
