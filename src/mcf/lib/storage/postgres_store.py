@@ -55,7 +55,8 @@ class PostgresStore(Storage):
             "ALTER TABLE company_aliases ADD COLUMN IF NOT EXISTS is_excluded BOOLEAN NOT NULL DEFAULT FALSE",
         ]
         try:
-            with self._cur() as cur:
+            with self._transaction_cur() as cur:
+                cur.execute("SET LOCAL statement_timeout = 0")
                 for ddl in migrations:
                     cur.execute(ddl)
         except Exception as e:
