@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
 from mcf.api.auth import get_optional_user
+from mcf.api.cache.job_pool import compute_ranked_from_pool, get_pool_or_fetch
+from mcf.api.config import settings
 from mcf.api.deps import get_embedder, get_store
 from mcf.api.limiter import limiter
 from mcf.lib.embeddings.base import EmbedderProtocol
@@ -135,7 +137,11 @@ def check_lowball(
     job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     vector = embedder.embed_text(job_text)
 
-    ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
+    if settings.enable_active_jobs_pool_cache:
+        pool, matrix = get_pool_or_fetch(store)
+        ranked = compute_ranked_from_pool(pool, vector, limit=500, matrix=matrix)
+    else:
+        ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
     # Company-specific results (computed before early returns so all branches can include it)
     company_similar_jobs = None
@@ -216,8 +222,11 @@ def salary_search(
     job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     vector = embedder.embed_text(job_text)
 
-    # All embedded jobs (active + inactive) — for richer percentile calculation
-    ranked_all = store.get_all_embedded_job_ids_ranked(vector, limit=500)
+    if settings.enable_active_jobs_pool_cache:
+        pool, matrix = get_pool_or_fetch(store)
+        ranked_all = compute_ranked_from_pool(pool, vector, limit=500, matrix=matrix)
+    else:
+        ranked_all = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
     # Active-only gate for displayed results (users are browsing to apply)
     active_uuids = store.active_job_uuids()
