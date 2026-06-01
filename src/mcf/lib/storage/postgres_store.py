@@ -78,6 +78,11 @@ class PostgresStore(Storage):
                         pass
                     conn.autocommit = True
                 register_vector(conn)
+                # Probe to detect stale SSL sockets — register_vector may skip its
+                # OID lookup on already-registered connections, letting dead sockets
+                # through to the caller's first execute.
+                with conn.cursor() as _probe:
+                    _probe.execute("SELECT 1")
                 return conn
             except (psycopg2.OperationalError, psycopg2.ProgrammingError):
                 self._pool.putconn(conn, close=True)
