@@ -217,7 +217,7 @@ def salary_search(
     vector = embedder.embed_text(job_text)
 
     # All embedded jobs (active + inactive) — for richer percentile calculation
-    ranked_all = store.get_all_embedded_job_ids_ranked(vector)
+    ranked_all = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
     # Active-only gate for displayed results (users are browsing to apply)
     active_uuids = store.active_job_uuids()
