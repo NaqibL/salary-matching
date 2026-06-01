@@ -756,7 +756,8 @@ class PostgresStore(Storage):
         }
 
     def get_all_active_jobs(self) -> list[dict]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 "SELECT job_uuid, title, skills_json, position_levels_json, description, min_years_experience"
                 " FROM jobs WHERE is_active = TRUE"
@@ -775,7 +776,8 @@ class PostgresStore(Storage):
         ]
 
     def get_active_jobs_without_embeddings(self) -> list[dict]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.min_years_experience"
                 " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
@@ -1344,8 +1346,9 @@ class PostgresStore(Storage):
     def update_daily_stats(self, run_id: str) -> None:
         """Upsert today's aggregated stats by category x employment_type x position_level."""
         today = _utcnow().date()
-        with self._cur() as cur:
-                cur.execute(
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
                     """
                     INSERT INTO job_daily_stats
                         (stat_date, category, employment_type, position_level, active_count, added_count, removed_count)
@@ -1381,7 +1384,8 @@ class PostgresStore(Storage):
     def refresh_dashboard_materialized_views(self) -> None:
         """Refresh mv_dashboard_daily_stats and mv_dashboard_category_trends.
         Call after crawl completion. Requires migration 005."""
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute("SELECT refresh_dashboard_materialized_views()")
 
     def get_cache_metadata(self, key: str) -> dict | None:
@@ -1423,7 +1427,8 @@ class PostgresStore(Storage):
 
     def delete_inactive_job_embeddings(self) -> int:
         """Delete embeddings for inactive jobs that no user has ever interacted with."""
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 DELETE FROM job_embeddings
@@ -1833,7 +1838,8 @@ class PostgresStore(Storage):
             return [dict(zip(cols, row)) for row in cur.fetchall()]
 
     def get_top_companies(self, limit: int = 20) -> list[dict]:
-        with self._cur() as cur:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
                 SELECT company_canonical AS name, COUNT(*) AS active_count
