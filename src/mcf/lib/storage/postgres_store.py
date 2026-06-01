@@ -9,10 +9,11 @@ from __future__ import annotations
 import json
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 import psycopg2
 import psycopg2.extras
+from pgvector.psycopg2 import register_vector
 from psycopg2 import pool as pg_pool
 from psycopg2.extras import execute_values
 
@@ -64,6 +65,7 @@ class PostgresStore(Storage):
     def _cur(self):
         conn = self._pool.getconn()
         try:
+            register_vector(conn)
             conn.autocommit = True
             with conn.cursor() as cur:
                 yield cur
@@ -76,6 +78,7 @@ class PostgresStore(Storage):
         Needed for PgBouncer compatibility (port 6543 transaction mode drops session SETs)."""
         conn = self._pool.getconn()
         try:
+            register_vector(conn)
             conn.autocommit = False
             with conn.cursor() as cur:
                 yield cur
@@ -508,13 +511,12 @@ class PostgresStore(Storage):
 
     def get_active_jobs_pool(
         self,
-    ) -> list[tuple[str, list[float], datetime | None]]:
+    ) -> list[tuple[str, Any, datetime | None]]:
         """Return (job_uuid, embedding, last_seen_at) for all active jobs with embeddings."""
         with self._transaction_cur() as cur:
-            cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
-                SELECT j.job_uuid, e.embedding::text, j.last_seen_at
+                SELECT j.job_uuid, e.embedding, j.last_seen_at
                   FROM jobs j
                   JOIN job_embeddings e ON e.job_uuid = j.job_uuid
                  WHERE j.is_active = TRUE
@@ -522,11 +524,7 @@ class PostgresStore(Storage):
                 """,
             )
             rows = cur.fetchall()
-        return [
-            (r[0], json.loads(r[1]), r[2])
-            for r in rows
-            if r[1] is not None
-        ]
+        return [(r[0], r[1], r[2]) for r in rows if r[1] is not None]
 
     def get_active_job_ids_ranked(
         self,

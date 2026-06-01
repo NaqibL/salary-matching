@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 
 @dataclass(frozen=True)
@@ -202,7 +202,7 @@ class Storage(ABC):
 
     def get_active_jobs_pool(
         self,
-    ) -> list[tuple[str, list[float], datetime | None]]:
+    ) -> list[tuple[str, Any, datetime | None]]:
         """Return (job_uuid, embedding, last_seen_at) for all active jobs with embeddings.
         Used by active_jobs_pool_cache for in-memory similarity computation."""
         raise NotImplementedError

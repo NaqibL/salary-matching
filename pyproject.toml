@@ -26,6 +26,7 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "plotly>=6.7.0",
     "slowapi>=0.1.9",
+    "pgvector>=0.4.2",
 ]
 
 [project.scripts]
