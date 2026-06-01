@@ -83,14 +83,14 @@ def run_incremental_crawl(
     job_source = source or MCFJobSource(rate_limit=rate_limit)
 
     try:
-        run = store.begin_run(kind="incremental", categories=list(categories) if categories else None)
-
         seen = job_source.list_job_ids(
             categories=list(categories) if categories else None,
             limit=limit,
             on_progress=on_progress,
         )
         seen_set = set(seen)
+
+        run = store.begin_run(kind="incremental", categories=list(categories) if categories else None)
         existing = store.existing_job_uuids()
         active = store.active_job_uuids()
 

@@ -104,6 +104,27 @@ Production incident: CPU maxing out on Railway + Supabase 100% CPU, connection p
 
 ---
 
+### 11. Active jobs pool cache thundering herd causing Railway OOM — FIXED (ca6ac69)
+**Symptom:** Railway OOM crash — process RSS spiking to ~23 GB.  
+**Root cause:** Two compounding issues. (1) No lock on `get_pool_or_fetch`: on a cache miss, all 40 FastAPI worker threads race past the `if pool is not None` check simultaneously and each independently fetch the full pool. Pre-binary-adapter, each pool fetch held ~3.3 GB (135k Python lists of 768 floats). 7 concurrent fetches = ~23 GB peak. (2) Even at steady state, the pool list and the pre-stacked numpy matrix were both live simultaneously — embeddings stored twice (~394 MB each = ~788 MB).  
+**Fix:** Added `_fetch_lock = threading.Lock()` in `job_pool.py`. `get_pool_or_fetch` now checks cache, acquires lock, re-checks inside lock (double-checked locking), then fetches. Only one thread fetches; the other 39 wait and reuse the result. Also stripped embeddings from the pool list after building the matrix — pool now stores `(uuid, last_seen_at)` only; embeddings live solely in the numpy matrix, halving steady-state embedding memory.  
+**File:** `src/mcf/api/cache/job_pool.py`.
+
+### 12. `job_embeddings.embedded_at` index missing — FIXED (ca6ac69)
+**Symptom:** `get_active_jobs_embedded_since` doing a full-table scan on `job_embeddings` (135k rows), hitting Supabase statement timeout during backfill.  
+**Fix:** Added `CREATE INDEX IF NOT EXISTS idx_job_embeddings_embedded_at ON job_embeddings (embedded_at DESC)` — migration `scripts/migrations/016_index_embedded_at.sql`. **Must be applied manually on Supabase.**  
+**File:** `scripts/migrations/016_index_embedded_at.sql`.
+
+---
+
+### 13. Stale SSL on crawl — `begin_run` opening connections before long fetch — FIXED
+**Symptom:** `OperationalError: SSL connection has been closed unexpectedly` at first `execute()` inside `_transaction_cur()` for `existing_job_uuids()`, even after the SELECT 1 probe in `_get_conn()` passes.  
+**Root cause:** `begin_run()` was called before `list_job_ids()`. The MCF fetch takes ~1:50 minutes with zero DB activity. Supabase closes the idle SSL connection during this window. The SELECT 1 probe succeeds (response already in TCP buffer), but the server has sent TCP FIN — the connection enters CLOSE_WAIT. The next write (psycopg2 sends BEGIN for the `autocommit=False` transaction) hits the closed write-half and raises.  
+**Fix:** Moved `begin_run()` to after `list_job_ids()`. The run_id is only consumed at `record_statuses` and later — nothing in the fetch phase needs it. No DB connections are held open during the 1:50 min API fetch, so nothing goes stale.  
+**File:** `src/mcf/lib/pipeline/incremental_crawl.py`
+
+---
+
 ## Still Pending
 
 ### High priority
