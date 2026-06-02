@@ -785,12 +785,11 @@ def re_embed(
 
                 if len(texts) >= batch_size:
                     embeddings = embedder.embed_texts(texts)
-                    for uuid, emb, lr in zip(uuids, embeddings, llm_results):
-                        store.upsert_embedding(
-                            job_uuid=uuid,
-                            model_name=embedder.model_name,
-                            embedding=emb,
-                        )
+                    store.upsert_embeddings_batch(
+                        model_name=embedder.model_name,
+                        rows=list(zip(uuids, embeddings)),
+                    )
+                    for uuid, lr in zip(uuids, llm_results):
                         if lr is not None:
                             store.update_llm_extracted_fields(
                                 uuid,
@@ -808,12 +807,11 @@ def re_embed(
             # Flush remaining
             if texts:
                 embeddings = embedder.embed_texts(texts)
-                for uuid, emb, lr in zip(uuids, embeddings, llm_results):
-                    store.upsert_embedding(
-                        job_uuid=uuid,
-                        model_name=embedder.model_name,
-                        embedding=emb,
-                    )
+                store.upsert_embeddings_batch(
+                    model_name=embedder.model_name,
+                    rows=list(zip(uuids, embeddings)),
+                )
+                for uuid, lr in zip(uuids, llm_results):
                     if lr is not None:
                         store.update_llm_extracted_fields(
                             uuid,

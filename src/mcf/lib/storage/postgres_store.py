@@ -303,25 +303,25 @@ class PostgresStore(Storage):
             )
 
     def touch_jobs(self, *, run_id: str, job_uuids: Iterable[str]) -> None:
-        now = _utcnow()
-        rows = [(run_id, now, uuid) for uuid in job_uuids]
-        if not rows:
+        uuids = list(job_uuids)
+        if not uuids:
             return
+        now = _utcnow()
         with self._cur() as cur:
-            cur.executemany(
-                "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = TRUE WHERE job_uuid = %s",
-                rows,
+            cur.execute(
+                "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = TRUE WHERE job_uuid = ANY(%s)",
+                (run_id, now, uuids),
             )
 
     def deactivate_jobs(self, *, run_id: str, job_uuids: Iterable[str]) -> None:
-        now = _utcnow()
-        rows = [(run_id, now, uuid) for uuid in job_uuids]
-        if not rows:
+        uuids = list(job_uuids)
+        if not uuids:
             return
+        now = _utcnow()
         with self._cur() as cur:
-            cur.executemany(
-                "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = FALSE WHERE job_uuid = %s",
-                rows,
+            cur.execute(
+                "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = FALSE WHERE job_uuid = ANY(%s)",
+                (run_id, now, uuids),
             )
 
     def upsert_new_job_detail(
@@ -496,6 +496,35 @@ class PostgresStore(Storage):
                   embedded_at = EXCLUDED.embedded_at
                 """,
                 [job_uuid, model_name, emb_str, len(emb_list), now],
+            )
+
+    def upsert_embeddings_batch(
+        self,
+        *,
+        model_name: str,
+        rows: list[tuple[str, Sequence[float]]],
+    ) -> None:
+        if not rows:
+            return
+        now = _utcnow()
+        data = [
+            (uuid, model_name, json.dumps([float(x) for x in emb]), len(emb), now)
+            for uuid, emb in rows
+        ]
+        with self._cur() as cur:
+            execute_values(
+                cur,
+                """
+                INSERT INTO job_embeddings(job_uuid, model_name, embedding, dim, embedded_at)
+                VALUES %s
+                ON CONFLICT (job_uuid) DO UPDATE SET
+                  model_name  = EXCLUDED.model_name,
+                  embedding   = EXCLUDED.embedding::vector,
+                  dim         = EXCLUDED.dim,
+                  embedded_at = EXCLUDED.embedded_at
+                """,
+                data,
+                template="(%s, %s, %s::vector, %s, %s)",
             )
 
     def get_active_job_embeddings(

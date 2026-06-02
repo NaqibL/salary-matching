@@ -174,6 +174,16 @@ class Storage(ABC):
         self, *, job_uuid: str, model_name: str, embedding: Sequence[float]
     ) -> None: ...
 
+    def upsert_embeddings_batch(
+        self,
+        *,
+        model_name: str,
+        rows: list[tuple[str, Sequence[float]]],
+    ) -> None:
+        """Upsert multiple embeddings in one round-trip. rows = [(job_uuid, embedding), ...]"""
+        for job_uuid, embedding in rows:
+            self.upsert_embedding(job_uuid=job_uuid, model_name=model_name, embedding=embedding)
+
     @abstractmethod
     def get_active_job_embeddings(
         self,
