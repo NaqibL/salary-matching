@@ -511,21 +511,23 @@ class PostgresStore(Storage):
             (uuid, model_name, json.dumps([float(x) for x in emb]), len(emb), now)
             for uuid, emb in rows
         ]
+        chunk_size = 8
         with self._cur() as cur:
-            execute_values(
-                cur,
-                """
-                INSERT INTO job_embeddings(job_uuid, model_name, embedding, dim, embedded_at)
-                VALUES %s
-                ON CONFLICT (job_uuid) DO UPDATE SET
-                  model_name  = EXCLUDED.model_name,
-                  embedding   = EXCLUDED.embedding::vector,
-                  dim         = EXCLUDED.dim,
-                  embedded_at = EXCLUDED.embedded_at
-                """,
-                data,
-                template="(%s, %s, %s::vector, %s, %s)",
-            )
+            for i in range(0, len(data), chunk_size):
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO job_embeddings(job_uuid, model_name, embedding, dim, embedded_at)
+                    VALUES %s
+                    ON CONFLICT (job_uuid) DO UPDATE SET
+                      model_name  = EXCLUDED.model_name,
+                      embedding   = EXCLUDED.embedding::vector,
+                      dim         = EXCLUDED.dim,
+                      embedded_at = EXCLUDED.embedded_at
+                    """,
+                    data[i : i + chunk_size],
+                    template="(%s, %s, %s::vector, %s, %s)",
+                )
 
     def get_active_job_embeddings(
         self,
