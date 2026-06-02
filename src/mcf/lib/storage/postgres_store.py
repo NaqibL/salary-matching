@@ -304,25 +304,25 @@ class PostgresStore(Storage):
 
     def touch_jobs(self, *, run_id: str, job_uuids: Iterable[str]) -> None:
         uuids = list(job_uuids)
-        if not uuids:
-            return
-        now = _utcnow()
-        with self._cur() as cur:
-            cur.execute(
-                "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = TRUE WHERE job_uuid = ANY(%s)",
-                (run_id, now, uuids),
-            )
+        for i in range(0, len(uuids), 500):
+            chunk = uuids[i : i + 500]
+            now = _utcnow()
+            with self._cur() as cur:
+                cur.execute(
+                    "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = TRUE WHERE job_uuid = ANY(%s)",
+                    (run_id, now, chunk),
+                )
 
     def deactivate_jobs(self, *, run_id: str, job_uuids: Iterable[str]) -> None:
         uuids = list(job_uuids)
-        if not uuids:
-            return
-        now = _utcnow()
-        with self._cur() as cur:
-            cur.execute(
-                "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = FALSE WHERE job_uuid = ANY(%s)",
-                (run_id, now, uuids),
-            )
+        for i in range(0, len(uuids), 500):
+            chunk = uuids[i : i + 500]
+            now = _utcnow()
+            with self._cur() as cur:
+                cur.execute(
+                    "UPDATE jobs SET last_seen_run_id = %s, last_seen_at = %s, is_active = FALSE WHERE job_uuid = ANY(%s)",
+                    (run_id, now, chunk),
+                )
 
     def upsert_new_job_detail(
         self,
