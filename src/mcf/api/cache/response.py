@@ -33,6 +33,22 @@ _cache: dict[str, tuple[Any, float]] = {}
 _cache_lock = threading.Lock()
 _stats: dict[str, int] = {"hits": 0, "misses": 0}
 
+
+def _sweep_expired() -> None:
+    """Remove expired entries. Runs in a daemon thread every 5 minutes."""
+    while True:
+        time.sleep(300)
+        now = time.monotonic()
+        with _cache_lock:
+            expired = [k for k, (_, exp) in _cache.items() if now > exp]
+            for k in expired:
+                del _cache[k]
+        if expired:
+            logger.debug("response_cache sweep: removed %d expired entries", len(expired))
+
+
+threading.Thread(target=_sweep_expired, daemon=True, name="response-cache-sweep").start()
+
 P = ParamSpec("P")
 R = TypeVar("R")
 

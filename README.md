@@ -123,7 +123,8 @@ uv run python -m pytest tests/ -v
 
 ## Changelog
 
-### 2026-06-02 — Salary checker polish
+### 2026-06-02 — Memory leak fix + salary checker polish
+- **Memory leak fix** — response and matches caches now sweep expired entries every 5 min via a background daemon thread; previously, entries with long TTLs (up to 24h) were only evicted on access and accumulated indefinitely, causing Railway memory to creep from ~18 GB to 25 GB over the course of a day
 - **Monthly base label** — salary input and result band now explicitly labelled "Monthly Base (SGD)"
 - **EP compliance filter** — malformed salary ranges (`max > 2× min`) excluded from the percentile pool
 - **P50 as headline** — "Typical salary" is the primary figure; P25/P75 shown as secondary context with sample size note
