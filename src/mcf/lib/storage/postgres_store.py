@@ -1756,14 +1756,26 @@ class PostgresStore(Storage):
         by_bucket = {r[0]: r[1] for r in rows}
         return [{"bucket": b, "count": by_bucket.get(b, 0)} for b in bucket_order]
 
-    def get_jobs_with_salary_by_uuids(self, job_uuids: list[str]) -> list[dict]:
+    def get_jobs_with_salary_by_uuids(
+        self,
+        job_uuids: list[str],
+        *,
+        compliant_ranges_only: bool = False,
+    ) -> list[dict]:
         if not job_uuids:
             return []
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
+            # EP compliance filter: salary_max must be <= 2 * salary_min.
+            # Rows where either bound is NULL are always kept (no salary info to disqualify).
+            compliance_clause = (
+                " AND (salary_min IS NULL OR salary_max IS NULL OR salary_max <= 2 * salary_min)"
+                if compliant_ranges_only
+                else ""
+            )
             cur.execute(
                 "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description, min_years_experience, llm_fields_json "
-                "FROM jobs WHERE job_uuid = ANY(%s)",
+                f"FROM jobs WHERE job_uuid = ANY(%s){compliance_clause}",
                 (job_uuids,),
             )
             cols = [d[0] for d in cur.description]

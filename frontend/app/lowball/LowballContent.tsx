@@ -200,7 +200,7 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
         {/* Description */}
         {job.description && (
           <div className="mt-3">
-            <p className={`text-sm text-slate-500 dark:text-slate-400 leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>
+            <p className={`text-sm text-slate-500 dark:text-slate-400 leading-relaxed ${descExpanded ? 'whitespace-pre-wrap max-h-48 overflow-y-auto' : 'line-clamp-2'}`}>
               {job.description}
             </p>
             {job.description.length > 150 && (
@@ -522,11 +522,11 @@ export function LowballContent() {
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Offered salary{' '}
-                    <span className="font-normal text-slate-400">(SGD / month — optional)</span>
+                    Monthly base salary (SGD){' '}
+                    <span className="font-normal text-slate-400">(optional)</span>
                   </label>
                   <p className="mb-2 text-xs text-slate-400 dark:text-slate-500">
-                    Enter your offered salary to see how it compares to market rates.
+                    Enter your offered monthly base salary to see how it compares to market rates.
                   </p>
                   <Input
                     type="number"
@@ -620,42 +620,59 @@ export function LowballContent() {
                 </p>
               )}
 
-              {hasMarketData && (
-                <>
-                  <div className="mt-6 grid grid-cols-3 gap-4 max-w-sm">
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        P25
+              {hasMarketData && (() => {
+                return (
+                  <>
+                    {/* P50 headline */}
+                    <div className="mt-5">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                        Typical salary
                       </p>
-                      <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-200">
-                        {fmt(result.market_p25!)}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        Median
-                      </p>
-                      <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-200">
+                      <p className="mt-1 text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
                         {fmt(result.market_p50!)}
+                        <span className="ml-1.5 text-xl font-semibold text-slate-500 dark:text-slate-400">/mo</span>
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
+                        Median of {result.salary_coverage} similar listings · each listing's (min + max) ÷ 2, monthly base SGD
                       </p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        P75
+
+                    {/* Percentile band — secondary context */}
+                    <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
+                      <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+                        Pay range breakdown
                       </p>
-                      <p className="mt-1 text-lg font-bold text-slate-800 dark:text-slate-200">
-                        {fmt(result.market_p75!)}
+                      <div className="grid grid-cols-2 gap-4 max-w-sm">
+                        <div className="text-center">
+                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                            Lower end
+                          </p>
+                          <p className="mt-1 text-base font-semibold text-slate-600 dark:text-slate-400">
+                            {fmt(result.market_p25!)}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                            Upper end
+                          </p>
+                          <p className="mt-1 text-base font-semibold text-slate-600 dark:text-slate-400">
+                            {fmt(result.market_p75!)}
+                          </p>
+                        </div>
+                      </div>
+                      <SalaryBar
+                        offered={hasSalary ? result.offered_salary! : undefined}
+                        p25={result.market_p25!}
+                        p50={result.market_p50!}
+                        p75={result.market_p75!}
+                      />
+                      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        Posted ranges may be 10–20% above what employers actually offer.
                       </p>
                     </div>
-                  </div>
-                  <SalaryBar
-                    offered={hasSalary ? result.offered_salary! : undefined}
-                    p25={result.market_p25!}
-                    p50={result.market_p50!}
-                    p75={result.market_p75!}
-                  />
-                </>
-              )}
+                  </>
+                )
+              })()}
             </div>
 
             {/* Coverage note — only show separately when salary was provided */}

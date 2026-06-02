@@ -391,8 +391,20 @@ class Storage(ABC):
         }
 
     @abstractmethod
-    def get_jobs_with_salary_by_uuids(self, job_uuids: list[str]) -> list[dict]:
-        """Return job_uuid, title, company_name, job_url, salary_min, salary_max for given UUIDs."""
+    def get_jobs_with_salary_by_uuids(
+        self,
+        job_uuids: list[str],
+        *,
+        compliant_ranges_only: bool = False,
+    ) -> list[dict]:
+        """Return job_uuid, title, company_name, job_url, salary_min, salary_max for given UUIDs.
+
+        Args:
+            job_uuids: UUIDs to fetch.
+            compliant_ranges_only: When True, rows where salary_max > 2 * salary_min are excluded.
+                Use this flag for salary benchmarking / percentile pools only — not for display cards.
+                Rows with a NULL salary_min or salary_max are always included regardless of this flag.
+        """
 
     @abstractmethod
     def get_distinct_companies(self) -> list[str]:
