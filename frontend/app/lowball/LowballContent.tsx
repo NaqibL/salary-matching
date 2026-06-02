@@ -43,17 +43,45 @@ function SalaryBar({
   const high = Math.max(anchor, p75) * 1.15
   const range = high - low
   const pct = (v: number) => `${Math.round(((v - low) / range) * 100)}%`
+  const fmtK = (v: number) =>
+    v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`
+
+  const markers = [
+    { v: p25, label: 'Lower end' },
+    { v: p50, label: 'Median' },
+    { v: p75, label: 'Upper end' },
+  ]
 
   return (
     <div className="mt-4 mb-2">
-      <div className="relative h-6 rounded-full bg-slate-100 dark:bg-slate-700">
+      {/* Value + label row pinned to exact bar positions */}
+      <div className="relative h-11 mb-1">
+        {markers.map(({ v, label }) => (
+          <div
+            key={label}
+            className="absolute -translate-x-1/2 text-center"
+            style={{ left: pct(v) }}
+          >
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {fmtK(v)}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Bar */}
+      <div className="relative h-6 rounded-full bg-slate-200 dark:bg-slate-600">
+        {/* P25–P75 filled zone */}
         <div
-          className="absolute top-0 h-full rounded-full bg-indigo-100 dark:bg-indigo-900/40"
+          className="absolute top-0 h-full rounded-full bg-indigo-300 dark:bg-indigo-600"
           style={{ left: pct(p25), width: `${Math.round(((p75 - p25) / range) * 100)}%` }}
         />
-        <div className="absolute top-0 h-full w-px bg-indigo-400" style={{ left: pct(p25) }} />
-        <div className="absolute top-0 h-full w-0.5 bg-indigo-600" style={{ left: pct(p50) }} />
-        <div className="absolute top-0 h-full w-px bg-indigo-400" style={{ left: pct(p75) }} />
+        {/* Tick lines */}
+        <div className="absolute top-0 h-full w-px bg-indigo-500 dark:bg-indigo-400" style={{ left: pct(p25) }} />
+        <div className="absolute top-0 h-full w-0.5 bg-indigo-700 dark:bg-indigo-200" style={{ left: pct(p50) }} />
+        <div className="absolute top-0 h-full w-px bg-indigo-500 dark:bg-indigo-400" style={{ left: pct(p75) }} />
+        {/* "You" dot */}
         {offered != null && (
           <div
             className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white border-2 border-slate-700 dark:border-slate-200 shadow"
@@ -61,28 +89,18 @@ function SalaryBar({
           />
         )}
       </div>
-      <div
-        className="relative mt-1 text-xs text-slate-500 dark:text-slate-400"
-        style={{ height: '16px' }}
-      >
-        <span className="absolute -translate-x-1/2" style={{ left: pct(p25) }}>
-          P25
-        </span>
-        <span className="absolute -translate-x-1/2" style={{ left: pct(p50) }}>
-          P50
-        </span>
-        <span className="absolute -translate-x-1/2" style={{ left: pct(p75) }}>
-          P75
-        </span>
-        {offered != null && (
+
+      {/* "You" label below bar */}
+      {offered != null && (
+        <div className="relative mt-1 h-4 text-xs">
           <span
             className="absolute -translate-x-1/2 font-semibold text-slate-700 dark:text-slate-300"
             style={{ left: pct(offered) }}
           >
             You
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -642,24 +660,6 @@ export function LowballContent() {
                       <p className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
                         Pay range breakdown
                       </p>
-                      <div className="grid grid-cols-2 gap-4 max-w-sm">
-                        <div className="text-center">
-                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                            Lower end
-                          </p>
-                          <p className="mt-1 text-base font-semibold text-slate-600 dark:text-slate-400">
-                            {fmt(result.market_p25!)}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wide">
-                            Upper end
-                          </p>
-                          <p className="mt-1 text-base font-semibold text-slate-600 dark:text-slate-400">
-                            {fmt(result.market_p75!)}
-                          </p>
-                        </div>
-                      </div>
                       <SalaryBar
                         offered={hasSalary ? result.offered_salary! : undefined}
                         p25={result.market_p25!}
