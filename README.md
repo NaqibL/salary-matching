@@ -2,7 +2,7 @@
 
 Singapore salary intelligence tool. Check if a job offer is competitive, explore what companies pay, and browse market benchmarks — all sourced from live MyCareersFuture and Careers@Gov listings.
 
-**Live at:** [lowball.sg](https://lowball.sg) (or wherever you've deployed it)
+**Live at:** [sglowball.vercel.app](https://sglowball.vercel.app)
 
 ---
 
@@ -123,7 +123,32 @@ uv run python -m pytest tests/ -v
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md).
+### 2026-06-02 — Salary checker polish
+- **Monthly base label** — salary input and result band now explicitly labelled "Monthly Base (SGD)"
+- **EP compliance filter** — malformed salary ranges (`max > 2× min`) excluded from the percentile pool
+- **P50 as headline** — "Typical salary" is the primary figure; P25/P75 shown as secondary context with sample size note
+- **Recruiter caveat** — note flags that posted ranges tend to run 10–20% above actual offers
+- **Mobile fix** — job description text on similar-roles cards no longer overflows on small screens
+
+### 2026-05 — Performance and reliability
+- HNSW index on embeddings — cosine search is now ANN instead of a full table scan
+- Binary embedding transfer via pgvector psycopg2 adapter — faster vector reads
+- Active-jobs pool cache (15-min TTL, pre-stacked numpy matrix) now used by the salary checker
+- SSL-resilient connection pool — stale connections detected and discarded before use; TCP keepalives enabled
+- Thundering-herd guard on cache miss to prevent OOM under concurrent cold starts
+
+### 2026-04 — Company pages and public launch
+- **Companies browse page** — list all hiring companies; recruitment agencies excluded
+- **Company profile page** — salary range, hiring patterns, top skills, latest openings
+- **Company canonicalization** — LLM-assisted dedup merges variant spellings in autocomplete and lookup
+- Removed Sign In nav link; job detail page made publicly accessible
+- Open Graph meta tags + static OG screenshot for link previews
+- Rebranded from "SG Salary" to **Lowball**; `/` and `/lowball` consolidated into one page
+
+### 2026-03 — Salary checker and LLM enrichment
+- Launched salary checker — paste a job title + description, get a percentile band vs. live market data
+- LLM cleaning pass (Gemini 2.5 Flash Lite) extracts `min_years_experience`, inferred seniority, and canonical skills; surfaced on similar-roles cards
+- Removed DuckDB — Postgres/Supabase only
 
 ---
 
