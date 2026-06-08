@@ -218,6 +218,7 @@ def build_job_text_from_normalized(
 def build_job_text_from_dict(
     job: dict,
     token_counter: Callable[[str], int] | None = None,
+    skip_llm: bool = False,
 ) -> tuple[str, LLMCleanResult | None]:
     """Build embedding text from a job dict (as returned by Storage.get_all_active_jobs).
 
@@ -231,17 +232,20 @@ def build_job_text_from_dict(
     Args:
         job: Job dict from storage.
         token_counter: Optional callable mapping text → token count.
+        skip_llm: If True, skip LLM extraction and build text from stored fields only.
     """
     llm_result: LLMCleanResult | None = None
     description_text: str | None = None
 
-    if job.get("description"):
+    if job.get("description") and not skip_llm:
         description_text, diags = extract_high_signal_description(
             description=job["description"],
             title=job.get("title"),
             token_counter=token_counter,
         )
         llm_result = diags.get("llm_result")
+    elif job.get("description"):
+        description_text = job["description"]
 
     # Use inferred_seniority from LLM as fallback when the scraper provided no position_levels.
     # For the dict path, min_years_experience is already persisted from a previous LLM pass.

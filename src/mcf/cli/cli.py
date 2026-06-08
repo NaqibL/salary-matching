@@ -690,6 +690,10 @@ def re_embed(
         Optional[int],
         typer.Option("--since-days", help="Re-embed active jobs whose embedding was written within the last N days"),
     ] = None,
+    skip_llm: Annotated[
+        bool,
+        typer.Option("--skip-llm", help="Skip LLM extraction and build text from stored fields only (faster, no API calls)"),
+    ] = False,
 ) -> None:
     """Re-embed all jobs with the current model and structured text format.
 
@@ -702,14 +706,14 @@ def re_embed(
     You should also re-run 'mcf process-resume' afterwards so that the
     candidate embedding uses the same model as the jobs.
     """
-    # Wire LLM cleaner if configured
+    # Wire LLM cleaner if configured (skipped entirely when --skip-llm is set)
     from mcf.lib.embeddings.llm_cleaner import GeminiFlashCleaner
     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
     import mcf.lib.embeddings.job_description_extractor as _jde
     from mcf.api.config import settings
 
     _llm_cleaner = None
-    if settings.openrouter_api_key and settings.job_extractor_llm_enabled:
+    if not skip_llm and settings.openrouter_api_key and settings.job_extractor_llm_enabled:
         _llm_cleaner = GeminiFlashCleaner(
             api_key=settings.openrouter_api_key,
             model=settings.openrouter_model,
@@ -773,7 +777,7 @@ def re_embed(
             embedded = 0
 
             for job in all_jobs:
-                job_text, llm_result = build_job_text_from_dict(job)
+                job_text, llm_result = build_job_text_from_dict(job, skip_llm=skip_llm)
 
                 if not job_text:
                     progress.advance(task)
