@@ -18,13 +18,15 @@ _BGE_QUERY_PREFIX = "Represent this resume for job search: "
 
 @dataclass(frozen=True)
 class EmbedderConfig:
-    # BAAI/bge-base-en-v1.5 is a retrieval-optimised model:
-    #   • 512 token limit
-    #   • 768 dimensions  (upgraded from 384 / bge-small-en-v1.5)
-    #   • asymmetric query/passage design  → better for job matching
-    #   • MTEB retrieval NDCG@10: 53.3 vs 51.7 for small (~3% improvement)
-    model_name: str = "BAAI/bge-base-en-v1.5"
+    # NaqibL/bge-base-sgmarket-v1: BGE base fine-tuned on SG job-to-job triplets.
+    #   • 512 token limit, 768 dimensions (same architecture as bge-base-en-v1.5)
+    #   • Trained symmetrically (no instruction prefix on either side) — use_query_prefix=False
+    #   • Hard negatives: adjacent seniority within same job function
+    model_name: str = "NaqibL/bge-base-sgmarket-v1"
     batch_size: int = 32
+    # False for symmetrically-trained models (e.g. job-to-job fine-tunes).
+    # True for base BGE retrieval models that use an instruction prefix on the query side.
+    use_query_prefix: bool = False
 
 
 class Embedder:
@@ -111,8 +113,7 @@ class Embedder:
             if cached is not None:
                 return cached
 
-        is_bge = "bge" in model.lower()
-        query = (_BGE_QUERY_PREFIX + text) if is_bge else text
+        query = (_BGE_QUERY_PREFIX + text) if self.config.use_query_prefix else text
         result = self.embed_texts([query])[0]
 
         if cache:
