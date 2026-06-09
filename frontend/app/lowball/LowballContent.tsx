@@ -430,7 +430,6 @@ export function LowballContent() {
     setState('form')
     setResult(null)
     setError(null)
-    setSalary('')
     setActiveTab('all')
   }
 
@@ -608,6 +607,14 @@ export function LowballContent() {
 
         return (
           <div className="space-y-5">
+            {/* Back button */}
+            <button
+              onClick={reset}
+              className="flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            >
+              ← Edit search
+            </button>
+
             {/* Verdict / market card */}
             <div className={`rounded-2xl border p-6 ${cfg.bg}`}>
               <p className={`text-3xl font-bold tracking-tight ${cfg.color}`}>
@@ -767,12 +774,6 @@ export function LowballContent() {
               )
             })()}
 
-            <button
-              onClick={reset}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
-              ← Check another role
-            </button>
           </div>
         )
       })()}
