@@ -2,6 +2,12 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+# jemalloc replaces the default glibc allocator and actively returns unused memory pages
+# to the OS (via madvise), preventing the heap fragmentation that causes gradual RSS growth
+# in long-running Python processes doing repeated large allocations (e.g. pool cache refreshes).
+RUN apt-get update && apt-get install -y --no-install-recommends libjemalloc2 && rm -rf /var/lib/apt/lists/*
+ENV LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+
 # Install uv and uv_build (uv_build is the build backend declared in pyproject.toml)
 RUN pip install --no-cache-dir uv "uv_build>=0.8.23,<0.9.0"
 

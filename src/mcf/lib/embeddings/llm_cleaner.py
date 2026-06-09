@@ -40,7 +40,7 @@ import httpx
 from mcf.lib.embeddings.job_description_extractor import LLMCleanResult, _LLM_THRESHOLD
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_DEFAULT_MODEL = "google/gemini-2.5-flash-lite-preview-06-17"
+_DEFAULT_MODEL = "google/gemini-2.5-flash-lite"
 
 _SYSTEM_PROMPT = """\
 You process job descriptions for a job-matching search index. Given a job posting, \

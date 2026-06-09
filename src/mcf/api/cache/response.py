@@ -3,7 +3,7 @@
 Supports:
 - Dashboard endpoints: 1 hour TTL
 - Match results: 15 minutes per user
-- Job details: 24 hours
+- Job details: 1 hour
 
 Cache key includes user_id (when auth) and query params. Manual invalidation
 via POST /api/admin/invalidate-cache.
@@ -26,7 +26,11 @@ logger = logging.getLogger(__name__)
 # TTL constants (seconds)
 TTL_DASHBOARD = 3600  # 1 hour
 TTL_MATCHES = 900  # 15 minutes
-TTL_JOB_DETAIL = 86400  # 24 hours
+TTL_JOB_DETAIL = 3600  # 1 hour
+
+# Hard cap on cache entries. When full, the soonest-expiring entry is evicted.
+# Prevents unbounded growth when many unique job UUIDs are accessed throughout the day.
+_MAX_CACHE_KEYS = 500
 
 # In-memory: key -> (value, expires_at)
 _cache: dict[str, tuple[Any, float]] = {}
@@ -104,9 +108,12 @@ def cache_list_keys(prefix: str = "", limit: int = 100) -> list[str]:
 
 
 def cache_set(key: str, ttl_seconds: int, value: Any) -> None:
-    """Store value in cache with TTL."""
+    """Store value in cache with TTL. Evicts the soonest-expiring entry when at capacity."""
     expires_at = time.monotonic() + ttl_seconds
     with _cache_lock:
+        if len(_cache) >= _MAX_CACHE_KEYS and key not in _cache:
+            oldest = min(_cache, key=lambda k: _cache[k][1])
+            del _cache[oldest]
         _cache[key] = (value, expires_at)
     logger.debug("response_cache set: %s (ttl=%ds)", key[:60], ttl_seconds)
 
