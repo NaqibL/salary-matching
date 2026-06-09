@@ -141,14 +141,14 @@ def check_lowball(
     # Pool cache is active-only, so bypass it here.
     ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
-    # Company-specific results (computed before early returns so all branches can include it)
+    # Company-specific results: direct similarity search scoped to the company,
+    # independent of the global top-500 so no Shopee-style jobs get missed.
     company_similar_jobs = None
     if body.company_name:
-        company_uuids = store.get_active_job_uuids_by_company(body.company_name, active_only=False)
-        company_ranked = [(uuid, dist) for uuid, dist, _ in ranked if uuid in company_uuids][: body.top_k]
+        company_ranked = store.get_company_jobs_ranked(vector, body.company_name, limit=body.top_k)
         if company_ranked:
-            c_uuids = [uuid for uuid, _ in company_ranked]
-            c_scores = {uuid: round(1.0 - dist, 4) for uuid, dist in company_ranked}
+            c_uuids = [uuid for uuid, _, _ in company_ranked]
+            c_scores = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in company_ranked}
             c_jobs = store.get_jobs_with_salary_by_uuids(c_uuids)
             company_similar_jobs = _build_similar_jobs(c_jobs, c_scores, body.top_k)
 

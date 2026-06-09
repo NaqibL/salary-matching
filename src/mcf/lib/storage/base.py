@@ -427,6 +427,16 @@ class Storage(ABC):
         ...
 
     @abstractmethod
+    def get_company_jobs_ranked(
+        self,
+        query_embedding: Sequence[float],
+        company_name: str,
+        limit: int = 20,
+    ) -> list[tuple[str, float, Any]]:
+        """Return (job_uuid, cosine_distance, last_seen_at) for all embedded jobs from the given company, ranked by similarity. Includes active and historical."""
+        ...
+
+    @abstractmethod
     def get_company_alias_map(self) -> dict[str, str]:
         """Return mapping of raw_name → canonical_name for all non-self aliases."""
         ...

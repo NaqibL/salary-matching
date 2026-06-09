@@ -1851,6 +1851,37 @@ class PostgresStore(Storage):
             )
             return {r[0] for r in cur.fetchall()}
 
+    def get_company_jobs_ranked(
+        self,
+        query_embedding: Sequence[float],
+        company_name: str,
+        limit: int = 20,
+    ) -> list[tuple[str, float, Any]]:
+        emb_str = json.dumps([float(x) for x in query_embedding])
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                SELECT j.job_uuid, (e.embedding <=> %s::vector) AS distance, j.last_seen_at
+                  FROM jobs j
+                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                 WHERE e.embedding IS NOT NULL
+                   AND (
+                       j.company_canonical = %s
+                       OR (j.company_canonical IS NULL AND j.company_name = %s)
+                       OR j.company_canonical = (
+                           SELECT canonical_name FROM company_aliases
+                           WHERE raw_name = %s AND canonical_name IS NOT NULL
+                           LIMIT 1
+                       )
+                   )
+                 ORDER BY distance ASC
+                 LIMIT %s
+                """,
+                (emb_str, company_name, company_name, company_name, limit),
+            )
+            return [(r[0], float(r[1]), r[2]) for r in cur.fetchall()]
+
     def get_company_alias_map(self) -> dict[str, str]:
         with self._cur() as cur:
             cur.execute(
