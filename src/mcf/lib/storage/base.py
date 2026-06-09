@@ -422,8 +422,8 @@ class Storage(ABC):
         ...
 
     @abstractmethod
-    def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
-        """Return UUIDs of all active jobs from the given company."""
+    def get_active_job_uuids_by_company(self, company_name: str, active_only: bool = True) -> set[str]:
+        """Return UUIDs of jobs from the given company. Defaults to active jobs only."""
         ...
 
     @abstractmethod

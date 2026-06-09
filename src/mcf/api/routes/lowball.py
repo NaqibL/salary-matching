@@ -137,16 +137,14 @@ def check_lowball(
     job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     vector = embedder.embed_text(job_text)
 
-    if settings.enable_active_jobs_pool_cache:
-        pool, matrix = get_pool_or_fetch(store)
-        ranked = compute_ranked_from_pool(pool, vector, limit=500, matrix=matrix)
-    else:
-        ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
+    # Always query all jobs (active + historical) for accurate salary benchmarking.
+    # Pool cache is active-only, so bypass it here.
+    ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
     # Company-specific results (computed before early returns so all branches can include it)
     company_similar_jobs = None
     if body.company_name:
-        company_uuids = store.get_active_job_uuids_by_company(body.company_name)
+        company_uuids = store.get_active_job_uuids_by_company(body.company_name, active_only=False)
         company_ranked = [(uuid, dist) for uuid, dist, _ in ranked if uuid in company_uuids][: body.top_k]
         if company_ranked:
             c_uuids = [uuid for uuid, _ in company_ranked]

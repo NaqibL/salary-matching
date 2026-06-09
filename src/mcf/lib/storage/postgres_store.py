@@ -1830,13 +1830,14 @@ class PostgresStore(Storage):
             )
             return [r[0] for r in cur.fetchall()]
 
-    def get_active_job_uuids_by_company(self, company_name: str) -> set[str]:
+    def get_active_job_uuids_by_company(self, company_name: str, active_only: bool = True) -> set[str]:
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
+            active_clause = "is_active = TRUE AND " if active_only else ""
             cur.execute(
-                """
+                f"""
                 SELECT job_uuid FROM jobs
-                WHERE is_active = TRUE AND (
+                WHERE {active_clause}(
                     company_canonical = %s
                     OR (company_canonical IS NULL AND company_name = %s)
                     OR company_canonical = (
