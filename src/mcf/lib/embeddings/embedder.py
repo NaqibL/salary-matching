@@ -18,11 +18,11 @@ _BGE_QUERY_PREFIX = "Represent this resume for job search: "
 
 @dataclass(frozen=True)
 class EmbedderConfig:
-    # NaqibL/bge-base-sgmarket-v1: BGE base fine-tuned on SG job-to-job triplets.
+    # NaqibL/bge-base-sgmarket-v2: BGE base fine-tuned on SG job-to-job triplets.
     #   • 512 token limit, 768 dimensions (same architecture as bge-base-en-v1.5)
     #   • Trained symmetrically (no instruction prefix on either side) — use_query_prefix=False
-    #   • Hard negatives: adjacent seniority within same job function
-    model_name: str = "NaqibL/bge-base-sgmarket-v1"
+    #   • Hard negatives: seniority (v1) + cross-function confusion (v2), ~27k triplets
+    model_name: str = "NaqibL/bge-base-sgmarket-v2"
     batch_size: int = 32
     # False for symmetrically-trained models (e.g. job-to-job fine-tunes).
     # True for base BGE retrieval models that use an instruction prefix on the query side.
