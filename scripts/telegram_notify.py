@@ -1,4 +1,4 @@
-"""Daily Telegram digest of new job matches against an interest profile.
+"""Daily Telegram digest of new job matches against interest profiles.
 
 Usage
 -----
@@ -15,7 +15,9 @@ Required env vars:
 
 Optional env vars:
     OPENROUTER_API_KEY    Enables LLM seniority check on finalists
-    INTEREST_PROFILE_PATH Path to interest profile text (default: scripts/interest_profile.txt)
+    PROFILES_DIR          Path to profiles directory (default: scripts/profiles/)
+                          Each .txt file in the directory is treated as a separate role profile.
+                          Jobs are scored against all profiles; the max score is used.
 """
 
 from __future__ import annotations
@@ -68,11 +70,22 @@ _SENIOR_LEVELS = {"senior executive", "manager", "director", "c-suite", "head"}
 _SENIOR_TIERS = {"senior"}
 
 
-def _load_interest_profile() -> str:
-    profile_path = Path(os.environ.get("INTEREST_PROFILE_PATH", _REPO_ROOT / "scripts" / "interest_profile.txt"))
-    if not profile_path.exists():
-        raise FileNotFoundError(f"Interest profile not found: {profile_path}")
-    return profile_path.read_text(encoding="utf-8").strip()
+def _load_profiles() -> dict[str, str]:
+    """Load all .txt profiles from the profiles directory. Returns {name: text}."""
+    profiles_dir = Path(os.environ.get("PROFILES_DIR", _REPO_ROOT / "scripts" / "profiles"))
+    if not profiles_dir.exists():
+        # Fallback to legacy single-file profile
+        legacy = _REPO_ROOT / "scripts" / "interest_profile.txt"
+        if legacy.exists():
+            print(f"  No profiles/ dir found — falling back to {legacy}")
+            return {"interest_profile": legacy.read_text(encoding="utf-8").strip()}
+        raise FileNotFoundError(f"Profiles directory not found: {profiles_dir}")
+    profiles = {}
+    for p in sorted(profiles_dir.glob("*.txt")):
+        profiles[p.stem] = p.read_text(encoding="utf-8").strip()
+    if not profiles:
+        raise FileNotFoundError(f"No .txt files found in {profiles_dir}")
+    return profiles
 
 
 def _is_excluded_company(company_name: str | None) -> bool:
@@ -158,12 +171,13 @@ def _send_telegram(token: str, chat_id: str, text: str) -> None:
 def main(dry_run: bool = False) -> None:
     store = _make_store()
     try:
-        print("Loading interest profile...")
-        profile_text = _load_interest_profile()
+        print("Loading profiles...")
+        profiles = _load_profiles()
+        print(f"  {len(profiles)} profile(s): {', '.join(profiles)}")
 
-        print("Embedding interest profile (loading BGE model)...")
+        print("Embedding profiles (loading BGE model)...")
         embedder = Embedder(EmbedderConfig())
-        interest_emb = embedder.embed_query(profile_text)
+        profile_embeddings = {name: embedder.embed_query(text) for name, text in profiles.items()}
 
         print("Fetching new jobs (embedded in last 24h)...")
         new_job_records = store.get_active_jobs_embedded_since(days=1)
@@ -185,19 +199,23 @@ def main(dry_run: bool = False) -> None:
                 _send_telegram(token, chat_id, msg)
             return
 
-        print("Scoring all active jobs against interest profile...")
-        ranked = store.get_active_job_ids_ranked(interest_emb, limit=50_000)
+        # Score jobs against each profile; take max similarity per job
+        print("Scoring new jobs against all profiles (taking max score per job)...")
+        best_score: dict[str, float] = {}
+        for name, emb in profile_embeddings.items():
+            ranked = store.get_active_job_ids_ranked(emb, limit=50_000)
+            for uuid, distance, _ in ranked:
+                if uuid not in new_uuids:
+                    continue
+                sim = 1.0 - distance
+                if sim > best_score.get(uuid, -1.0):
+                    best_score[uuid] = sim
+            print(f"  Scored against '{name}'")
 
-        # Filter to new-only, convert distance to similarity, take top 30
-        new_ranked = [
-            (uuid, 1.0 - distance)
-            for uuid, distance, _ in ranked
-            if uuid in new_uuids
-        ]
-        new_ranked.sort(key=lambda x: x[1], reverse=True)
+        new_ranked = sorted(best_score.items(), key=lambda x: x[1], reverse=True)
         top_uuids = [uuid for uuid, _ in new_ranked[:30]]
 
-        print(f"  Top {len(top_uuids)} candidates after interest scoring")
+        print(f"  Top {len(top_uuids)} candidates after multi-profile scoring")
 
         print("Fetching full job details...")
         jobs = store.get_jobs_by_uuids(top_uuids)
