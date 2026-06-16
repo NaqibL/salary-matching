@@ -114,6 +114,12 @@ def _effective_salary(job: dict) -> int | None:
     return lo
 
 
+def _has_valid_salary(job: dict) -> bool:
+    """Return False for jobs with placeholder or thousands-notation salary errors (salary_max < 100)."""
+    hi = job.get("salary_max")
+    return hi is None or hi >= 100
+
+
 def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
     qs = _quantiles(salaries, n=4)  # [p25, p50, p75]
     return int(qs[0]), int(qs[1]), int(qs[2])
@@ -161,12 +167,12 @@ def check_lowball(
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
 
     jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()))
+    jobs = [j for j in jobs if _has_valid_salary(j)]
     # Salary benchmark pool uses compliant ranges only (EP rule: salary_max <= 2 * salary_min).
-    # Display cards (similar_jobs) still use the full unfiltered fetch above.
     salary_jobs = store.get_jobs_with_salary_by_uuids(
         list(uuid_to_score.keys()), compliant_ranges_only=True
     )
-    salary_jobs = [j for j in salary_jobs if j.get("salary_min") is not None]
+    salary_jobs = [j for j in salary_jobs if j.get("salary_min") is not None and _has_valid_salary(j)]
     similar = _build_similar_jobs(jobs, uuid_to_score, body.top_k)
 
     # Compute market percentiles regardless of whether salary was provided
@@ -258,7 +264,7 @@ def salary_search(
     salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids, compliant_ranges_only=True)
     salary_values = sorted(
         s for j in salary_pool
-        if (s := _effective_salary(j)) is not None
+        if _has_valid_salary(j) and (s := _effective_salary(j)) is not None
     )
 
     p25 = p50 = p75 = None
