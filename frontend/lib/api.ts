@@ -297,6 +297,7 @@ export const lowballApi = {
     description: string,
     salary?: number,
     companyName?: string,
+    seniority?: string,
     topK = 20,
   ): Promise<LowballResult> => {
     const { data } = await supabase.auth.getSession()
@@ -312,6 +313,7 @@ export const lowballApi = {
         description,
         salary: salary ?? null,
         company_name: companyName ?? null,
+        seniority: seniority ?? null,
         top_k: topK,
       }),
     })

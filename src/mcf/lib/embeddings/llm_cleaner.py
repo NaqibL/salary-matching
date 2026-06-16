@@ -52,8 +52,8 @@ Output a single JSON object on one line with these keys:
 - "canonical_skills": array of canonical skill/tool names (e.g. "Python", "React", \
 "PostgreSQL", "AWS") or null if none found. Normalise casing (e.g. "Javascript" → \
 "JavaScript", "Postgresql" → "PostgreSQL"). Max 15 skills.
-- "inferred_seniority": one of "Entry", "Junior", "Mid", "Senior", "Lead", "Manager", \
-"Director" or null if unclear
+- "inferred_seniority": one of "Intern", "Entry", "Junior", "Mid", "Senior", "Lead", "Manager", \
+"Director" or null if unclear. Use "Intern" for student internships or vacation work.
 
 ===CLEANED===
 Rewrite the job description in plain, factual language that mirrors how a candidate \
@@ -129,7 +129,7 @@ def _parse_response(raw: str, original_description: str) -> LLMCleanResult:
             canonical_skills = [str(s).strip() for s in raw_skills if str(s).strip()][:15] or None
 
         raw_seniority = parsed.get("inferred_seniority")
-        valid_seniorities = {"Entry", "Junior", "Mid", "Senior", "Lead", "Manager", "Director"}
+        valid_seniorities = {"Intern", "Entry", "Junior", "Mid", "Senior", "Lead", "Manager", "Director"}
         if isinstance(raw_seniority, str) and raw_seniority.strip() in valid_seniorities:
             inferred_seniority = raw_seniority.strip()
 

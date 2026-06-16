@@ -123,6 +123,11 @@ uv run python -m pytest tests/ -v
 
 ## Changelog
 
+### 2026-06-16 — Seniority filter on salary checker + BGE v2 embeddings
+- **Seniority dropdown** — salary checker now accepts an optional seniority level (Intern → Director); selection is appended to the embedding query for more accurate similar-role retrieval
+- **BGE v2 model** — all 172k job embeddings re-indexed with `bge-base-sgmarket-v2` (fine-tuned on SG market data); improves BI Analyst and cross-function role separation
+- **Intern seniority** — "Intern" added as a valid seniority level in the LLM cleaner and salary checker
+
 ### 2026-06-02 — Memory leak fix + salary checker polish
 - **Memory leak fix** — response and matches caches now sweep expired entries every 5 min via a background daemon thread; previously, entries with long TTLs (up to 24h) were only evicted on access and accumulated indefinitely, causing Railway memory to creep from ~18 GB to 25 GB over the course of a day
 - **Monthly base label** — salary input and result band now explicitly labelled "Monthly Base (SGD)"

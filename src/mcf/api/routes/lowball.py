@@ -31,6 +31,7 @@ class LowballCheckRequest(BaseModel):
     salary: int | None = Field(default=None, ge=0, le=500_000)
     top_k: int = Field(default=20, ge=1, le=100)
     company_name: str | None = Field(default=None, max_length=200)
+    seniority: str | None = Field(default=None, max_length=50)
 
 
 class LowballResult(BaseModel):
@@ -135,6 +136,10 @@ def check_lowball(
     """Check if an offered salary is competitive for a described role."""
     description_text, _ = extract_high_signal_description(body.description, body.title)
     job_text = f"Job Title: {body.title}\nDescription: {description_text}"
+    if body.seniority == "Intern":
+        job_text += "\nRole Type: Internship\nSeniority: Intern"
+    elif body.seniority:
+        job_text += f"\nSeniority: {body.seniority}"
     vector = embedder.embed_text(job_text)
 
     # Always query all jobs (active + historical) for accurate salary benchmarking.

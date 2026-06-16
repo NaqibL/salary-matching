@@ -386,6 +386,8 @@ export function LowballContent() {
   const [result, setResult] = useState<LowballResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const [seniority, setSeniority] = useState('')
+
   // Company autocomplete
   const [companies, setCompanies] = useState<string[]>([])
   const [companyAliases, setCompanyAliases] = useState<Record<string, string>>({})
@@ -416,7 +418,7 @@ export function LowballContent() {
     setState('loading')
     try {
       const salaryValue = salary ? parseInt(salary, 10) : undefined
-      const data = await lowballApi.check(title, description, salaryValue, selectedCompany || undefined)
+      const data = await lowballApi.check(title, description, salaryValue, selectedCompany || undefined, seniority || undefined)
       setResult(data)
       setActiveTab('all')
       setState('result')
@@ -431,6 +433,7 @@ export function LowballContent() {
     setResult(null)
     setError(null)
     setActiveTab('all')
+    setSeniority('')
   }
 
   const fmt = (v: number) => `$${v.toLocaleString()}`
@@ -482,7 +485,7 @@ export function LowballContent() {
           <Card>
             <CardBody>
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                       Job title
@@ -514,6 +517,23 @@ export function LowballContent() {
                         Company tab will appear in results
                       </p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Seniority{' '}
+                      <span className="font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <select
+                      value={seniority}
+                      onChange={(e) => setSeniority(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Any level</option>
+                      {['Intern', 'Entry', 'Junior', 'Mid', 'Senior', 'Lead', 'Manager', 'Director'].map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
