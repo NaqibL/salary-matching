@@ -24,8 +24,7 @@ export default function SupportPage() {
           </h1>
         </div>
         <p className="text-base text-slate-500 leading-relaxed max-w-xl">
-          Lowball is a free tool for checking if your salary offer is fair against the Singapore market.
-          It&apos;s built and run by one person — help keep it alive.
+          Built by a sleep-deprived Singaporean with a teh peng addiction. Help feed it.
         </p>
       </div>
 
@@ -35,18 +34,17 @@ export default function SupportPage() {
         <Card>
           <CardBody className="space-y-3">
             <p className="text-sm text-slate-700 leading-relaxed">
-              Hi, I&apos;m Luqman — a solo dev who built this tool because salary data in Singapore is weirdly
-              hard to find. Lowball scrapes job listings daily, embeds them with an AI model, and lets you check
-              whether an offer is fair or a lowball.
+              Hey, I&apos;m Luqman. I built this because I was tired of getting low-balled and couldn&apos;t find
+              decent salary data anywhere in Singapore. So I scraped it myself lah.
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
-              It&apos;s completely free to use. Monthly costs run about{' '}
-              <span className="font-semibold text-slate-900">~$55/month</span> to keep the server, database,
-              and daily job enrichment running. I&apos;m covering it myself for now and hope to keep it free as long as I can.
+              Costs me about{' '}
+              <span className="font-semibold text-slate-900">~$55/month</span> out of pocket to keep the servers
+              running. No ads, no paywalls — just teh peng money keeping the lights on.
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
-              If Lowball has helped you negotiate better pay or spot a lowball offer, consider buying me a
-              teh peng. No pressure at all — the tool stays free either way.
+              If this helped you negotiate a better offer, or just made you feel less lost about salaries —
+              buy me a teh peng lah. No pressure, the tool stays free either way.
             </p>
           </CardBody>
         </Card>
