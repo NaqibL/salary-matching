@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart2, Building2, Scale } from 'lucide-react'
+import { BarChart2, Building2, Coffee, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
   { href: '/', label: 'Salary Checker', icon: Scale },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
   { href: '/companies', label: 'Companies', icon: Building2 },
+  { href: '/support', label: 'Support', icon: Coffee },
 ]
 
 export interface SidebarProps {
@@ -62,15 +63,6 @@ export default function Sidebar({ userSlot }: SidebarProps) {
             {userSlot}
           </div>
         )}
-
-        <div className="px-6 py-4 border-t border-slate-100">
-          <Link
-            href="/support"
-            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            🧋 Support
-          </Link>
-        </div>
       </div>
     </aside>
   )
