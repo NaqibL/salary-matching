@@ -3,7 +3,7 @@ import NavUserActions from '../components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
 
 export const metadata = {
-  title: 'Support Lowball | Buy me a teh peng',
+  title: 'Support the Project | Lowball',
   description: 'Help keep Lowball free and running. Buy me a teh peng.',
 }
 
@@ -20,11 +20,11 @@ export default function SupportPage() {
             🧋
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Buy me a teh peng
+            Support the project
           </h1>
         </div>
         <p className="text-base text-slate-500 leading-relaxed max-w-xl">
-          Built by one Singaporean who got sick of terrible salary data.
+          I built this because I wanted to make job hunting in Singapore a little less stressful.
         </p>
       </div>
 
