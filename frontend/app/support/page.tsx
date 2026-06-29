@@ -58,42 +58,28 @@ export default function SupportPage() {
 
             {/* Ko-fi */}
             <Card className="flex flex-col">
-              <CardBody className="flex flex-col flex-1 gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 mb-1">Ko-fi</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Card or PayPal. No platform fee on one-time donations.
-                  </p>
-                </div>
-                <div className="mt-auto">
-                  <a
-                    href={`https://ko-fi.com/${KOFI_USERNAME}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#FF5E5B] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#e54e4b] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5E5B] focus-visible:ring-offset-2"
-                  >
-                    🧋 Buy me a teh peng
-                  </a>
-                </div>
+              <CardBody className="flex flex-col flex-1 items-center justify-center gap-3 py-6">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ko-fi</p>
+                <a
+                  href={`https://ko-fi.com/${KOFI_USERNAME}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#FF5E5B] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#e54e4b] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5E5B] focus-visible:ring-offset-2"
+                >
+                  🧋 Buy me a teh peng
+                </a>
               </CardBody>
             </Card>
 
             {/* PayNow */}
             <Card className="flex flex-col">
-              <CardBody className="flex flex-col flex-1 gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 mb-1">PayNow</p>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Singapore instant transfer. Scan with your banking app.
-                  </p>
-                </div>
-                <div className="mt-auto flex justify-center">
-                  <img
-                    src="/paynow_qr.png"
-                    alt="PayNow QR code"
-                    className="size-40 object-contain rounded-lg border border-slate-200"
-                  />
-                </div>
+              <CardBody className="flex flex-col flex-1 items-center justify-center gap-3 py-6">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">PayNow</p>
+                <img
+                  src="/paynow_qr.png"
+                  alt="PayNow QR code"
+                  className="size-40 object-contain rounded-lg border border-slate-200"
+                />
               </CardBody>
             </Card>
 
