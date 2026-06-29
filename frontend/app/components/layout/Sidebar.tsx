@@ -62,6 +62,15 @@ export default function Sidebar({ userSlot }: SidebarProps) {
             {userSlot}
           </div>
         )}
+
+        <div className="px-6 py-4 border-t border-slate-100">
+          <Link
+            href="/support"
+            className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            🧋 Support
+          </Link>
+        </div>
       </div>
     </aside>
   )

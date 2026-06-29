@@ -117,6 +117,16 @@ export default function MobileNav({ open, onToggle, userSlot }: MobileNavProps) 
             })}
           </nav>
 
+          <div className="px-4 pb-2">
+            <Link
+              href="/support"
+              onClick={onToggle}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              🧋 Support
+            </Link>
+          </div>
+
           {userSlot && (
             <div className="p-4 border-t border-slate-200">
               {userSlot}
