@@ -55,25 +55,32 @@ export default function SupportPage() {
             Donate
           </h2>
 
-          {/* Ko-fi */}
-          <a
-            href={`https://ko-fi.com/${KOFI_USERNAME}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#FF5E5B] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#e54e4b] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5E5B] focus-visible:ring-offset-2"
-          >
-            🧋 Buy me a teh peng via Ko-fi
-          </a>
-
-          {/* PayNow */}
           <Card>
-            <CardBody className="flex flex-col items-center gap-3 py-4">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">or scan to PayNow</p>
-              <img
-                src="/paynow_qr.png"
-                alt="PayNow QR code"
-                className="size-32 object-contain rounded-lg border border-slate-200"
-              />
+            <CardBody className="flex divide-x divide-slate-100">
+
+              {/* Ko-fi */}
+              <div className="flex flex-col items-center justify-center gap-3 flex-1 pr-6">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ko-fi</p>
+                <a
+                  href={`https://ko-fi.com/${KOFI_USERNAME}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#FF5E5B] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#e54e4b] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5E5B] focus-visible:ring-offset-2"
+                >
+                  🧋 Buy me a teh peng
+                </a>
+              </div>
+
+              {/* PayNow */}
+              <div className="flex flex-col items-center justify-center gap-3 flex-1 pl-6">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">PayNow</p>
+                <img
+                  src="/paynow_qr.png"
+                  alt="PayNow QR code"
+                  className="size-28 object-contain rounded-lg border border-slate-200"
+                />
+              </div>
+
             </CardBody>
           </Card>
         </div>
