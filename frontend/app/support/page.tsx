@@ -41,8 +41,8 @@ export default function SupportPage() {
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
               It&apos;s completely free to use. Monthly costs run about{' '}
-              <span className="font-semibold text-slate-900">~$65/month</span> to keep the server, database,
-              and crawls running. I&apos;m covering it myself for now and hope to keep it free as long as I can.
+              <span className="font-semibold text-slate-900">~$55/month</span> to keep the server, database,
+              and daily job enrichment running. I&apos;m covering it myself for now and hope to keep it free as long as I can.
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
               If Lowball has helped you negotiate better pay or spot a lowball offer, consider buying me a
@@ -110,16 +110,20 @@ export default function SupportPage() {
             </h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li className="flex justify-between">
-                <span>API server (Railway)</span>
-                <span className="text-slate-400">~$5/mo</span>
+                <span>API server</span>
+                <span className="text-slate-400">~$15/mo</span>
               </li>
               <li className="flex justify-between">
-                <span>Domain + misc infrastructure</span>
-                <span className="text-slate-400">~$60/mo</span>
+                <span>Database</span>
+                <span className="text-slate-400">~$25/mo</span>
+              </li>
+              <li className="flex justify-between">
+                <span>LLM job enrichment (daily)</span>
+                <span className="text-slate-400">~$15/mo</span>
               </li>
               <li className="flex justify-between border-t border-slate-100 pt-2 font-medium text-slate-700">
                 <span>Total</span>
-                <span>~$65/mo</span>
+                <span>~$55/mo</span>
               </li>
             </ul>
           </CardBody>
