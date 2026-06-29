@@ -20,7 +20,7 @@ export default function SupportPage() {
             🧋
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Support the project
+            Make job hunting less stressful for all
           </h1>
         </div>
         <p className="text-base text-slate-500 leading-relaxed max-w-xl">
