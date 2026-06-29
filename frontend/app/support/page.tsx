@@ -24,7 +24,7 @@ export default function SupportPage() {
           </h1>
         </div>
         <p className="text-base text-slate-500 leading-relaxed max-w-xl">
-          To make job hunting less stressful.
+          Make job hunting less stressful.
         </p>
       </div>
 
@@ -67,12 +67,12 @@ export default function SupportPage() {
 
           {/* PayNow */}
           <Card>
-            <CardBody className="flex flex-col items-center gap-3 py-6">
+            <CardBody className="flex flex-col items-center gap-3 py-4">
               <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">or scan to PayNow</p>
               <img
                 src="/paynow_qr.png"
                 alt="PayNow QR code"
-                className="size-44 object-contain rounded-lg border border-slate-200"
+                className="size-32 object-contain rounded-lg border border-slate-200"
               />
             </CardBody>
           </Card>
