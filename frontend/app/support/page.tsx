@@ -24,7 +24,7 @@ export default function SupportPage() {
           </h1>
         </div>
         <p className="text-base text-slate-500 leading-relaxed max-w-xl">
-          Built by a sleep-deprived Singaporean with a teh peng addiction. Help feed it.
+          Built by one Singaporean who got sick of terrible salary data.
         </p>
       </div>
 
@@ -34,17 +34,17 @@ export default function SupportPage() {
         <Card>
           <CardBody className="space-y-3">
             <p className="text-sm text-slate-700 leading-relaxed">
-              Hey, I&apos;m Luqman. I built this because I was tired of getting low-balled and couldn&apos;t find
-              decent salary data anywhere in Singapore. So I scraped it myself lah.
+              I couldn&apos;t find a decent source for Singapore salaries, so I started collecting them myself.
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
-              Costs me about{' '}
-              <span className="font-semibold text-slate-900">~$55/month</span> out of pocket to keep the servers
-              running. No ads, no paywalls — just teh peng money keeping the lights on.
+              The site costs me about $55/month to run, and I don&apos;t hide anything behind a paywall.
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
-              If this helped you negotiate a better offer, or just made you feel less lost about salaries —
-              buy me a teh peng lah. No pressure, the tool stays free either way.
+              If this saved you some time, helped you negotiate a better offer, or simply made your job search
+              a little less confusing, maybe spon me one teh peng ❤️
+            </p>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              Either way, thanks for using the site.
             </p>
           </CardBody>
         </Card>
