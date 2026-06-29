@@ -20,12 +20,9 @@ export default function SupportPage() {
             🧋
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Make job hunting less stressful for all
+            I built this because I wanted to make job hunting in Singapore a little less stressful.
           </h1>
         </div>
-        <p className="text-base text-slate-500 leading-relaxed max-w-xl">
-          I built this because I wanted to make job hunting in Singapore a little less stressful.
-        </p>
       </div>
 
       <div className="max-w-2xl space-y-6">
