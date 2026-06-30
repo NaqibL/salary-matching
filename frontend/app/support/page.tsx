@@ -86,8 +86,8 @@ export default function SupportPage() {
             <Image src="/kofi_symbol.png" alt="Ko-fi" width={36} height={36} className="size-9 object-contain" />
           </div>
           <span>Support Me!</span>
-          <div className="w-16 flex items-center justify-center">
-            <Image src="/paynow_logo.png" alt="PayNow" width={64} height={32} className="w-16 h-auto object-contain" />
+          <div className="w-24 flex items-center justify-center">
+            <Image src="/paynow_logo.png" alt="PayNow" width={96} height={48} className="w-24 h-auto object-contain" />
           </div>
         </button>
       </div>
