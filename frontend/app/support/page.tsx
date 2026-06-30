@@ -80,12 +80,12 @@ export default function SupportPage() {
       <div className="max-w-5xl mx-auto">
         <button
           onClick={() => setOverlayOpen(true)}
-          className="w-full flex items-center justify-center gap-3 rounded-2xl bg-amber-400 hover:bg-amber-500 active:bg-amber-600 px-6 py-5 text-xl font-bold text-amber-950 shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+          className="w-full flex items-center justify-center gap-4 rounded-2xl bg-slate-700 hover:bg-slate-800 active:bg-slate-900 px-6 py-5 text-xl font-bold text-white shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
         >
           <span>Support Me!</span>
-          <span className="flex items-center gap-2 opacity-70">
-            <Image src="/kofi_symbol.png" alt="Ko-fi" width={24} height={24} className="size-6 object-contain" />
-            <Image src="/paynow_logo.png" alt="PayNow" width={24} height={24} className="size-6 object-contain" />
+          <span className="flex items-center gap-3">
+            <Image src="/kofi_symbol.png" alt="Ko-fi" width={36} height={36} className="size-9 object-contain" />
+            <Image src="/paynow_logo.png" alt="PayNow" width={36} height={36} className="size-9 object-contain" />
           </span>
         </button>
       </div>
