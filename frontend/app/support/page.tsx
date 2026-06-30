@@ -1,118 +1,91 @@
+'use client'
+
+import { useState } from 'react'
+import Image from 'next/image'
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
-import { Card, CardBody } from '@/components/design'
-
-export const metadata = {
-  title: 'Support the Project | Lowball',
-  description: 'Help keep Lowball free and running. Buy me a teh peng.',
-}
-
-const KOFI_USERNAME = 'naqibl'
+import SupportOverlay from './SupportOverlay'
 
 export default function SupportPage() {
+  const [overlayOpen, setOverlayOpen] = useState(false)
+
   return (
     <Layout userSlot={<NavUserActions />}>
 
-      {/* ── Page header ──────────────────────────────────────────────────── */}
-      <div className="-mx-4 lg:-mx-8 px-4 lg:px-8 pt-10 pb-10 mb-8 bg-gradient-to-br from-amber-50/80 via-white to-slate-50 border-b border-slate-200/70">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-amber-100 text-2xl">
-            🧋
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Support the project
-          </h1>
-        </div>
-        <p className="text-base text-slate-500 leading-relaxed max-w-xl">
+      {/* ── Title ─────────────────────────────────────────────────────────── */}
+      <div className="text-center mb-10 mt-4">
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">
+          Support the project
+        </h1>
+        <p className="text-base text-slate-500">
           Make job hunting less stressful.
         </p>
       </div>
 
-      <div className="max-w-2xl space-y-6">
+      {/* ── Two-column: story + costs ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 max-w-3xl mx-auto">
 
-        {/* ── Solo dev note ────────────────────────────────────────────────── */}
-        <Card>
-          <CardBody className="space-y-3">
-            <p className="text-sm text-slate-700 leading-relaxed">
-              I couldn&apos;t find a decent source for Singapore salaries, so I started collecting them myself.
-            </p>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              The site costs me about $55/month to run, and I don&apos;t hide anything behind a paywall.
-            </p>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              If this saved you some time, helped you negotiate a better offer, or simply made your job search
-              a little less confusing, maybe spon me one teh peng ❤️
-            </p>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              Either way, thanks for using the site.
-            </p>
-          </CardBody>
-        </Card>
-
-        {/* ── Donation options ─────────────────────────────────────────────── */}
+        {/* Story */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
-            Donate
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Why this exists
           </h2>
-
-          <Card>
-            <CardBody className="flex divide-x divide-slate-100">
-
-              {/* Ko-fi */}
-              <div className="flex flex-col items-center justify-center gap-3 flex-1 pr-6">
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Ko-fi</p>
-                <a
-                  href={`https://ko-fi.com/${KOFI_USERNAME}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#FF5E5B] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#e54e4b] hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5E5B] focus-visible:ring-offset-2"
-                >
-                  🧋 Buy me a teh peng
-                </a>
-              </div>
-
-              {/* PayNow */}
-              <div className="flex flex-col items-center justify-center gap-3 flex-1 pl-6">
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">PayNow</p>
-                <img
-                  src="/paynow_qr.png"
-                  alt="PayNow QR code"
-                  className="size-28 object-contain rounded-lg border border-slate-200"
-                />
-              </div>
-
-            </CardBody>
-          </Card>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            I couldn&apos;t find a decent source for Singapore salaries, so I started collecting them myself.
+          </p>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            The site costs me about $55/month to run, and I don&apos;t hide anything behind a paywall.
+          </p>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            If this saved you some time, helped you negotiate a better offer, or simply made your job
+            search a little less confusing — maybe spon me one teh peng ❤️
+          </p>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            Either way, thanks for using the site.
+          </p>
         </div>
 
-        {/* ── What it covers ───────────────────────────────────────────────── */}
-        <Card>
-          <CardBody>
-            <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">
-              What your support covers
-            </h3>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li className="flex justify-between">
-                <span>API server</span>
-                <span className="text-slate-400">~$15/mo</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Database</span>
-                <span className="text-slate-400">~$25/mo</span>
-              </li>
-              <li className="flex justify-between">
-                <span>LLM job enrichment (daily)</span>
-                <span className="text-slate-400">~$15/mo</span>
-              </li>
-              <li className="flex justify-between border-t border-slate-100 pt-2 font-medium text-slate-700">
-                <span>Total</span>
-                <span>~$55/mo</span>
-              </li>
-            </ul>
-          </CardBody>
-        </Card>
-
+        {/* Costs */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            My monthly costs
+          </h2>
+          <ul className="space-y-2 text-sm text-slate-600">
+            <li className="flex justify-between py-2 border-b border-slate-100">
+              <span>API server</span>
+              <span className="text-slate-400">~$15/mo</span>
+            </li>
+            <li className="flex justify-between py-2 border-b border-slate-100">
+              <span>Database</span>
+              <span className="text-slate-400">~$25/mo</span>
+            </li>
+            <li className="flex justify-between py-2 border-b border-slate-100">
+              <span>LLM job enrichment (daily)</span>
+              <span className="text-slate-400">~$15/mo</span>
+            </li>
+            <li className="flex justify-between py-2 font-semibold text-slate-800">
+              <span>Total</span>
+              <span>~$55/mo</span>
+            </li>
+          </ul>
+        </div>
       </div>
+
+      {/* ── Support Me button ─────────────────────────────────────────────── */}
+      <div className="max-w-3xl mx-auto">
+        <button
+          onClick={() => setOverlayOpen(true)}
+          className="w-full flex items-center justify-center gap-3 rounded-xl bg-amber-400 hover:bg-amber-500 active:bg-amber-600 px-6 py-4 text-base font-semibold text-amber-950 shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
+        >
+          <span>Support Me!</span>
+          <span className="flex items-center gap-2 opacity-80">
+            <Image src="/kofi_symbol.png" alt="Ko-fi" width={20} height={20} className="size-5 object-contain" />
+            <Image src="/paynow_logo.png" alt="PayNow" width={20} height={20} className="size-5 object-contain" />
+          </span>
+        </button>
+      </div>
+
+      <SupportOverlay open={overlayOpen} onClose={() => setOverlayOpen(false)} />
     </Layout>
   )
 }
