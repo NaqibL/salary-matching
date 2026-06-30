@@ -77,16 +77,14 @@ export default function SupportPage() {
       </div>
 
       {/* ── Support Me button ─────────────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto">
+      <div className="flex justify-center">
         <button
           onClick={() => setOverlayOpen(true)}
-          className="w-full flex items-center justify-center gap-4 rounded-2xl bg-slate-700 hover:bg-slate-800 active:bg-slate-900 px-6 py-5 text-xl font-bold text-white shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+          className="flex items-center justify-between gap-8 rounded-2xl bg-slate-700 hover:bg-slate-800 active:bg-slate-900 px-8 py-5 text-xl font-bold text-white shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 min-w-80"
         >
+          <Image src="/kofi_symbol.png" alt="Ko-fi" width={36} height={36} className="size-9 object-contain" />
           <span>Support Me!</span>
-          <span className="flex items-center gap-3">
-            <Image src="/kofi_symbol.png" alt="Ko-fi" width={36} height={36} className="size-9 object-contain" />
-            <Image src="/paynow_logo.png" alt="PayNow" width={100} height={40} className="h-10 w-auto object-contain" />
-          </span>
+          <Image src="/paynow_logo.png" alt="PayNow" width={150} height={60} className="h-[60px] w-auto object-contain" />
         </button>
       </div>
 
