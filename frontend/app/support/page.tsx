@@ -85,7 +85,7 @@ export default function SupportPage() {
           <span>Support Me!</span>
           <span className="flex items-center gap-3">
             <Image src="/kofi_symbol.png" alt="Ko-fi" width={36} height={36} className="size-9 object-contain" />
-            <Image src="/paynow_logo.png" alt="PayNow" width={36} height={36} className="size-9 object-contain" />
+            <Image src="/paynow_logo.png" alt="PayNow" width={100} height={40} className="h-10 w-auto object-contain" />
           </span>
         </button>
       </div>
