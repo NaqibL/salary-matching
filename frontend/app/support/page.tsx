@@ -27,12 +27,12 @@ export default function SupportPage() {
       </div>
 
       {/* ── Two-column: story + costs ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-3xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-5xl mx-auto">
 
         {/* Story */}
         <Card>
           <CardBody className="space-y-4">
-            <p className="text-xl font-semibold text-slate-800">👋 Hey, I'm Luqman</p>
+            <p className="text-xl font-semibold text-slate-800">Hey, I'm Luqman</p>
             <p className="text-base text-slate-600 leading-relaxed">
               I couldn't find a decent source for Singapore salaries, so I started collecting them myself.
             </p>
@@ -55,15 +55,15 @@ export default function SupportPage() {
             <p className="text-xl font-semibold text-slate-800 mb-5">💸 My monthly costs</p>
             <ul className="space-y-1 text-base">
               <li className="flex justify-between py-3 border-b border-slate-100">
-                <span className="text-slate-700">🖥️ API server</span>
+                <span className="text-slate-700">API server</span>
                 <span className="font-medium text-slate-500">~$15/mo</span>
               </li>
               <li className="flex justify-between py-3 border-b border-slate-100">
-                <span className="text-slate-700">🗄️ Database</span>
+                <span className="text-slate-700">Database</span>
                 <span className="font-medium text-slate-500">~$25/mo</span>
               </li>
               <li className="flex justify-between py-3 border-b border-slate-100">
-                <span className="text-slate-700">🤖 LLM job enrichment</span>
+                <span className="text-slate-700">LLM job enrichment</span>
                 <span className="font-medium text-slate-500">~$15/mo</span>
               </li>
               <li className="flex justify-between pt-3 font-semibold text-slate-800 text-lg">
@@ -77,7 +77,7 @@ export default function SupportPage() {
       </div>
 
       {/* ── Support Me button ─────────────────────────────────────────────── */}
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <button
           onClick={() => setOverlayOpen(true)}
           className="w-full flex items-center justify-center gap-3 rounded-2xl bg-amber-400 hover:bg-amber-500 active:bg-amber-600 px-6 py-5 text-xl font-bold text-amber-950 shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
