@@ -1,0 +1,470 @@
+job_uuid,title,company_name,salary_min,salary_max,hot_jobs_cluster,cluster_label,seniority,peer_median,above_market_pct
+69bc49a6357b4624a4a686e1cdf63d82,Quantitative Trader,BLOCKTECH APAC PTE. LTD.,215000,300000,19,SUPERVISOR,Mid,4800.0,4379.2
+93c6158d35dac4163eb58889c1a7d177,Senior Site Reliability Engineer,KIDENTIFY PTE. LTD.,150000,180000,12,Warehouse Assistant,,3500.0,4185.7
+b97e9f56954a91ea3888d09f58465212,Senior Staff Product Development Engineer,XILINX ASIA PACIFIC PTE. LTD.,140000,160000,12,Warehouse Assistant,,3500.0,3900.0
+5be8a737c9f852b8562eb3bf8d6fdd90,Quantitative Researcher,BLOCKTECH APAC PTE. LTD.,170000,255000,19,SUPERVISOR,Mid,4800.0,3441.7
+41a024a28f603ae232730f8dc4c23ea8,Solutions Engineer,SINCH SINGAPORE PTE. LTD.,128000,160000,12,Warehouse Assistant,Mid,4800.0,2566.7
+d3f22405d907cf14bd3161e97d923e65,"Analyst, Real Estate Investments",STEPSTONE GROUP SINGAPORE PTE. LTD.,104652,111656,15,Beautician,Junior,4350.0,2305.8
+0b5e1f2d8c6b6b8d6f21b010ae429699,"Managing Director, GFO APAC",THE NORTHERN TRUST COMPANY,381000,410000,7,BIM Manager,Director,17250.0,2108.7
+f1da03fdf30e428cda68961329340ac9,Lifecycle Marketing Manager – B2C,GOODNOTES PTE. LTD.,103761,133000,16,Music Teacher,Mid,4800.0,2061.7
+0afd36e61c61f3826ab1297d4d4ebe94,Account Manager Specialist,SINCH SINGAPORE PTE. LTD.,105000,125000,3,Project Engineer,,5500.0,1809.1
+ee2589d6a571cbe9faaf9f266be17501,International School (Primary & Secondary) Teacher,,48000,72000,9,Sales Executive,,4500.0,966.7
+038bc46bff379b9f1abc2289aab5aaff,"Senior Banker, Private Banking",RECRUITPLUS CONSULTING PTE. LTD.,50000,85000,2,Quantity Surveyor,,5000.0,900.0
+06191d6235931110f22587c9ddcb98ab,Philanthropy & Partnerships Associate,THE FRED HOLLOWS FOUNDATION (Singapore Branch),30000,50000,1,Corporate Secretarial Executive,Entry,4000.0,650.0
+6ab9b75ec7eafb994f7d8f66b12c9df3,Veterinary Ophthalmologist,THE EYE SPECIALIST FOR ANIMALS PTE. LTD.,45000,55000,6,HR Manager,Mid,6000.0,650.0
+c5cb4a83da6da99d3bb121bd83263294,Solution Architect – APAC,CELOTTI TECH TALENT (SINGAPORE) PTE. LTD.,25000,28000,12,Warehouse Assistant,,3500.0,614.3
+9281203ed08c6fe709498bda2e5ba2fd,Chief Executive Officer (CEO) - REIT,TRI-CAP CONSULTING PTE. LTD.,35000,50000,2,Quantity Surveyor,,5000.0,600.0
+f359f5146c38becdb8733a406ddf36d0,Chief Commercial Officer,AVATION GROUP (S) PTE. LTD.,35000,45000,2,Quantity Surveyor,,5000.0,600.0
+74bde7239114da0ebe3356a2dd432e8d,Principal Product Manager,AIRWALLEX (SINGAPORE) PTE. LTD.,22000,32000,12,Warehouse Assistant,,3500.0,528.6
+f79ea43b19ac49b6c92151bf4f67dfab,Network Engineer — Ultra-Low-Latency Trading Infrastructure,DHARMACAPITAL PTE. LTD.,30000,50000,4,Sales Manager,Junior,5000.0,500.0
+54bb7497664d1e413738631ec0889c47,Associate,ALLEN OVERY SHEARMAN STERLING LLP,20000,22500,15,Beautician,,3500.0,471.4
+d16fc4da0624281e2c8612d5fd22fcad,Mid-level Associate (Aviation Finance),NORTON ROSE FULBRIGHT (ASIA) LLP,18300,24700,15,Beautician,,3500.0,422.9
+a585c28427d218ac2bbb02e322d1d401,T&T Director - Artificial Intelligence & Data (Consumer Business) - SG,DELOITTE SINGAPORE T&T PTE. LTD.,23000,33000,19,SUPERVISOR,,4600.0,400.0
+f0b249aad76ba375f7a66e1e29ab9f71,Senior Trader,FENIX FUND MANAGEMENT PTE. LTD.,25000,30000,2,Quantity Surveyor,,5000.0,400.0
+f6759c109693fb02fb195485703190df,Staff Software Engineer,AIRWALLEX (SINGAPORE) PTE. LTD.,17000,25000,12,Warehouse Assistant,,3500.0,385.7
+19a19654809e382d008ac5e40636b7cd,SAP PS/PM Consultant,KRIS INFOTECH PTE. LTD.,17000,20500,12,Warehouse Assistant,,3500.0,385.7
+855d7203e6dad5a58f1bedf51acc397e,STE12347296 - Finance Director (Group FP&A & Strategic Planning),ROBERT HALF INTERNATIONAL PTE. LTD.,23000,29000,2,Quantity Surveyor,,5000.0,360.0
+9e5766a59367b10251401268c4c9ad12,"Staff Backend Engineer, Billing",AIRWALLEX (SINGAPORE) PTE. LTD.,16000,30000,12,Warehouse Assistant,,3500.0,357.1
+f9ec191705f75c59a8f1ab009c6b6e25,Software Developer (Rust),IKAS INTERNATIONAL (ASIA) PTE. LTD.,16000,18000,12,Warehouse Assistant,,3500.0,357.1
+c83c3e30fdc5fcc84371b9f4490579ff,Senior Platform Support Engineer,SCHONFELD STRATEGIC ADVISORS (SINGAPORE) PTE. LTD.,16000,19000,12,Warehouse Assistant,,3500.0,357.1
+f931f498664741a378133fd55f75a39a,Senior FIX Connectivity Engineer,HUDSON RPO (SINGAPORE) PTE. LTD.,16000,18920,12,Warehouse Assistant,,3500.0,357.1
+7ebc9c0968cdb88e6197a47e97e76def,"Sr. Technical Account Manager, Enterprise Support",AMAZON WEB SERVICES SINGAPORE PRIVATE LIMITED,16000,22000,12,Warehouse Assistant,,3500.0,357.1
+322e725650732059898029061b55211e,"Staff Software Engineer, Infrastructure",AIRWALLEX (SINGAPORE) PTE. LTD.,16000,28000,12,Warehouse Assistant,,3500.0,357.1
+7710cab23995afd44751f5c4cc9a9a7e,Associate,ALLEN OVERY SHEARMAN STERLING LLP,16000,22500,15,Beautician,,3500.0,357.1
+57870fbf4131e07a909ced106cb5cb83,Vice President - ASEAN & India Rates Strategist - Global Markets,NOMURA SINGAPORE LIMITED,22000,26000,2,Quantity Surveyor,Lead,4850.0,353.6
+1f86d774d973d1355ba661d74253f0e0,"Global Investment Banking -TMT, Vice President",J.P. MORGAN SECURITIES ASIA PRIVATE LIMITED,22000,32000,2,Quantity Surveyor,Lead,4850.0,353.6
+575074990b5431f95c13d2b6d3de4274,Open-Rank in Operations Management,NANYANG TECHNOLOGICAL UNIVERSITY,20000,30000,9,Sales Executive,Entry,4500.0,344.4
+33afbf6c9d8622dbb3cd4d214f482894,"Senior Manager, Trading (Base Metals)",DIRECT SEARCH ASIA PTE. LTD.,22000,27000,2,Quantity Surveyor,,5000.0,340.0
+785944b5be91b9520e4f9771a36d7bdd,Senior Manager (Base Metals),DIRECT SEARCH ASIA PTE. LTD.,22000,27000,2,Quantity Surveyor,,5000.0,340.0
+c5c7eec7e9577700a37e0c16b006472f,GH13453131 Finance Director (E-Commerce),ROBERT HALF INTERNATIONAL PTE. LTD.,22000,26000,2,Quantity Surveyor,,5000.0,340.0
+21d1a9101cb522bff00eb10209146649,Senior Manager,DIRECT SEARCH ASIA PTE. LTD.,22000,25000,2,Quantity Surveyor,,5000.0,340.0
+9675703bb315ccb9cbcd5e27fd2b5401,Chief Risk Officer – Commodities Trading House,BEATHCHAPMAN (PTE. LTD.),22000,25000,2,Quantity Surveyor,,5000.0,340.0
+5202fb650322f8600cdce903b9f43a8e,"Staff Software Engineer, Backend - Financial Platform",AIRWALLEX (SINGAPORE) PTE. LTD.,15300,26666,12,Warehouse Assistant,,3500.0,337.1
+344c8a8f7f48b7418630fd9bc9abf0bf,Lead Trading Specialist,ENVIRODYNAMICS SOLUTIONS PTE. LTD.,20000,25000,19,SUPERVISOR,,4600.0,334.8
+6e4c08214fb777dac3e7d0df82417c89,Success factor Data Architect,RANDSTAD PTE. LIMITED,20000,22000,19,SUPERVISOR,,4600.0,334.8
+e5fcb1c22c40cd1b0b2bb95e3190b9b1,"Staff Android Engineer, Identity",AIRWALLEX (SINGAPORE) PTE. LTD.,15000,225000,12,Warehouse Assistant,,3500.0,328.6
+6f55702b1814ee228c9b1d9bf316109a,Portfolio Manager,DYMON ASIA CAPITAL (SINGAPORE) PTE. LTD.,15000,23000,15,Beautician,,3500.0,328.6
+b639f645fda01c7ae67eaff9813acfa9,Senior System Engineer (AI/GPU Infrastructure),MICHAEL PAGE INTERNATIONAL PTE LTD,15000,16000,12,Warehouse Assistant,,3500.0,328.6
+0462ddd6d0e48a719b5c6ccc32b6e165,Senior Staff RTL Design Engineer,CANAAN CREATIVE GLOBAL PTE. LTD.,15000,25000,12,Warehouse Assistant,,3500.0,328.6
+bebdcb9fab911e8acb4eb488f396a6f3,Junior Associate (International Arbitration),NORTON ROSE FULBRIGHT (ASIA) LLP,14800,19700,15,Beautician,,3500.0,322.9
+0a7796d5b6595cbb1e5ba07c044fc8be,Junior Quant Researcher,SQUAREPOINT SERVICES SINGAPORE PTE. LTD.,16000,22500,19,SUPERVISOR,Junior,3800.0,321.1
+cee86ca191dd7a02229a71f8eddddfa9,"Asset & Wealth Management, Private Wealth Advisor, Associate, Singapore",GOLDMAN SACHS (SINGAPORE) PTE.,14700,29300,15,Beautician,,3500.0,320.0
+beb9d574278efa7351cd9737405d0863,AI/ML Engineer,CARLYLE SINGAPORE INVESTMENT ADVISORS PTE LTD,21000,25000,19,SUPERVISOR,Senior,5000.0,320.0
+fe49e71034ec31cc9da23fa16505b7eb,Analytics Director,WISE ASIA-PACIFIC PTE. LTD.,19200,26500,19,SUPERVISOR,,4600.0,317.4
+108cddad340ce98b9750cb379e6e1337,"Mid-level/Senior Associate, Core Finance",HERBERT SMITH FREEHILLS KRAMER LLP,20300,25000,2,Quantity Surveyor,,5000.0,306.0
+78f01969b5005904b1e676f83b2e5828,"Mid-level / Senior Associate, Core Finance",PROLEGIS LLC,20300,25000,2,Quantity Surveyor,,5000.0,306.0
+2d12061f78809c0a63dc55194200d94d,Senior Solution Architect (ASEAN),ELASTICSEARCH PTE. LTD.,14000,22000,12,Warehouse Assistant,,3500.0,300.0
+2bc812e5a433bbb5700538aaf65419f8,Senior Quantitative Analyst (SVP; Risk; FI),LICO RESOURCES PTE. LTD.,20000,25000,19,SUPERVISOR,Senior,5000.0,300.0
+f012a56a830b1edf1fa168b61bff1a43,Solution Architect (SAP Contract-to-Cash / Supply Chain) - Mining (18-month renewable contract),EVOLUTION RECRUITMENT SOLUTIONS PTE. LTD.,14000,22000,12,Warehouse Assistant,,3500.0,300.0
+92dbe543510036a94b23b88d26818ddf,Senior Mobile Developer (Android / iOS),RECRUIT EXPRESS PTE LTD,14000,20000,12,Warehouse Assistant,,3500.0,300.0
+3871c94ab09d52cee8d77df79fb33ea1,Mulesoft Technical Architect,SALESFORCE.COM SINGAPORE PTE. LTD.,14000,16700,12,Warehouse Assistant,,3500.0,300.0
+8676bb5ebf021bfcad9bb6f819debecb,Staff Network Engineer,AIRWALLEX (SINGAPORE) PTE. LTD.,14000,22500,12,Warehouse Assistant,,3500.0,300.0
+76fa834c19fdc9f47dfd145ffe599d09,"Senior Manager, Market Analysis - Cross Commodity",,24000,32000,19,SUPERVISOR,Manager,6000.0,300.0
+308d6030096cbb1a9606dd0dfb58c0c3,Chief Financial Officer (Listed Co.),EV SEARCH PTE. LTD.,20000,25000,2,Quantity Surveyor,,5000.0,300.0
+820e73fa7186d6423232f8a71811b564,Cybersecurity Architect - Leading Financial Firm - J12931,PINPOINT ASIA INFOTECH PTE. LTD.,14000,16000,12,Warehouse Assistant,,3500.0,300.0
+7b5893968c79ddba0bfe16e6eaf40710,"Senior Manager, Commodities Trading (Lithium)",DIRECT SEARCH ASIA PTE. LTD.,20000,25000,2,Quantity Surveyor,,5000.0,300.0
+5b8e5ff0dbae68cc3e9c249df76d42c0,"General Manager, Global Commodity Risk Strategy and Intelligence",BEAM SUNTORY ASIA PTE. LTD.,20000,28000,2,Quantity Surveyor,,5000.0,300.0
+35a65b7bab74a509e795a50e3c0a33f8,"Senior Manager, Trading (Metals)",DIRECT SEARCH ASIA PTE. LTD.,20000,25000,2,Quantity Surveyor,,5000.0,300.0
+1b0dc2596ea597442c90fb9a812d5788,Maintenance Engineer,BRUNEL INTERNATIONAL SOUTH EAST ASIA PTE. LTD.,14000,16000,12,Warehouse Assistant,,3500.0,300.0
+b8ac2489213c4b12fb6045088435937b,Solution Architect,TEAMLEASE DIGITAL SINGAPORE PTE. LTD.,14000,17000,12,Warehouse Assistant,,3500.0,300.0
+93b9efdc4eef25e737dd64849948154c,Quantitative Researcher,DRW SINGAPORE PTE. LTD.,18000,21000,19,SUPERVISOR,,4600.0,291.3
+41ab1b898da75c55f933e0dcc43e7f95,Quantitative Trading and Research – Prime Financial Services – Associate,J.P. MORGAN SECURITIES SINGAPORE PRIVATE LIMITED,18000,26000,19,SUPERVISOR,,4600.0,291.3
+df7167b2b8cc21ced9c70e455ee9fe22,Credit - Systematic Market Making - Associate,J.P. MORGAN SECURITIES ASIA PRIVATE LIMITED,18000,26000,19,SUPERVISOR,,4600.0,291.3
+4622baa03aa49f0b7f0e9969a5396949,"Head of AI Transformation - APJC, Generative AI Innovation Center",AMAZON WEB SERVICES SINGAPORE PRIVATE LIMITED,18000,36000,19,SUPERVISOR,,4600.0,291.3
+a465f2f206669c4037fd451e97565e28,26969972 IT Project Senior Tech Lead (Senior Vice President),CITIBANK N.A.,19400,24300,10,HR Executive,Senior,5000.0,288.0
+a7cf7cd412b84250e93c78c86ec4baa1,Financial Consultant,PLACEMENT PROFESSIONALS,13500,17000,15,Beautician,,3500.0,285.7
+8fea552fb39d5ea1637c7da69577386d,"Automated Trading Strategies, Associate",J.P. MORGAN SECURITIES ASIA PRIVATE LIMITED,18000,26000,19,SUPERVISOR,Mid,4800.0,275.0
+969d869c51fdf7c5f15ef49233930418,Corporate Banking Relationship Manager (Greater China/ North Asia),RANDSTAD PTE. LIMITED,13000,15000,15,Beautician,,3500.0,271.4
+e7905337e4c0075a8940d573e8ed2905,Presales Solution Architect (Public Sector),NUWAY CFR PTE. LTD.,13000,15000,12,Warehouse Assistant,,3500.0,271.4
+2edd26e4a16f58ffe021a47b5035b1f0,"Senior software Engineer, Infrastructure",AIRWALLEX (SINGAPORE) PTE. LTD.,13000,25600,12,Warehouse Assistant,,3500.0,271.4
+efd4778c91d032c732ecc8abbe4cca07,"Senior Backend Engineer, Billing",AIRWALLEX (SINGAPORE) PTE. LTD.,13000,25600,12,Warehouse Assistant,,3500.0,271.4
+bc1cef37a0ad4daf805b023c5c8a31c4,Technical Pre-Sales Architect - Telco OSS - Asia-Pacific Region,HEWLETT-PACKARD ASIA PACIFIC PTE. LTD.,13000,17000,12,Warehouse Assistant,,3500.0,271.4
+429cb339762e9d473f37d9b895d60b4e,Senior SAP FICO Consultant (Presales),ERP21 PTE LTD,13000,15000,12,Warehouse Assistant,,3500.0,271.4
+5aa0430c0de0c03017fb6f0855437c70,Presales Solution Architect (ATFM),NUWAY CFR PTE. LTD.,13000,16000,12,Warehouse Assistant,,3500.0,271.4
+077dcdec81fca9d049fd827ca0ecb1dc,"Senior Software Enginee, DevOps",AIRWALLEX (SINGAPORE) PTE. LTD.,13000,25800,12,Warehouse Assistant,,3500.0,271.4
+6ef62385570fb54afdea3b6c6d2a18c0,"Senior Specialist, Product Manager, Provider Management",AMPLIFY HEALTH ASIA PTE. LIMITED,13000,17500,12,Warehouse Assistant,,3500.0,271.4
+92cace7304e1bcb34960485d60e6dcee,Hedge Fund Portfolio Manager - Macro Specialist,MODULAR ASSET MANAGEMENT (SINGAPORE) PTE. LTD.,18000,25000,2,Quantity Surveyor,Lead,4850.0,271.1
+081fd5656715e830377dea9c5c7d9140,Senior Data Engineer,SPH MEDIA LIMITED,17000,22000,19,SUPERVISOR,,4600.0,269.6
+607ff7989c1117f072e3a17519446cc6,GLOBAL INDUSTRY ANALYST – NON-ASIA EMERGING MARKETS FINANCIALS,WELLINGTON MANAGEMENT SINGAPORE PTE. LTD.,18300,22450,2,Quantity Surveyor,,5000.0,266.0
+00eb3df914b4ba50b416ed3f5ee295ae,Projects Associate,NORTON ROSE FULBRIGHT (ASIA) LLP,18300,24700,2,Quantity Surveyor,,5000.0,266.0
+8b8d622e5f4da2daf8973892e1a7dfbe,"Senior Product Manager, Creator Tools",ELECTRONIC ARTS ASIA PACIFIC PTE LTD,18000,23000,10,HR Executive,Senior,5000.0,260.0
+d797508ff4826ded663c3c3dd15d2b91,Solutions Manager,ANTER RECRUITMENT PTE. LTD.,18000,23000,10,HR Executive,Senior,5000.0,260.0
+8d96ac512facffdc99f1341d23557ef8,Derivatives Trader,WOODSIDE ENERGY TRADING SINGAPORE PTE. LTD.,18000,28000,2,Quantity Surveyor,,5000.0,260.0
+56f5a2f0e899fb5f167216f84721f737,Head of Corporate Finance,CYRA RENEWABLES PTE. LTD.,18000,25000,2,Quantity Surveyor,,5000.0,260.0
+9d6c60dbc834c32b58fc6a59a7839809,Legal Consultant,AXIOM GLOBAL SOLUTIONS PTE. LTD.,18000,25000,2,Quantity Surveyor,,5000.0,260.0
+3963d839a47c71b54ee8e3604983cb90,"Commercial & Investment Bank – Currencies Emerging Markets Trading, Vice President","JPMORGAN CHASE BANK, N.A.",18000,28000,2,Quantity Surveyor,,5000.0,260.0
+7b0be03a36bfc5b43cdf0df91cc88983,Relationship Manager-Corporate Banking/Investment Banking Division,KEB HANA BANK,18000,23000,2,Quantity Surveyor,,5000.0,260.0
+8ff792a6efdf6e4fe0788b677391efd9,"Currencies Emerging Markets Trading, e-FX Trading - Associate","JPMORGAN CHASE BANK, N.A.",18000,26000,15,Beautician,Mid,5000.0,260.0
+fbbf3c1c68a92b743a6e664058b52e5b,Senior Cyber Assurance Analyst,MICHAEL PAGE INTERNATIONAL PTE LTD,12500,16667,12,Warehouse Assistant,,3500.0,257.1
+1d028473984c0e5f9276e65a20a225fa,Consultant - Cloud Architect,OLLION PTE. LTD.,12500,14500,12,Warehouse Assistant,,3500.0,257.1
+6b7a92db546ed19a217b0fc3c36bef87,Game Developer/Software Engineer (12-months contract),OPTIMUM SOLUTIONS (SINGAPORE) PTE LTD,12500,14000,12,Warehouse Assistant,,3500.0,257.1
+64a3c6efaceb54f98626341dc21540c6,"Senior Implementation Specialist, Asia (Professional Services)",COMMVAULT SYSTEMS (SINGAPORE) PRIVATE LIMITED,12500,16500,12,Warehouse Assistant,,3500.0,257.1
+af2dfa2920002f21a4508f3be4efb699,Senior Software Engineer - Java,,12400,15400,12,Warehouse Assistant,,3500.0,254.3
+e9d176449edd756acfc4244a2f696b48,Senior Software Engineer - Japanese Speaking,,12400,15417,12,Warehouse Assistant,,3500.0,254.3
+3278bbc425ead076c0596673f2f7c0f4,Java Developer,PEOPLE PROFILERS (SERVICES) PTE. LTD.,17000,22000,12,Warehouse Assistant,Mid,4800.0,254.2
+0db2181d2a001a1eeb0b114058dd1b7e,Senior Lead Algorithm Engineer,GO-JEK SINGAPORE PTE. LTD.,16208,30101,19,SUPERVISOR,,4600.0,252.3
+32b5b2610eca09cee423f79eafcd54ad,"Network Engineer, Foundation and Support (Edge/Backbone Infrastructure Design)",FACEBOOK SINGAPORE PTE. LTD.,12250,18670,12,Warehouse Assistant,,3500.0,250.0
+ed8e1ad7a59de2bfd2f26ccbb1354b0b,AI Engineer (ML Systems & Infrastructure),SWAPETECH PTE. LTD.,16000,25000,19,SUPERVISOR,,4600.0,247.8
+ae9676783b99b052efd5ff07f9766b9b,Fuel Oil Broker,TRADITION SINGAPORE PTE. LTD.,12000,15000,15,Beautician,,3500.0,242.9
+85377e1e00bd47ed634d4c9d3852e23a,Senior Java Developer,NICOLL CURTIN TECHNOLOGY PTE. LTD.,12000,15000,12,Warehouse Assistant,,3500.0,242.9
+5da03d8c96b3903e8c38c7b20285da55,Platform Engineer (VMware SME),IKAS INTERNATIONAL (ASIA) PTE. LTD.,12000,16000,12,Warehouse Assistant,,3500.0,242.9
+21bccc071e151927f0b6d0f01e1d8b9b,Senior Software Engineer,8X8 INTERNATIONAL PTE. LTD.,12000,16000,12,Warehouse Assistant,,3500.0,242.9
+d490a0ac124947ce095a9f5cdd75eec5,"Senior Software Engineer, Frontend",AIRWALLEX (SINGAPORE) PTE. LTD.,12000,19000,12,Warehouse Assistant,,3500.0,242.9
+0de680e447ed54c8e9c6cbe670b80b5a,Partner Engineer -Gaming,MORGAN MCKINLEY PTE. LTD.,12000,14000,12,Warehouse Assistant,,3500.0,242.9
+f8d879d89c4fa38a4de2b241e59792d7,"VP, Senior Network Engineer (WD82596)",DBS BANK LTD.,12000,17000,12,Warehouse Assistant,,3500.0,242.9
+0ababebd3c6df8dd16c67301c4ca75c8,Java Developer (Banking Sector),NTT SINGAPORE PTE. LTD.,12000,15000,12,Warehouse Assistant,,3500.0,242.9
+b4c119163f9a841943d372bf56aa24be,Senior Triple A (Temenos) Developer,TRINITY CONSULTING SERVICES PTE. LTD.,12000,16000,12,Warehouse Assistant,,3500.0,242.9
+cc80d920f25e6a144335f480b3efc177,Embedded Computer Vision Engineer (Edge Inference),RAPSODO PTE. LTD.,12000,21000,12,Warehouse Assistant,,3500.0,242.9
+8e36c1051a642a6ac55e999b0935eb7c,Cybersecurity Governance Specialist (GRC) (JD#11143),SCIENTE INTERNATIONAL PTE. LTD.,12000,14000,12,Warehouse Assistant,,3500.0,242.9
+cd0c5adf82fb4bec7544cc4dbee334aa,Salesforce Architect,JONDAVIDSON PTE. LTD.,12000,15000,12,Warehouse Assistant,,3500.0,242.9
+29b052655bb19590d6494d358b472c91,T24 Consultant,LYNEER CORP (SINGAPORE) PTE. LTD.,12000,15000,12,Warehouse Assistant,,3500.0,242.9
+e11347456db8af11c375116b0704639e,ServiceNow Solution Architect,CADENZA SOLUTIONS PTE. LTD.,12000,15000,12,Warehouse Assistant,,3500.0,242.9
+5cfd56f3b63442d03bafc3fab4f12edf,"Silverdale Fixed Income Funds, Singapore: Business Development Role",,12000,18000,15,Beautician,,3500.0,242.9
+ab99c1adfa17fe093f33161003a0e08c,Technical Subject Matter Expert (Salesforce CRM – Financial Services Cloud),Capgemini Singapore  PTE. LTD.,12000,16000,12,Warehouse Assistant,,3500.0,242.9
+bbaef17a042914af009f193543ef6556,IT Cyber Governance Specialist (MNC / High Bonuses),CAREERALLY PTE. LTD.,12000,18000,12,Warehouse Assistant,,3500.0,242.9
+b503459ad6f374b67fc4a0c4996a654d,Messaging / Collaboration Architect (JD#11134),SCIENTE INTERNATIONAL PTE. LTD.,12000,14000,12,Warehouse Assistant,,3500.0,242.9
+79cbc0e17be81a96f90459f37e6f0a8e,Triple'A Core Developer,MARVES CONSULTING PTE. LTD.,12000,15000,12,Warehouse Assistant,,3500.0,242.9
+7a84bd1866467404659276d07120e147,Staff Forward Deployed Engineer,DATABRICKS ASIAPAC UNIFIED ANALYTICS PTE. LTD.,17050,25567,19,SUPERVISOR,Senior,5000.0,241.0
+275015c23b45bb59064a2692b2ed1bd8,Senior Finance Manager – Family Office,BEATHCHAPMAN (PTE. LTD.),17000,20000,2,Quantity Surveyor,,5000.0,240.0
+fd4e6aa05efca3b5785ed367ab9f2f89,Senior Data Scientist,SPH MEDIA LIMITED,17000,22000,19,SUPERVISOR,Senior,5000.0,240.0
+e81cb994fe642e548d68b2fac937ef90,Wealth Management Relationship Manager,CMBI (SINGAPORE) PTE. LIMITED,17000,22000,2,Quantity Surveyor,,5000.0,240.0
+3cd2042d7402424fc90d2f0470a6058f,"26964411 Senior Vice President, Card Product Management",CITIBANK SINGAPORE LIMITED,16900,25400,10,HR Executive,Senior,5000.0,238.0
+baa112730084a3633d5803b489e6d5bc,"Data Scientist, Product Analytics",FACEBOOK SINGAPORE PTE. LTD.,16830,25250,19,SUPERVISOR,Senior,5000.0,236.6
+d238da783bec60d61371bf7d953099f1,Principle AI Engineer,BASIL TECHNOLOGIES PTE. LTD.,20000,20700,19,SUPERVISOR,Lead,6000.0,233.3
+63a717d8105ea8876c2eee86fbfdf743,Head of Private Wealth Advisory (HNW Platform Leadership),REVUP CONSULTING PTE. LTD.,16600,21600,2,Quantity Surveyor,,5000.0,232.0
+9146b2478d36f67f67b5b720e4a2b693,Senior Manager|FX Sales,HUDSON RPO (SINGAPORE) PTE. LTD.,16500,22250,2,Quantity Surveyor,,5000.0,230.0
+78740d027b6d4161afd37da2d9604d29,Private Wealth Director,NODEFLAIR PTE. LTD.,16500,16500,2,Quantity Surveyor,,5000.0,230.0
+f6349f43af9fc4010071a8ef1ac7769b,Head of Compliance,ZURICH INSURANCE COMPANY LTD (Singapore Branch),16000,21000,2,Quantity Surveyor,Lead,4850.0,229.9
+c0ca37af6e3b5c5d4b856ddb7d1b26fe,Finance Business Partner,FASTSTREAM RECRUITMENT PTE. LTD.,16000,18000,2,Quantity Surveyor,Lead,4850.0,229.9
+9b3d286843fe03697309a113667bb4ba,Senior Customer Success Engineer,GITLAB SINGAPORE PTE. LTD.,11500,17250,12,Warehouse Assistant,,3500.0,228.6
+ede232c442b86e168d9bda9e6e90f2df,R287207 Software Senior Principal Engineer,DELL GLOBAL B.V. (Singapore Branch),16425,32850,10,HR Executive,Senior,5000.0,228.5
+2c06a45d74a6777df114e705914bb90e,"Senior Corporate Counsel, AWS Legal",AMAZON ASIA-PACIFIC RESOURCES PRIVATE LIMITED,22000,36000,2,Quantity Surveyor,Senior,6700.0,228.4
+a983b962b2db8e5b52f46b79d132ecb2,Fraud Operations Manager,STRIPE PAYMENTS SINGAPORE PTE. LTD.,18000,22000,2,Quantity Surveyor,Manager,5500.0,227.3
+b9f701046f6d357d3de1facbbb18d4e0,Principal AI Engineer,ACHIEVE CAREER CONSULTANT PTE LTD,15000,20000,19,SUPERVISOR,,4600.0,226.1
+baa8a66e8285ede25fc6e27638bc55b1,VP Quant (Model Validation / Cross Asset Classes / FI),LICO RESOURCES PTE. LTD.,15000,17000,19,SUPERVISOR,,4600.0,226.1
+40876b7e919a995b5a598eef9d88783a,Geospatial Data Science Manager***,ETHOS SEARCH ASSOCIATES PTE. LTD.,15000,18000,19,SUPERVISOR,,4600.0,226.1
+8495760b7dc2b2ed69f959f227af7b21,Enterprise Data Architect - Banking,MENRVA PTE. LTD.,15000,18000,19,SUPERVISOR,,4600.0,226.1
+bf6162b638fc6c11f0e413d67c80a3c3,Solutions Architect (Enterprise AI),ACCESS PEOPLE (SINGAPORE) PTE. LTD.,15000,22000,19,SUPERVISOR,,4600.0,226.1
+6fef39b1bdef5b7d087a304bf8bb2f52,Quantitative Researcher,ALC TECHNOLOGIES SG PTE. LTD.,15000,20000,19,SUPERVISOR,,4600.0,226.1
+7cf5050265bd2a177f0fb8131e1a710a,Senior AI Developer,AECOM SINGAPORE PTE. LTD.,15000,20000,19,SUPERVISOR,,4600.0,226.1
+de533985c34628940028b2f9dca836d5,Project Manager ( Operations & Sustainment) – Senior Consultant,VINOVA PTE. LTD.,11300,12000,12,Warehouse Assistant,,3500.0,222.9
+2784ca213cdd8550e3d8b67c206f7f58,Senior Backend Engineer - AML Engine Orchestration,BYTEDANCE PTE. LTD.,11250,22500,12,Warehouse Assistant,,3500.0,221.4
+40d354f02eb195dafc030f8ae2193d4e,"VP, EUI Desktop & VDI Engineer, Technology Group(16982)",GIC PRIVATE LIMITED,11250,22500,12,Warehouse Assistant,,3500.0,221.4
+fc0220112f91df66639bf3470df72006,Financial Adviser (Insurance),SYNERGY FINANCIAL ADVISERS LTD.,11250,22500,15,Beautician,,3500.0,221.4
+4958e17bb35423d1e8c341f9b70dcbbf,"Associate Director, Trust",EQUIOM TRUST SERVICES PTE. LTD.,16000,20000,2,Quantity Surveyor,,5000.0,220.0
+86cfde78f7362243b738f2d2822ee123,"Senior Manager, People Science",GRABTAXI HOLDINGS PTE. LTD.,16000,24000,19,SUPERVISOR,Senior,5000.0,220.0
+dbb79b423c0e4c474a22c3a420348a58,Finance Director - Business Partnering & Planning,RANDSTAD PTE. LIMITED,16000,21000,2,Quantity Surveyor,,5000.0,220.0
+6995eeac3f230433ee985eaf5c64a1b5,"Portfolio Manager, Derivatives (AIA Investment Management)",AIA INVESTMENT MANAGEMENT PRIVATE LIMITED,16000,20000,2,Quantity Surveyor,,5000.0,220.0
+91c5b8f87994b509fb0608acbd82ed8a,Associate - Relationship Manager - International Wealth Management,NOMURA SINGAPORE LIMITED,16000,22000,15,Beautician,Mid,5000.0,220.0
+bcce0992ecf311156b4cddcd50216c94,Associate Portfolio Manager,POLYMER CAPITAL SINGAPORE PTE. LTD.,16000,22000,2,Quantity Surveyor,,5000.0,220.0
+0a2316da5e6f6be245a39c7834f1145c,R0441255 APAC Financing – Associate,DEUTSCHE BANK AKTIENGESELLSCHAFT,16000,22000,15,Beautician,Mid,5000.0,220.0
+020eb06649e6f30f486ba9bb6cabaf80,Director of Investor Relations(VC-backed Healthcare Automation Tech portfolio),AMBITION GROUP SINGAPORE PTE. LTD.,16000,22000,2,Quantity Surveyor,,5000.0,220.0
+19e583cb693e21b6a9f020448730a913,SAP Finance & RE-FX Consultant,AVENSYS CONSULTING PTE. LTD.,16000,19500,10,HR Executive,Senior,5000.0,220.0
+17c8767a1e6e4d7ea4d596409e532e31,GENERAL MANAGER - CORPORATE PLANNING,TVS MOTOR COMPANY LIMITED Singapore Branch,16000,20000,2,Quantity Surveyor,,5000.0,220.0
+0efddb582156c47c9cca9d55534b0d22,EH13426516 - Global Finance Director (European Manufacturing MNC),ROBERT HALF INTERNATIONAL PTE. LTD.,16000,20000,2,Quantity Surveyor,,5000.0,220.0
+0d338f65f67be6141f04afc2451a704a,Trader,TRAFIGURA PTE LTD,16000,22500,15,Beautician,Mid,5000.0,220.0
+99ca41dd6c32683a67bb6d0d1e71ce52,Senior Managing Consultant SAP AI,IBM SINGAPORE PTE LTD,16000,23000,19,SUPERVISOR,Senior,5000.0,220.0
+2e53ea854d910cea4ad1706af99c7d35,Associate/Senior Associate - Banking & Finance/Project Finance,MALLESONS LLP,16000,26700,2,Quantity Surveyor,,5000.0,220.0
+43548f6b655307d3549d73a66c9270cd,"Associate, Corporate Risk Solutions",THE HONGKONG AND SHANGHAI BANKING CORPORATION LIMITED,16000,25000,15,Beautician,Mid,5000.0,220.0
+caf95ec0623c448439a21101ff43bb86,FP&A Lead (Senior Manager),THE EDGE PARTNERSHIP HOLDINGS PTE. LTD.,16000,18500,2,Quantity Surveyor,,5000.0,220.0
+df392cd2aacceafea9e06353ce320bbe,Principal AI Engineer (6 months contract),ESOL PTE. LTD.,19000,21000,19,SUPERVISOR,Lead,6000.0,216.7
+358265df0dad29167480adcdc41692a2,Quantitative Researcher (Commodities),BALYASNY ASSET MANAGEMENT (SINGAPORE) PTE. LTD.,12000,16000,19,SUPERVISOR,Junior,3800.0,215.8
+c6570809407ecf149c681c81ebd42436,Sr. Forward Deployed Engineer,DATABRICKS ASIAPAC UNIFIED ANALYTICS PTE. LTD.,14500,21750,19,SUPERVISOR,,4600.0,215.2
+8cb96e847fe9fcffb01ec01ceb2dff4f,Analyst - Group Strategy & Investments (Real Estate),TRI-CAP CONSULTING PTE. LTD.,11000,12500,15,Beautician,,3500.0,214.3
+9c4401ab24f4db825e8df59138523d03,Visiting Professor in Wireless Communications and Signal Processing,NANYANG TECHNOLOGICAL UNIVERSITY,11000,20000,12,Warehouse Assistant,,3500.0,214.3
+e0ac35c1f8264820dafe1d99be33a007,Principal Systems Development Engineer,DELL GLOBAL B.V. (Singapore Branch),11000,15000,12,Warehouse Assistant,,3500.0,214.3
+340ef57df3ab9ed92498df39f9643e98,"Senior Product Manager, Analytics & AI",DHL EXPRESS (SINGAPORE) PTE. LTD.,11000,14000,12,Warehouse Assistant,,3500.0,214.3
+2ca1cd4f01621c816f0ad3c0fc4a58af,Legal Counsel Opportunity,LAWYERS ON DEMAND (SINGAPORE) PTE. LTD.,11000,22000,15,Beautician,,3500.0,214.3
+14a8ea6a225635eea6acb5298c50f234,Expert Backend Engineer (Vespa Search Engine) - SRA Team,SHOPEE IP SINGAPORE PRIVATE LIMITED,11000,13000,12,Warehouse Assistant,,3500.0,214.3
+a6588023c1b17d8c2f32216ac80d63e5,Cybersecurity Architect (Azure),EVOLUTION RECRUITMENT SOLUTIONS PTE. LTD.,11000,15000,12,Warehouse Assistant,,3500.0,214.3
+7099ab774e2ecc1d2bb5e7fadd417dcc,Staff Software Engineer - Platform & Applications,,11000,19000,12,Warehouse Assistant,,3500.0,214.3
+8bfecb29d445678cd371ebcecbfdea25,Messaging & Collaboration Cloud Architect,SAGL CONSULTING PTE. LTD.,11000,15000,12,Warehouse Assistant,,3500.0,214.3
+5d5976c5981f016556b2ca44a22bef7a,Software Developer,ABS CONNECT PTE. LTD.,11000,12500,12,Warehouse Assistant,,3500.0,214.3
+593b9c4be71a3672271d26ae293848c0,Consultant Opportunity,LOD CONSULTING (SINGAPORE) PTE. LTD.,11000,22000,15,Beautician,,3500.0,214.3
+8a43bf5d8418b3d85387216b604af131,SAP ABAP Consultant | Contract,MANPOWER STAFFING SERVICES (SINGAPORE) PTE LTD,11000,13000,12,Warehouse Assistant,,3500.0,214.3
+7bb47c6542961dbc326ec6d380c9b1b1,SOLUTION ARCHITECT,APAR TECHNOLOGIES PTE. LTD.,11000,12000,12,Warehouse Assistant,,3500.0,214.3
+3dfbded16bb46022a53d2e7c875347ae,Senior Architectural Associate,P+A PROJECTS PTE. LTD.,11000,14000,12,Warehouse Assistant,,3500.0,214.3
+6f3597f12589a0cf4360a4eb167601b1,Senior Software Consultant,LYNEER CORP (SINGAPORE) PTE. LTD.,11000,14000,12,Warehouse Assistant,,3500.0,214.3
+035769ce24d61059dedddcaa2966a1bc,Senior Architect,P+A PROJECTS PTE. LTD.,11000,13000,12,Warehouse Assistant,,3500.0,214.3
+115126400c48feff76f723d08286f550,Senior Rust Engineer,NODEFLAIR PTE. LTD.,11000,18000,12,Warehouse Assistant,,3500.0,214.3
+e4f6472978c19d4a557d5a9545d78222,Senior LPG Trader,CONSULT SELECTION PTE LTD,21000,26000,2,Quantity Surveyor,Senior,6700.0,213.4
+af8a67349a12af1951f77e02635d9e3d,AI Training Infras Engineer,FRAGMENT WORKS PTE. LTD.,15000,18000,19,SUPERVISOR,Mid,4800.0,212.5
+b04e58ebc891f783746f77635203dda9,Forward Deployer AI Engineer,ACCESS PEOPLE (SINGAPORE) PTE. LTD.,15000,22000,19,SUPERVISOR,Mid,4800.0,212.5
+2a64a691b58c9f5132c9fe3d9038599a,Account Manager,AMAZON WEB SERVICES SINGAPORE PRIVATE LIMITED,15000,23000,16,Music Teacher,Mid,4800.0,212.5
+7cc5967273987160a41bea847fc68fea,Structured Product Specialist / Trader,THE HONGKONG AND SHANGHAI BANKING CORPORATION LIMITED,15000,22500,12,Warehouse Assistant,Mid,4800.0,212.5
+094425b3eff2d57ebcddde29671b32eb,Quantitative Trader,ALC TECHNOLOGIES SG PTE. LTD.,15000,20000,19,SUPERVISOR,Mid,4800.0,212.5
+08bc2a8d199e388a2cd5984258d9e173,"Head of Tax, Singapore",DIGITAL EDGE (SINGAPORE) PTE. LTD.,15000,25000,2,Quantity Surveyor,Lead,4850.0,209.3
+5f6817e1fcc52bac3a57fea889479697,Finance Controller / CFO (Construction or Manufacturing | SME Experience Preferred),KINGSFORCE MANAGEMENT SERVICES PTE LTD,15000,20000,2,Quantity Surveyor,Lead,4850.0,209.3
+6b95408bf0d58c8f2b3361e639fa772c,"Head, Regional Strategy, India Region",CHARTERHOUSE PTE. LTD.,15000,18000,2,Quantity Surveyor,Lead,4850.0,209.3
+2af3cd6a7e47dd502baefec1c45b382b,Global Tax Lead,THE TALENT PEOPLE PTE. LTD.,15000,24000,2,Quantity Surveyor,Lead,4850.0,209.3
+2bb92104cd2dcbb53bccd8ef7764adf0,GM / Head of Payment,INSTAGE TECHNOLOGY PTE. LTD.,15000,25000,2,Quantity Surveyor,Lead,4850.0,209.3
+70e2e7ac8fdda7c4ee2ebefbbfab2f7c,Head of Compliance (FinTech),MICHAEL PAGE INTERNATIONAL PTE LTD,15000,18000,2,Quantity Surveyor,Lead,4850.0,209.3
+b670a6aab29677433608c13470f47a3f,Murex Data Track Lead-12m months contract,ESOL PTE. LTD.,14000,16000,19,SUPERVISOR,,4600.0,204.3
+a9bc55f92348c15d118da99875fb3bf5,"Data Platform and Engineering Manager, SEAA",CHANEL ASIA PACIFIC PTE LIMITED,14000,17000,19,SUPERVISOR,,4600.0,204.3
+ca55056d660c13957477553cdd3e6355,Datamart Architect (Murex MX.3)-12 months contract,ESOL PTE. LTD.,14000,16000,19,SUPERVISOR,,4600.0,204.3
+6d60d9454cc395ca27f2e17d3fa7360b,Murex Datamart Reporting BA (BO & Finance)-12 months contract,ESOL PTE. LTD.,14000,16000,19,SUPERVISOR,,4600.0,204.3
+332a56909891fbe4243b1d31dda00593,Staff DevOps Engineer,ILLUMINA INTERNATIONAL GENOMICS PTE. LTD.,10600,13500,12,Warehouse Assistant,,3500.0,202.9
+d736fdb2538537873c98e4991ef26655,APJ RE Portfolio & Capital Programs Manager (PMO),HP SINGAPORE (PRIVATE) LIMITED,16649,22198,2,Quantity Surveyor,Manager,5500.0,202.7
+10dbe966870045a6c4ca8e0a1c9697d7,VP / SVP – Syndicated & Structured Finance (Regional Coverage),REVUP CONSULTING PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+d13e32fd28f40713d223e63bc1996edb,Tax Director,EXECUTIVE COMPASS PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+de690d259ae38a1e187976c4c0023722,Asia Flow Credit Trader,BNP PARIBAS,15000,29000,15,Beautician,Mid,5000.0,200.0
+f40bd04a07665887b4b19d65a08f3775,INVESTMENT STRATEGIST,"BDO UNIBANK, INC. (Singapore Branch)",15000,20000,2,Quantity Surveyor,,5000.0,200.0
+ff487180dc0fb2c63b6ef8552870dc1e,IT Governance & Risk Manager (High Bonuses / East),CAREERALLY PTE. LTD.,15000,18000,2,Quantity Surveyor,,5000.0,200.0
+582ac11c3b218bf454f41cd82f09c29e,Research Analyst – US & Europe Equities,LION GLOBAL INVESTORS LIMITED,15000,28000,2,Quantity Surveyor,,5000.0,200.0
+6c9d177a5fcb6e07184661af7ca803c4,Vice President / Senior Vice President – Corporate Treasury Sales,,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+6861d0ecdff2322b8f2c61f24b0d9df0,Quantitative Trading and Research – Prime Financial Services – Vice President,J.P. MORGAN SECURITIES SINGAPORE PRIVATE LIMITED,18000,28000,19,SUPERVISOR,Lead,6000.0,200.0
+dd4923ed8275a3b2e2895c30b78bfe26,Audit Senior Manager/Director,DELOITTE & TOUCHE LLP,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+b5380c4e3a281da835c2f6f670cf3c89,"Technical Program Manager, Data, App Ads - Singapore",GOOGLE ASIA PACIFIC PTE. LTD.,15000,30000,19,SUPERVISOR,Senior,5000.0,200.0
+36137e3a0085e65aefc5d3fd2bce760f,"VP, Financial Services Tax Manager (In-house)",THE EDGE PARTNERSHIP HOLDINGS PTE. LTD.,15000,18000,2,Quantity Surveyor,,5000.0,200.0
+b7d2507a84b7820b778c679540d61ca7,Senior Principal Machine Learning Engineer,GRABTAXI HOLDINGS PTE. LTD.,15000,22500,19,SUPERVISOR,Senior,5000.0,200.0
+bd7764db489df6b275d12a707c022e8a,Legal Counsel - PERE,TRI-CAP CONSULTING PTE. LTD.,15000,17000,2,Quantity Surveyor,,5000.0,200.0
+4dd8f622f79a0586b5adb98b3e0f0ebb,Senior Technical Lead & Solution Architect,INTELLECT DESIGN ARENA PTE. LTD.,15000,19166,10,HR Executive,Senior,5000.0,200.0
+fc30c1c38ff0c8a1d1e313e52f46b292,Private Banking Team Head,"BDO UNIBANK, INC. (Singapore Branch)",15000,23000,2,Quantity Surveyor,,5000.0,200.0
+b73bd10d834165910084d062cfd8a344,"Equity Research Analyst, Buy-Side Firm",MICHAEL PAGE INTERNATIONAL PTE LTD,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+d49be2530f5969d99cf765cc14bd6fa0,"Senior Product Manager, Macro",BALYASNY ASSET MANAGEMENT (SINGAPORE) PTE. LTD.,15000,21000,10,HR Executive,Senior,5000.0,200.0
+80015b55bc7b50f1113d9e5698213050,Integration Infrastructure Consultant #dl,HAYS SPECIALIST RECRUITMENT PTE. LTD.,10500,13500,12,Warehouse Assistant,,3500.0,200.0
+1975da3210d4169ffaea356f88279db9,Lead Investment Data Management,INVARTIS CONSULTING PTE. LTD.,18000,21000,19,SUPERVISOR,Lead,6000.0,200.0
+32f330803560ac3a82587844033713cc,Relationship Manager (Private Wealth Management),TALENTVIS SINGAPORE PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+1c4424967f1b6544b14c720c4c8c7702,Private Wealth Advisor,PLACEMENT PROFESSIONALS,15000,18000,2,Quantity Surveyor,,5000.0,200.0
+c49f4c210c0d4e9e5927e1d18b5e2430,Broker,GINGA GLOBAL MARKETS PTE. LTD.,15000,19000,2,Quantity Surveyor,,5000.0,200.0
+b4ccdd675e3bb93808ab2a3cac5595f5,Investment Counsellor (Private Bank),AMBITION GROUP SINGAPORE PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+3dc8ef9c1546e11bfcf66522e120ea04,Technology Risk Manager - IT Controls (High Bonuses / East),CAREERALLY PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+53cab5878159e9d2a8b635fca4cd656e,"VP, Trade Compliance (High-Tech Manufacturing)",MICHAEL PAGE INTERNATIONAL PTE LTD,15000,18000,2,Quantity Surveyor,,5000.0,200.0
+92703a6e3f04057b51f91586222b1fcf,Treasury Manager | Quantitative Hedge Fund,DADACONSULTANTS PTE. LTD.,15000,25000,2,Quantity Surveyor,,5000.0,200.0
+a887c8c0d9bd1e68a55abce689a7768b,"Associate Director/Director, Investment Banking",SOOCHOW SINGAPORE CAPITAL MARKETS (ASIA) PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+af0a0d762f06c2d9c0b0db69165bcfae,CFO,PARACRINE THERAPEUTICS PTE. LTD.,15000,20000,2,Quantity Surveyor,,5000.0,200.0
+221315e45b7afb9667431c53429a1c0c,"Senior Associate, Group Investments",ESR SG MANAGEMENT PTE. LTD.,20000,25000,2,Quantity Surveyor,Senior,6700.0,198.5
+09369e26eddbff01f0ea448c562f97ac,"Algorithm Engineer (Platform Governance), Global E-Commerce",BYTEDANCE PTE. LTD.,11250,22500,19,SUPERVISOR,Junior,3800.0,196.1
+6f827cd1624a90a3c0a4e2381fd2ad47,"Client Analytics Partner Lead, APAC",STACKADAPT (SINGAPORE) PTE. LTD.,13500,17500,19,SUPERVISOR,,4600.0,193.5
+d1f6072eee4ae9a4d25f27fadc6be20a,Software Engineer (Payment Network) - Global Payment - Singapore,PIPO RESOURCE (SG) PTE. LTD.,14000,26000,12,Warehouse Assistant,Mid,4800.0,191.7
+cd7a5b06fd73b0194242a684b3a4ba5a,Database Platform Engineer,UNITECH CONSULTING PTE. LTD.,10200,10700,12,Warehouse Assistant,,3500.0,191.4
+9f44256b379f2de077d6ad378ba87f84,Risk Management Manager,"SUMITOMO MITSUI TRUST BANK, LIMITED Singapore Branch",16000,20000,2,Quantity Surveyor,Manager,5500.0,190.9
+08b61ec72f76dcd1935314019218faa3,R0422631 IB – Institutional Client Group - Insurance Sales Specialist – Associate,DEUTSCHE BANK AKTIENGESELLSCHAFT,16000,22000,3,Project Engineer,,5500.0,190.9
+7f1c67eb145839eeb8b24c97262ceac8,Sr. Forward Deployed Engineer,DATABRICKS ASIAPAC UNIFIED ANALYTICS PTE. LTD.,14500,21750,19,SUPERVISOR,Senior,5000.0,190.0
+f82728f9e887e3b3d458d401a09611b3,Associate Recruiting Manager,LATHAM & WATKINS LLP,13000,16000,14,Admin Assistant,Manager,4500.0,188.9
+0307bf94a0c71c21fcc19471ea60785d,Temenos Triple A Developer,VISEO ASIA PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+5fb18a8bcb2e2185e769da7fead9035f,Senior Software Engineer,ALLIUM LABS PRIVATE LIMITED,10000,20000,12,Warehouse Assistant,,3500.0,185.7
+7f454f70a03d5b117118c82937bd50a0,AAA Techno-Functional Specialist,IKAS INTERNATIONAL (ASIA) PTE. LTD.,10000,12500,12,Warehouse Assistant,,3500.0,185.7
+454fe4667a84eb6f6032cb709bb7024d,Application Developer,SAKSOFT PTE LIMITED,10000,11500,12,Warehouse Assistant,,3500.0,185.7
+0c70f8ddc5db04a01d245df9e1c3ac4c,"DevOps Engineer (MNC, established company with millions of users, cutting-edge technical environment)",,10000,16000,12,Warehouse Assistant,,3500.0,185.7
+268f7b444c0ebd2cc9fd03a8241fd04c,Senior Cybersecurity Engineer,MOURI TECH PTE. LTD.,10000,13200,12,Warehouse Assistant,,3500.0,185.7
+b1e068d35ecbe6555aefb6024a1e7b09,AI Solution Architect (robotics and CV),RANDSTAD PTE. LIMITED,10000,15000,12,Warehouse Assistant,,3500.0,185.7
+02b52bcde69ee1284797052b65397f37,Microsoft 365 Engineer,IKAS INTERNATIONAL (ASIA) PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+db2aadc4f76ea09b603c972c86a3d0fb,Production Support Analyst (Banking Sector),NTT SINGAPORE PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+a428040e6daa4aac79e42a54a9366487,"Senior Distributed Platform Engineer (up to $15,000 base + Bonus and more)",TYSON JAY MANAGEMENT PTE. LTD.,10000,15000,12,Warehouse Assistant,,3500.0,185.7
+ce979f2e82115620bc9eee5e6ffd0ce1,Threat Intel Analyst,JJ CONSULTING SERVICES,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+ba784ea218d026204086ca5fd9b33695,Legal Counsel,HKDAG (SINGAPORE) PTE. LTD.,10000,11000,15,Beautician,,3500.0,185.7
+20607310eaabe9842cffd207b6afbdd9,Incident & Problem Management (ITSM),RECRUIT EXPRESS PTE LTD,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+314b4aa1dec86aa67af05009773d9e1d,M&A Advisor,FEY DAY PTE. LTD.,10000,17000,15,Beautician,,3500.0,185.7
+f7d1644f39f751ba8f1b08ad05352391,DevSecOps Engineer,TRINITY CONSULTING SERVICES PTE. LTD.,10000,11500,12,Warehouse Assistant,,3500.0,185.7
+ee5183556e4a5325af6f585095012745,Private Banking Relationship Manager,UPPER SPRING CONSULTING PTE. LTD.,10000,20000,15,Beautician,,3500.0,185.7
+e1965bbcc002ea825c20174bbf5c17f3,Staff Software Engineer,RUCKUS NETWORKS SINGAPORE PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+5874b4bc709caaeac4a39c9541d15dda,"Technology Delivery Manager, Asset Management (1-year renewable contract)",EVOLUTION RECRUITMENT SOLUTIONS PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+a0d686a175e17e7d0184f94fbd541774,"Senior System Analyst (Java, SWIFT Payment) - Permanent",GMP TECHNOLOGIES (S) PTE LTD,10000,11500,12,Warehouse Assistant,,3500.0,185.7
+cb08a3cecc026b63b8741ef57abb98e1,T24 Developer (Securities & Corporate Actions) Contract,ICON OUTSOURCING,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+d0ff63823ddf6dd0b2644ee03344a0f2,Senior Java Developer,LYNEER CORP (SINGAPORE) PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+a82768d55fe0b59ece3097454e9b4c8d,Site Reliability Engineer - Kubernetes - Microservices - Immediate,TRUST RECRUIT PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+84e9b06285f73e557cb412f10d2f11fd,Senior Software Engineer (Risk Confidence & Risk Authority),PERSOL SINGAPORE PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+941315566487cdc63a1c2fffea2c0ef7,"Academic Staff in Operational Technology, Cybersecurity - 3360",CTES CONSULTING PTE. LTD.,10000,11000,12,Warehouse Assistant,,3500.0,185.7
+0d4ca73cca9efd7ba03c007a1467839b,Software Engineer (Y)***,ETHOS SEARCH ASSOCIATES PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+ae3a624bf7b290bcf7fa5a5c5f5b3d2e,Product Manager,ALLIED TELESIS INTERNATIONAL (ASIA) PTE. LTD.,10000,12500,12,Warehouse Assistant,,3500.0,185.7
+f41de8f4e4f29e5574ce70c326478eec,Senior Product Manager,IKAS INTERNATIONAL (ASIA) PTE. LTD.,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+f543a08d1523e925d4dc1ded20820d48,Senior Product Manager (Retail),EVOLUTION RECRUITMENT SOLUTIONS PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+fabf71b132474fef91963d817b18f7ce,Solution Architect (Government Sector),NTT SINGAPORE PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+ff2bdb96863b6f31ee7c1472e78aae0d,Integration Architect - MuleSoft-12 months contract,ESOL PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+7013242e051b14983e73593e2039617f,Legal Counsel,HASHKEY CAPITAL SINGAPORE PTE. LTD.,10000,11000,15,Beautician,,3500.0,185.7
+2f67a46a54de06ae29fea38df3728bd5,Cloud Expert,HAYS SPECIALIST RECRUITMENT PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+73ff6707166cd8bdcaadd0dd29a0bac7,Technical Program Manager,TRAVELOKA TECHNOLOGY PTE. LTD.,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+16d3198906b55efe5b12b5a22b0a16b6,Network Automation & Reliability Engineer,RECRUIT EXPRESS PTE LTD,10000,16000,12,Warehouse Assistant,,3500.0,185.7
+8995df85045333b54278ded55b2fafef,Senior Software Engineer (A)***,ETHOS SEARCH ASSOCIATES PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+c8562a92e83a8a4064e4fde0d978cd54,Senior Voice Engineer,ARYAN SOLUTIONS PTE. LTD.,10000,12500,12,Warehouse Assistant,,3500.0,185.7
+d16aca3e30af7373ca7e31310739e2f7,"Platform Engineer (RHEL), Upto 12k, Hybrid, Bank",AMBITION GROUP SINGAPORE PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+700ad3026a3422d644625b93ca06f73c,"Network Operations Engineer, Physical Network Infrastructure",BYTEDANCE PTE. LTD.,10000,20000,12,Warehouse Assistant,,3500.0,185.7
+881fd4bbc2ad3baaa5317b7de2918331,C# / .NET Developer,ALLEGIS GROUP SINGAPORE PRIVATE LIMITED,10000,16000,12,Warehouse Assistant,,3500.0,185.7
+a4c932d4228878a3aee50e4932e7fa5b,Senior SAP PP Consultant,ERP21 PTE LTD,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+ee55d3d389b10fce11e2cd41af040977,Senior Java Developer,NICOLL CURTIN TECHNOLOGY PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+771369d622fe7ece8dd392797ad151c1,ICT Vendor Relationship Manager (Central / High Bonuses),CAREERALLY PTE. LTD.,10000,15000,12,Warehouse Assistant,,3500.0,185.7
+8c885ca782db238df82609674cd14ba5,"Associate, Corporate Real Estate | Private Practice | 2–5 PQE (CL-OC-12)",NAT AND NAT SEARCH PTE. LTD.,9999,99999,15,Beautician,,3500.0,185.7
+12af9c4397aae9b760ebc868c46cbc57,Expression of Interest- Family Office Investment Analyst,RECRUIT123 PTE. LTD.,10000,13000,15,Beautician,,3500.0,185.7
+698e280b5753a45b18256554c0b47232,QA Validation Engineer,,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+49d7bc1439aa536d0bf6054b7de1cf98,Security Operations Expert,SEPHORA ASIA PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+64e741dd9fb28096493b517387ad2fef,Senior Developer (ServiceNow) Module Expertise - CSM,CADENZA SOLUTIONS PTE. LTD.,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+6c4e12762e0fdd21124d96816f8bfd46,Senior Technical Support Engineer,SOLACE SYSTEMS SINGAPORE PTE. LTD.,10000,12500,12,Warehouse Assistant,,3500.0,185.7
+07eafbe6994e2090a0c2a6a6a6111e62,Expert Frontend Engineer (React.JS & React Native),VANGUARD SOFTWARE PTE. LTD.,10000,15000,12,Warehouse Assistant,,3500.0,185.7
+6e2f2e984f674c073fcb9a28dc8ebb1f,"Senior Java Developer (Big Data, Bank)",GMP RECRUITMENT SERVICES (S) PTE LTD,10000,11000,12,Warehouse Assistant,,3500.0,185.7
+61ed1c74cf1e4b6e8821862dc33c8444,Silverdale Fixed Income Funds Business Development Role,SILVERDALE CAPITAL PTE. LTD.,10000,15000,15,Beautician,,3500.0,185.7
+a0a533759a1f77e802b7eecbfbc5c308,Staff / Senior Staff Physical Design Engineer (IC Backend),LEADTOP TECHNOLOGY PTE. LTD.,10000,15000,12,Warehouse Assistant,,3500.0,185.7
+6cc9b3e198545bb3f581e1c7cb0c1b30,Presales Solution Architect,ST ENGINEERING CLOUD AND DATA CENTRE SOLUTIONS PTE. LTD.,10000,12500,12,Warehouse Assistant,,3500.0,185.7
+fb5b9976c52570ef59f3629d546669bc,Customer Delivery Manager,DIGITAL EDGE (SINGAPORE) PTE. LTD.,10000,20000,5,Quantity Surveyor,,3500.0,185.7
+4ed5fb53fd66558ec19d31e78093a3a0,Cybersecurity Strategist,JJ CONSULTING SERVICES,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+5b4caac696ce8c1dc1cc193b5693bf7d,iOS SDK Engineer,OZION TECH PTE. LTD.,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+8ff9dab606bb9e629d0e752968ec6fa8,"Staff Engineer, Physical Design",AMBIQ MICRO SINGAPORE PRIVATE LTD.,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+94c1b683b40f83c135609b0b044afad8,Product Manager (Government Sector),NTT SINGAPORE PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+93a205ce8431148fc324892d2b98cd07,Staff Software Engineer (Agentic AI),TYCO ELECTRONICS SINGAPORE PTE LTD,10000,13000,12,Warehouse Assistant,,3500.0,185.7
+3e441283313f1fc66d510464ca937f79,QE Consultant,GECO ASIA PTE. LTD.,10000,12000,12,Warehouse Assistant,,3500.0,185.7
+99cebb784d532057db191fcd5b930abc,Senior E&I Engineer,KEPPEL SEGHERS ENGINEERING SINGAPORE PTE. LTD.,10000,15000,12,Warehouse Assistant,,3500.0,185.7
+65bf6e88399090ad362320bf3b5436e0,Staff DevOps Engineer,RAKUTEN ASIA PTE. LTD.,10000,14000,12,Warehouse Assistant,,3500.0,185.7
+8295a9fb76144a67f53fd90d4b11b02c,Principal AI Engineer,IDC TECHNOLOGIES (SINGAPORE) PTE. LTD.,17000,20000,19,SUPERVISOR,Lead,6000.0,183.3
+eb95b9113c4858587a791f2f01892ce9,"Manager, HNW Market & Competitor Insights",SUN LIFE ASSURANCE COMPANY OF CANADA Singapore Branch,13000,15000,19,SUPERVISOR,,4600.0,182.6
+aacd2d7113debcb3f6ea01fb762ab322,"Senior Data Sales Specialist, ASEAN",AMAZON WEB SERVICES SINGAPORE PRIVATE LIMITED,13000,22000,19,SUPERVISOR,,4600.0,182.6
+5a5d70382d09dab2b31722b0e848958c,Business Analyst (Lead),NOVEL SUNKRIS BUSINESS SOLUTIONS PTE. LTD.,13000,14500,19,SUPERVISOR,,4600.0,182.6
+f531de8ff36dd37c57cd10d54ae637d4,Business Analyst Lead,JUST RECRUIT SINGAPORE PTE. LTD.,13000,14500,19,SUPERVISOR,,4600.0,182.6
+ada8f19cd75f9505dbf59bfb89c103a6,Applied Scientist,MISTRAL AI  PTE. LTD.,13000,22500,19,SUPERVISOR,,4600.0,182.6
+2f862047d30c76cf7a0a7c139dff44a1,Murex front office lead,RANDSTAD PTE. LIMITED,13000,14000,19,SUPERVISOR,,4600.0,182.6
+8c0c080cf8b5b09f6f71599787b069f0,Digital Water Lead,BINNIES SINGAPORE PTE. LTD.,13000,15000,19,SUPERVISOR,,4600.0,182.6
+8efa91ecc5877cbd2a9072ee57b4fc1b,Machine Learning Engineer (AI/ML),OZION TECH PTE. LTD.,13000,16000,19,SUPERVISOR,,4600.0,182.6
+8c809b76dbc5d339996f3f78d56cabda,"Principal Engineer, Machine Learning, SMAI",MICRON SEMICONDUCTOR ASIA OPERATIONS PTE. LTD.,13000,23000,19,SUPERVISOR,,4600.0,182.6
+fd028a06b7c34ddb2ebe6068b6b33c67,Portfolio Manager - Quantitative Strategies,"EXODUSPOINT CAPITAL MANAGEMENT SINGAPORE, PTE. LTD.",13541,27081,19,SUPERVISOR,Mid,4800.0,182.1
+ab56b786d81346bbe36f190a29ec2f57,"Staff Research Scientist, ML Efficiency, Google Research - Singapore",GOOGLE ASIA PACIFIC PTE. LTD.,14000,28000,19,SUPERVISOR,Senior,5000.0,180.0
+c3bb6bdbf205415dd8d21fe2e583882d,Group Finance Director (Funding & Payment Models),ALWAYSHIRED PTE. LTD.,14000,18000,2,Quantity Surveyor,,5000.0,180.0
+08da1bb66891825872251f33dad79ef6,Senior Data Sales Specialist,AMAZON WEB SERVICES SINGAPORE PRIVATE LIMITED,14000,24000,19,SUPERVISOR,Senior,5000.0,180.0
+c9b0184a8e1fe301e5a478edace4a809,Investment Professional - Research,NEXUS COMMODITIES CAPITAL MANAGEMENT PTE. LTD.,14000,20000,2,Quantity Surveyor,,5000.0,180.0
+79d76e99acd814ddae119f8ec5216dc7,"Director, Valuation Services",KROLL SINGAPORE PTE. LTD.,14000,18500,2,Quantity Surveyor,,5000.0,180.0
+9d06b4fe45296140e73ca28306f9c54f,"Member of Technical Staff (MTS), Machine Learning, SMAI",MICRON SEMICONDUCTOR ASIA OPERATIONS PTE. LTD.,14000,24000,19,SUPERVISOR,Senior,5000.0,180.0
+f5e0f7d7d82c97d5081df0c38db87952,CFO / Finance Director (Capital Market / SGX),BUILDBRIDGE PARTNERS PTE. LTD.,14000,22000,2,Quantity Surveyor,,5000.0,180.0
+d6e3b073c87fe40d4a0e4a0cef5dec36,"Director, Group Finance (Healthcare Funding & Finance Transformation)",ALWAYSHIRED PTE. LTD.,14000,18000,2,Quantity Surveyor,,5000.0,180.0
+8afbc459ec98241d87cb36e25662861b,"Corporate Counsel, AWS Legal",AMAZON ASIA-PACIFIC RESOURCES PRIVATE LIMITED,14000,23000,2,Quantity Surveyor,,5000.0,180.0
+01b8472056f020c86ef4cd7ee4e2abd1,Legal Counsel (Data Protection Officer),FUNFLY PTE. LTD.,14000,17000,2,Quantity Surveyor,,5000.0,180.0
+bd3599264b676ff5e8089782cff54db6,Accounting Lead – Murex MX.3-12 months contract,ESOL PTE. LTD.,14000,16000,2,Quantity Surveyor,,5000.0,180.0
+8c57e75c8c51290da28f3faf3151bfe5,Director,DELOITTE SINGAPORE ASSURANCE PTE. LTD.,14000,22500,2,Quantity Surveyor,,5000.0,180.0
+49e94822dd4c71a0f447929720f56f44,Murex Risk Lead-12 months contract,ESOL PTE. LTD.,14000,16000,2,Quantity Surveyor,,5000.0,180.0
+d829a51b9e8420e6d3ef1d1ad9512f81,International E&P Negotiator/Lawyer,TOTALENERGIES EP ASIA PACIFIC PTE. LTD.,14000,15500,2,Quantity Surveyor,,5000.0,180.0
+d563996b42eae6eb9832a746c3a56d3a,"Director, Group Finance (Funding, Payment Models & Transformation)",ALWAYSHIRED PTE. LTD.,14000,18000,2,Quantity Surveyor,,5000.0,180.0
+f39e86c91f746cf9c61820d23f4add50,Senior Software Engineer,NODEWORTHY PTE. LTD.,9800,14600,12,Warehouse Assistant,,3500.0,180.0
+d03476edda9a1e354258785be5712e6a,Group Finance Director (Funding & Transformation),ALWAYSHIRED PTE. LTD.,14000,18000,2,Quantity Surveyor,,5000.0,180.0
+c27ca09084598b311c173e6834051bff,Senior Game Producer,OAKEVER GAMES PTE. LTD.,14000,18000,10,HR Executive,Senior,5000.0,180.0
+66c8b502f1fddae4585f1ae6c7666583,Global Corporate Banking – Fund Banking (APAC) – Vice President,"JPMORGAN CHASE BANK, N.A.",14000,28000,2,Quantity Surveyor,,5000.0,180.0
+9bf4abaff115eb68f1796438babc987d,"MTS, AI Engineering, SMAI",MICRON SEMICONDUCTOR ASIA OPERATIONS PTE. LTD.,14000,24000,19,SUPERVISOR,Senior,5000.0,180.0
+cbcf48b7289389501ba75932a0bb83e5,"Senior Manager, Banking & Financial Services Technology Transformation",ABEAM CONSULTING (SINGAPORE) PTE. LTD.,14000,17000,2,Quantity Surveyor,,5000.0,180.0
+430b8364bc28a0fce6943809cc310243,"Advisor, FP&A",PHILLIPS 66 INTERNATIONAL TRADING PTE. LTD.,9660,11810,15,Beautician,,3500.0,176.0
+07d218165a42499da8ce42e71eb7f4e3,Group Financial Controller,FSK ADVISORY PTE. LTD.,15000,16000,2,Quantity Surveyor,Manager,5500.0,172.7
+1d10fb83c29b68ce2cdab6d5b0138028,Underwriting Manager – Engineering,HDI GLOBAL SE SINGAPORE,15000,22500,2,Quantity Surveyor,Manager,5500.0,172.7
+5b7559ab6870907f41b087b03213e475,Manager - ETF Quant Developer,,12500,16500,19,SUPERVISOR,,4600.0,171.7
+1c00496633b7aa2e040c1d18f03dc39f,Infrastructure Engineer,KNOWLEDGESG GLOBAL PTE. LTD.,9500,12500,12,Warehouse Assistant,,3500.0,171.4
+c9ac4fc47149aa9548d86d1f3814a2af,Senior TEST SPECIALIST,HELIUS SOLUTIONS PTE. LTD.,9500,12000,12,Warehouse Assistant,,3500.0,171.4
+77fb43a4cb97245366cfc73f3e7fd65e,PROJECT ENGINEER,WMK SOLUTIONS PTE. LTD.,9500,10500,12,Warehouse Assistant,,3500.0,171.4
+7eb7a12822e879b85af6e8b023081058,Member of Technical Staff - Implant Engineer (JR12051),STMICROELECTRONICS PTE LTD,9500,12800,12,Warehouse Assistant,,3500.0,171.4
+dfb135d7723dbc96b433e855464bdcc8,Senior .net Developer (Kubernetes),IKAS INTERNATIONAL (ASIA) PTE. LTD.,9500,12500,12,Warehouse Assistant,,3500.0,171.4
+94661e5f3ce5b0d736673d59298a4db8,Software Engineer,KNOWLEDGESG GLOBAL PTE. LTD.,9500,12500,12,Warehouse Assistant,,3500.0,171.4
+03923aed7ebc21b3daea6f69bffe4355,Banking Integration Consultant,APAR TECHNOLOGIES PTE. LTD.,9500,10000,12,Warehouse Assistant,,3500.0,171.4
+68780dfa8fb8b0cfd1f4538b67e8108c,Senior SAP Consultant,KNOWLEDGESG GLOBAL PTE. LTD.,9500,12500,12,Warehouse Assistant,,3500.0,171.4
+56b10b163324f76975bbb0bc528eca42,Network Security / Firewall Engineer,VIONDATA PARTNERS PTE. LTD.,9500,13500,12,Warehouse Assistant,,3500.0,171.4
+802311899b0c8f8045d785a5a01d729d,"Senior Engineer / Principal Engineer, Validation",,9500,11500,12,Warehouse Assistant,,3500.0,171.4
+615c3fad44d9465f67fa256be8de85c3,Data and AI Scientist,BASIL TECHNOLOGIES PTE. LTD.,13000,13500,19,SUPERVISOR,Mid,4800.0,170.8
+3bf3f0d93104e59ec71579475eb674aa,Portfolio Manager - Discretionary Strategies,"EXODUSPOINT CAPITAL MANAGEMENT SINGAPORE, PTE. LTD.",13541,27081,15,Beautician,Mid,5000.0,170.8
+25c8353eae6caa64edfe4d0d59a3649e,Full Stack ML Engineer,VISENZE PTE. LTD.,13000,16000,19,SUPERVISOR,Mid,4800.0,170.8
+2e78043105864258b12ecf5d08fd4550,Mid Market Account Executive,GONG.IO (SINGAPORE) PTE. LTD.,13000,15000,16,Music Teacher,Mid,4800.0,170.8
+3e64228e5683e68de8e7b88dd0b32fa7,Sr. Partner Delivery Manager,DATABRICKS ASIAPAC UNIFIED ANALYTICS PTE. LTD.,13541,20309,10,HR Executive,Senior,5000.0,170.8
+f7a0d6545e9f6452b184974199377c2f,AI Research Scientist,FACEBOOK SINGAPORE PTE. LTD.,13500,20840,19,SUPERVISOR,Senior,5000.0,170.0
+148e66136e0d18dba3251d8cb2b28d2a,"Senior Manager, Core Banking Transformation",JAC RECRUITMENT PTE. LTD.,13500,15000,2,Quantity Surveyor,,5000.0,170.0
+c567f7e88c17cd57f5e4e2ba415bf4d0,"Senior Relationship Manager – Shipping, Aviation & Transportation Finance",REVUP CONSULTING PTE. LTD.,18000,20000,2,Quantity Surveyor,Senior,6700.0,168.7
+212c837f58dde6aff8805f7d2b3d04e6,Senior Regulatory Counsel,AIRWALLEX (SINGAPORE) PTE. LTD.,18000,22500,2,Quantity Surveyor,Senior,6700.0,168.7
+7f7b4bd2d28eeda30602c66750711c8a,IFRS17 Lead,MANULIFE (SINGAPORE) PTE. LTD.,13000,26000,2,Quantity Surveyor,Lead,4850.0,168.0
+3eb735ce4ca250b9f0f7cca6591ebc9d,"R0440399 Private Bank – First LOD Senior Risk Lead, VP",DEUTSCHE BANK AKTIENGESELLSCHAFT,13000,22000,2,Quantity Surveyor,Lead,4850.0,168.0
+a948a62231981cd5e63c41adf19baf3d,Business Controller,GOLDENRIDGE INVESTMENTS PTE. LTD.,13000,17500,2,Quantity Surveyor,Lead,4850.0,168.0
+37855f43f87ebe0b04910b56e49a2210,"National Head Coach (Para Swimming) (Full-Time, Contract 2+2 Years)",Singapore Disability Sports Council,12000,15000,9,Sales Executive,,4500.0,166.7
+a2330695c800a05e49594877689346d8,Murex Risk Lead (MX.3 Market & Credit Risk Transformation),RANDSTAD PTE. LIMITED,16000,18000,19,SUPERVISOR,Lead,6000.0,166.7
+6436f1fb640b12af0aa6f0b0ab63654e,Associate Professor,NANYANG TECHNOLOGICAL UNIVERSITY,12000,22500,9,Sales Executive,,4500.0,166.7
+8f39dd0372cbe0de5407dcde30b961c2,Family Doctor  (Clinical & Procedural Practice) #HFQ,RECRUIT EXPRESS PTE LTD,16000,18000,6,HR Manager,Mid,6000.0,166.7
+77aef562b33cba5ac2a77cf2aa19f47d,Education Manager,CAUDALIE SINGAPORE PTE. LTD.,12000,16000,9,Sales Executive,,4500.0,166.7
+572cb1def33c3af1f2f22f1d583d59bd,"Enterprise Account Executive, ASEAN",DATAIKU PTE. LTD.,13333,20000,19,SUPERVISOR,Senior,5000.0,166.7
+16011941387a54ccc50125bf93956053,"STE12231329 - Group Controller, Consolidation & Reporting (Shipping)",ROBERT HALF INTERNATIONAL PTE. LTD.,13300,16600,2,Quantity Surveyor,,5000.0,166.0
+3711707e7014a74fd5ea2c273b9573bf,HashiCorp Solutions Engineer,IBM INNOVATION SERVICES PTE. LTD.,9200,14500,12,Warehouse Assistant,,3500.0,162.9
+b18c4fcf4345be5effc7ab9aea3be283,Portfolio Manager,WORLDQUANT (SINGAPORE) PTE. LTD.,12000,20000,19,SUPERVISOR,,4600.0,160.9
+2c0701ec27908654fa7bf5ca80d1bda2,"Tech Lead, Machine Learning Engineer - Search E-commerce",BYTEDANCE PTE. LTD.,12000,22500,19,SUPERVISOR,,4600.0,160.9
+3623973c1ca2a9f813257cd2b2537100,Staff Machine Learning Engineer - Behaviors,MOTIONAL SINGAPORE PTE. LIMITED,12000,22000,19,SUPERVISOR,,4600.0,160.9
+6e177487c37223a1a14b1fc91087a0c5,Data Scientist,IKAS INTERNATIONAL (ASIA) PTE. LTD.,12000,15000,19,SUPERVISOR,,4600.0,160.9
+b915bd08615aa9096e16cd1c6e29f764,Senior Data Engineer,IKAS INTERNATIONAL (ASIA) PTE. LTD.,12000,15000,19,SUPERVISOR,,4600.0,160.9
+000202872c8d7c9eb7ccd4609148a62b,Principal AI Solutions Architect - Multi-Cloud Platform,ANCHOR SEARCH GROUP PTE. LTD.,12000,16000,19,SUPERVISOR,,4600.0,160.9
+e4b8cae323fa9b80085644f8eb5be79e,AI/ML Specialist - GEN AI & NLP l 12-month contract,MANPOWER STAFFING SERVICES (SINGAPORE) PTE LTD,12000,15000,19,SUPERVISOR,,4600.0,160.9
+c1d13c7b4095f65690625c346375d63f,Senior Data Architect,IBM SINGAPORE PTE LTD,12000,20000,19,SUPERVISOR,,4600.0,160.9
+0b8e76a5315e88079931d5435c79c7bb,Data Science Manager (Satellite Data),HAYS SPECIALIST RECRUITMENT PTE. LTD.,12000,18000,19,SUPERVISOR,,4600.0,160.9
+4eb8afcee22cc30275e2bd177cffb953,"Data Engineer (blockchain, well-established company)",,12000,18000,19,SUPERVISOR,,4600.0,160.9
+7a716b672497c91df5f4d705a2859ec5,Business Analyst- Real Estate/Facility,JUST RECRUIT SINGAPORE PTE. LTD.,12000,13000,19,SUPERVISOR,,4600.0,160.9
+fde6a0ad6afa91ca2e8b5c1a64586a37,Success Factors Data Lead,AVENSYS CONSULTING PTE. LTD.,12000,19000,19,SUPERVISOR,,4600.0,160.9
+20947257312bc9abb529c73aa3c9aad8,"VP Data Engineer, GTO",UNITED OVERSEAS BANK LIMITED,12000,12650,19,SUPERVISOR,,4600.0,160.9
+9af354541fc46f533fbb257c5b507a2b,Quantitative Developer,MILLENNIUM CAPITAL MANAGEMENT (SINGAPORE) PTE. LTD.,12500,25000,19,SUPERVISOR,Mid,4800.0,160.4
+8b2c30a8a859d965c1bb7b31a829a3f5,Prime brokerage Sales,KIMBERLEY CONSULTING PTE. LTD.,12500,15000,16,Music Teacher,Mid,4800.0,160.4
+9bf3a81e0318f27be4e56df3c88c8a2d,Institutional Equity Sales,BEATHCHAPMAN (PTE. LTD.),12500,20000,16,Music Teacher,Mid,4800.0,160.4
+ef9f814a62e2e01339bd40fbfae27e00,Audit Partner,ENROME LLP,13000,20000,2,Quantity Surveyor,,5000.0,160.0
+cfa320ffd66b3891846dad1b7b2c7520,"Grains / Oilseed / Veg Oil Agri Futures Trader (SG, HK or China)",ZHIJING SINGAPORE PRIVATE LIMITED,13000,16000,2,Quantity Surveyor,,5000.0,160.0
+46dbb771833ef87a37df137f9d2a4706,Enterprise Architect,MORGAN MCKINLEY PTE. LTD.,13000,14500,10,HR Executive,Senior,5000.0,160.0
+6af9e2cfc1f9f52e3b26ac4e24b5ac18,Oracle EPM Specialist (Strategic Workforce Planning),RANDSTAD PTE. LIMITED,13000,14000,19,SUPERVISOR,Senior,5000.0,160.0
+74246cf623fe55783a52fa6b36f919fd,Heavy Products Trader,REPSOL TRADING SINGAPORE PTE. LTD.,13000,18000,2,Quantity Surveyor,,5000.0,160.0
+71d51bc650b31d5563f696dd87ad861b,AI Presales Architect,MANPOWER STAFFING SERVICES (SINGAPORE) PTE LTD,13000,18000,19,SUPERVISOR,Senior,5000.0,160.0
+ccffcd7c4793a66df6ccabbfe613a1ab,"Director, Business Control, B2B",CODA PAYMENTS PTE. LTD.,13000,17000,2,Quantity Surveyor,,5000.0,160.0
+f51515ad14451e5aa06b6e11cf000b19,"Senior Credit Officer, Non-Recourse Financing",BEATHCHAPMAN (PTE. LTD.),13000,16000,2,Quantity Surveyor,,5000.0,160.0
+5ba68fa0db886d271098c50a0e675040,"Junior VP, Investment Banking (Financial Industry, M&A/APAC Contacts, $16k ) (ID: 703608)",PERSOL SINGAPORE PTE. LTD.,13000,16000,2,Quantity Surveyor,Junior,5000.0,160.0
+e8d8e6f7901e34ddc071fdc01f1b6045,Internal Controls & Technical Accounting Manager,BEATHCHAPMAN (PTE. LTD.),13000,13800,2,Quantity Surveyor,,5000.0,160.0
+cdaa2b6e444a1ca42de89f28ae147098,"Manager, Accounting",QBE INSURANCE (SINGAPORE) PTE. LTD.,13000,19000,2,Quantity Surveyor,,5000.0,160.0
+f1b77eb172ce42e94567c355b0ea4fc2,Associate - Transactional Services,PINSENT MASONS MPILLAY LLP,13000,16000,2,Quantity Surveyor,Junior,5000.0,160.0
+8cdf9165501c582b08055a81f897759e,"Associate, Real Estate, Global Investments & Portfolio Strategy (JR16971)",GIC PRIVATE LIMITED,11250,22500,15,Beautician,Junior,4350.0,158.6
+970352824336269b593aba84f19a43aa,"Associate/AVP, External Managers, Macro/Fixed Income - Portfolio Manager (JR16678)",GIC PRIVATE LIMITED,11250,22500,15,Beautician,Junior,4350.0,158.6
+28eed33b5a5384bdf49a76873225de15,"Business Analyst (FMF / Fircosoft / Firco Continuity), Banking (6-12 month renewable contract)",EVOLUTION RECRUITMENT SOLUTIONS PTE. LTD.,9000,12000,15,Beautician,,3500.0,157.1
+667be6de77ee7c0c8651a24fd9ec015a,Embodied AI Engineer,ENGGSOL PTE. LTD.,9000,10000,12,Warehouse Assistant,,3500.0,157.1
+9976284e62b7a6f64f5dca2565296da4,Senior Software Engineer,DELL GLOBAL B.V. (Singapore Branch),9000,13000,12,Warehouse Assistant,,3500.0,157.1
+3805c2af055ba045e692178f2db726c1,Senior Software Engineer,BNP PARIBAS ASSET MANAGEMENT SINGAPORE LIMITED,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+5cdb199220b8deb150a551dff7c82319,Senior Developers,SPAN CONSULTANCY SERVICES PTE. LTD.,9000,14000,12,Warehouse Assistant,,3500.0,157.1
+9c7c2b18d49610d71918286036df2175,DevSecOps Engineer,GMP RECRUITMENT SERVICES (S) PTE LTD,9000,9500,12,Warehouse Assistant,,3500.0,157.1
+3a8cad3ba3b86de2eb8333943bdafcb9,Senior DevOps Engineer,NSEARCH GLOBAL PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+3097b686dabfa92af42b13b085c44752,Senior Backend Engineer (Python/Java),DGTL TECHNOLOGIES PTE. LTD.,9000,13500,12,Warehouse Assistant,,3500.0,157.1
+cccd7e56ecb3010e765058d700c55414,"Full Stack Developer (Angular, Java, Kafka) - Contract",NTT SINGAPORE PTE. LTD.,9000,11500,12,Warehouse Assistant,,3500.0,157.1
+963da1e5ca0e3987a1dacdf7b742bb3d,"Technology Architecture, Principal",AIA SINGAPORE PRIVATE LIMITED,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+dbb9bb0d2153cbf30fb3c50e7d6b81fd,PENETRATION TESTING SPECIALIST,HELIUS SOLUTIONS PTE. LTD.,9000,11500,12,Warehouse Assistant,,3500.0,157.1
+b56ed722c9b8baee4f6a113e2b39c03f,Vulnerability Management Expert,TRINITY CONSULTING SERVICES PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+b13ec4342524484f866e59bbf04d919f,Senior Platform Engineer (Kubernetes / Rancher / NeuVector),RAPSYS TECHNOLOGIES PTE. LTD.,9000,15000,12,Warehouse Assistant,,3500.0,157.1
+1dc975c48b4f852ce6a49d279da4131b,Developer IS-52854,INFOGAIN SOLUTIONS PTE. LIMITED,9000,10500,12,Warehouse Assistant,,3500.0,157.1
+55e5885c6eac615d48365be2018c855e,Senior Principal SOC Design Engineer,MAXLINEAR ASIA SINGAPORE PRIVATE LIMITED,9000,18000,12,Warehouse Assistant,,3500.0,157.1
+9e92aca35c396b06cefbf0345b7e5304,System Analyst,SAKSOFT PTE LIMITED,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+d61d7f03e2f71cb461a1adc0d49677d5,Business Development Executive,YCM CONSTRUCTION PTE. LTD.,9000,13000,16,Music Teacher,Entry,3500.0,157.1
+5dc5a4ac3494cf716bd98a9be0d78c42,Software Developer (Microsoft Dynamics CRM) l Contract,MANPOWER STAFFING SERVICES (SINGAPORE) PTE LTD,9000,10500,12,Warehouse Assistant,,3500.0,157.1
+c616e60c0af35d41e7c4078717080db1,Technical Project Manager,WE-PLUS PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+8567afa7e5d63031382a941bab3d5ec8,Oracle Database Administrator,AVATAR MODERN TECHNO SERVICES PTE. LTD.,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+bf88393258f72ad2e69d63da9ba1ca50,Technical Product owner,TECH AALTO PTE. LTD.,9000,18000,12,Warehouse Assistant,,3500.0,157.1
+d36934c4ed3d74783dfbab2d7a33d328,"Business Analyst (CRS / FATCA / Risk) - Banking, 1-year renewable contract",EVOLUTION RECRUITMENT SOLUTIONS PTE. LTD.,9000,11000,15,Beautician,,3500.0,157.1
+2dd1c6acc35d0c552dbfb9df4401e297,Site Reliability Engineer,TECH AALTO PTE. LTD.,9000,16000,12,Warehouse Assistant,,3500.0,157.1
+fcfbd06fe1549ad37cc05f02bec1b623,Temenos TAP (Triple A Plus) Developer,TRINITY CONSULTING SERVICES PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+b7acef0a6bf63a796aee30f715062fd8,CPU Design Verification Engineer,PERSOL SINGAPORE PTE. LTD.,9000,17000,12,Warehouse Assistant,,3500.0,157.1
+485639977bb790ad60397b10903d42cf,Senior Information Technology Consultant (Contract),PERSOL SINGAPORE PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+38379a496b0f5564be40e0833ae1fa6f,Solution Architect,TEAMLEASE DIGITAL SINGAPORE PTE. LTD.,9000,14000,12,Warehouse Assistant,,3500.0,157.1
+ac4e8eca8a74abdc9cc5dc4be29075b0,Senior Network Engineer,INFINITE COMPUTER SOLUTIONS PTE LTD,9000,10000,12,Warehouse Assistant,,3500.0,157.1
+ad9900c94caa7efbb8b34b1380837f0c,Senior Murex Technical Consultant,DA SOFTWARE PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+b1b58247e4abd6aac60b77be26fd08f3,DB2 DATABASE ADMINISTRATOR,INFINITE COMPUTER SOLUTIONS PTE LTD,9000,9500,12,Warehouse Assistant,,3500.0,157.1
+bbcfdc211dc12cb38ca9afa49c5f7304,Site Reliability Engineer – Cloud and Edge Computing,THALES DIS (SINGAPORE) PTE. LTD.,9000,10300,12,Warehouse Assistant,,3500.0,157.1
+19728257730d3612b0c48fd68baa907e,VMware Infrastructure Specialist,RAPSYS TECHNOLOGIES PTE. LTD.,9000,14000,12,Warehouse Assistant,,3500.0,157.1
+e5990994ba0c797f758ee7aa330198d8,Senior Software Testing Engineer,IDC TECHNOLOGIES (SINGAPORE) PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+ed3a0565063ce9deeeafe76ffbff2486,T24 Developer,JOY CONSULTING PTE. LTD.,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+33d46f80d4e234462d7789688aa1bded,"Senior Cybersecurity Engineer, Defense Operations",MOTIONAL SINGAPORE PTE. LIMITED,9000,15000,12,Warehouse Assistant,,3500.0,157.1
+e4acb1f0027603ec29e1d34852841b04,"IT Project Manager, Cloud (Financial Services) - 12 months contract",HAYS SPECIALIST RECRUITMENT PTE. LTD.,9000,10500,12,Warehouse Assistant,,3500.0,157.1
+1530f2b80a9c67d63501c8e752fa89a4,Staff Fullstack Engineer (90% frontend),RANDSTAD PTE. LIMITED,9000,13400,12,Warehouse Assistant,,3500.0,157.1
+82ecf27af2a2c66c65858639013019d6,Senior Business Analyst - Wealth Management/Trading,HCL SINGAPORE PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+48a9e478196b8706454fd53726858565,Site Reliability Engineer (SRE),TEMP-TEAM PTE LTD,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+c18951c87a4b6964a117c352bdab34b2,L3 Application Support,HI5 CONSULTING SOLUTIONS PTE. LTD.,9000,10500,12,Warehouse Assistant,,3500.0,157.1
+def312f1d1e7e363a391fca03768e55a,java developer - fsi - 12k,RANDSTAD PTE. LIMITED,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+682b7af56d7ed7032e7d7506cbe34153,Patching & Deployment Engineer,SMART IMS TECHNOLOGIES PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+f44a6ee215b68d3f46c70a19668fe126,Senior Cloudera Platform Administrator,FPT ASIA PACIFIC PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+e5d55d5e7d811c4e203798cc4380b09b,Senior Murex Technical Consultant,PURVIEW ASIA PACIFIC PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+2e6b45d49840973c6c319fb331bf9af1,Software Developer,WE-PLUS PTE. LTD.,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+5ad18442f6a2be280e98860f4fcfee28,*NEW* 1 Year Contract Finance Business Partner (APAC),AMBITION GROUP SINGAPORE PTE. LTD.,9000,12500,15,Beautician,,3500.0,157.1
+52630045bd32db911c55e0ae7851b645,Corporate Relationship Manager (Korean Desk) - International Bank - Singapore,REVUP CONSULTING PTE. LTD.,9000,14500,15,Beautician,,3500.0,157.1
+652489bd40aab791f5413d60046abc6d,Oracle Database PL/SQL Developer Professional,EXPRESS PTE. LTD.,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+24da2ac5826bee17a6341c38d1ac0728,Cybersecurity Consultant,PERCEPT SOLUTIONS PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+434b5d6e25ce4efe184f384d53cc33a9,Digitalisation & IoT Manager(IOT-BACnet/Modbus/MQTT),RANDSTAD PTE. LIMITED,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+e7833e3c4d7985655f18499ab97ca162,"Senior Android Engineer (3yrs+, AI-powered gaming, 4days WFH, up to S$15,000)",,9000,15000,12,Warehouse Assistant,,3500.0,157.1
+81288d1154d52ecd5f699193d52d3a25,Senior Software Engineer,AIRWALLEX (SINGAPORE) PTE. LTD.,9000,16000,12,Warehouse Assistant,,3500.0,157.1
+9d4e3dbe8931ef16802e4973e1991a0d,Senior Project Engineer (Civil & Structural),GREENSAFE INTERNATIONAL PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+aac525a44dffe513b8a5e6de7d6d82ff,Technical Developer,SAKSOFT PTE LIMITED,9000,10500,12,Warehouse Assistant,,3500.0,157.1
+c0c24da79ba41cfb0d4fd08c6c029c46,"VP, Credit Auditor – Banking",BEATHCHAPMAN (PTE. LTD.),9000,12500,15,Beautician,,3500.0,157.1
+29d588623f320f8509d15e7a069c23ca,Network Expert (AI Infrastructure / Data Center Networks / HPC Clusters),DADACONSULTANTS PTE. LTD.,9000,13000,12,Warehouse Assistant,,3500.0,157.1
+dc197bf52a9bb5e651ec4b895a049e2c,Senior M&E Project Manager (Developer),ACHIEVE CAREER CONSULTANT PTE LTD,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+f856b2128fcf35af02d34132a1bc4c4d,Design for Safety (DfS) Professional/Risk Management Facilitator (RMF),CHINA CIVIL ENGINEERING CONSTRUCTION CORPORATION Branch Office Singapore,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+86f565bf28e8d09da2946cee85d3926f,Senior System & Network Engineer - Perm Role,BGC GROUP PTE. LTD.,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+8b538761586571b5006962ae0c8d30b6,Production Support Analyst,ENCORA TECHNOLOGIES PTE. LTD.,9000,10000,12,Warehouse Assistant,,3500.0,157.1
+7eb683580d1915b9d8fb4c84ed9c6e9f,Senior Resident Engineer (Civil & Structural),WSH EXPERTS PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+f1cd0fb10892dd6714ca97af98403e04,teamsite consultant,HAYAGREEVA CONSULTING PTE. LTD.,9000,12000,12,Warehouse Assistant,,3500.0,157.1
+f23bda514c59490d475cf0eb5ec587fd,Senior Systems Analyst (Agency Contract),PERSOL SINGAPORE PTE. LTD.,9000,13500,12,Warehouse Assistant,,3500.0,157.1
+a49256f8040abe2a25a2542225c0f828,Technical Pre-Sales Manager (Network Solution) - S$Nego,MORGAN MCKINLEY PTE. LTD.,9000,11000,12,Warehouse Assistant,,3500.0,157.1
+371736c0a148521fad92b848f50857fe,Technical Superintendent (Oil/Chemical Tanker),NATHALIN SHIPPING PTE. LTD.,9500,11000,17,Customer Service Officer,Mid,3700.0,156.8
+be69cbc34ff65b803bda177627a1f6f7,"Senior Manager, Risk Operations, Cards, APAC",AIRWALLEX (SINGAPORE) PTE. LTD.,12761,20417,2,Quantity Surveyor,,5000.0,155.2
+97850056d3d7176625fceec3ea1f6a56,Project Business Finance Manager (Costs) - Project S,THE HONGKONG AND SHANGHAI BANKING CORPORATION LIMITED,14000,20000,2,Quantity Surveyor,Manager,5500.0,154.5
+0ca7c183e0658a4a364bd06d1b4b5f56,Senior Corporate Counsel,PROOFPOINT SINGAPORE PTE. LTD.,17000,22000,2,Quantity Surveyor,Senior,6700.0,153.7

@@ -1,0 +1,24 @@
+cluster,n_jobs,top_titles,top_category,pct_with_salary,n_with_salary,salary_max_p25,salary_max_median,salary_max_p75,salary_max_iqr,salary_max_cv,salary_viable
+3,6462,Project Engineer | Electrical Engineer | Software Engineer | BIM Modeller | Network Engineer,Engineering,0.998,6451,4500.0,5500.0,7000.0,2500.0,0.542,True
+9,6277,Sales Executive | Business Development Executive | Marketing Executive | Sales Coordinator | Sales Engineer,Customer Service,0.995,6247,3800.0,4500.0,5000.0,1200.0,0.443,True
+14,4849,Admin Assistant | Admin Executive | Project Engineer | Project Coordinator | Administrative Assistant,Admin / Secretarial,0.99,4799,3000.0,4000.0,5000.0,2000.0,0.691,False
+2,4237,Quantity Surveyor | Site Engineer | Site Supervisor | QUANTITY SURVEYOR | Senior Quantity Surveyor,Building and Construction,1.0,4236,4200.0,5000.0,6000.0,1800.0,0.434,True
+20,4145,Project Manager | SUPERVISOR | MANAGER | Supervisor | Operations Manager,Building and Construction,0.995,4126,5500.0,7500.0,11000.0,5500.0,0.878,False
+12,3944,Warehouse Assistant | LORRY DRIVER | Delivery Driver | Driver | Procurement Executive,Logistics / Supply Chain,0.989,3900,2800.0,3500.0,4500.0,1700.0,1.203,False
+4,3447,Sales Manager | Business Development Manager | SALES MANAGER | BUSINESS DEVELOPMENT MANAGER | SALES SUPERVISOR,Sales / Retail,0.994,3425,5000.0,6500.0,9500.0,4500.0,1.354,False
+11,3345,Senior Software Engineer | Senior Project Engineer | Project Engineer | Software Engineer | Senior Java Developer,Information Technology,0.999,3340,6500.0,8500.0,11000.0,4500.0,0.711,False
+13,3262,Accounts Executive | Accounts Assistant | Accountant | Finance Executive | Account Executive,Accounting / Auditing / Taxation,0.994,3244,3500.0,4200.0,5500.0,2000.0,0.963,False
+5,2987,Quantity Surveyor | Technician | Service Technician | Pest Control Technician | Production Operator,Engineering,0.986,2944,2700.0,3300.0,4500.0,1800.0,0.362,True
+8,2694,ASSISTANT COOK | Service Crew | Cook | Kitchen Assistant | CHEF,F&B,0.958,2580,2500.0,3000.0,3800.0,1300.0,0.44,True
+19,2597,SUPERVISOR | CHEF | Restaurant Manager | Assistant Restaurant Manager | Sous Chef,F&B,0.996,2586,4000.0,5000.0,6000.0,2000.0,0.499,True
+18,2454,Data Engineer | AI Engineer | Data Scientist | Senior Data Engineer | Data Analyst,Information Technology,0.996,2443,4400.0,7000.0,10000.0,5600.0,1.191,False
+16,2436,Music Teacher | Student Care Teacher | Preschool Teacher | Chinese Language Teacher | Assistant Teacher,Education and Training,0.97,2362,3000.0,4000.0,4800.0,1800.0,0.602,False
+7,2290,BIM Manager | Technical Manager | M&E Manager | Technical Lead | TECHNICAL MANAGER,Information Technology,0.997,2283,7500.0,10000.0,14000.0,6500.0,0.614,False
+0,2264,Clinic Assistant | SPA THERAPIST | Spa Therapist | Dental Assistant | THERAPY AIDE,Healthcare / Pharmaceutical,0.96,2174,3000.0,3500.0,4800.0,1800.0,0.614,False
+21,2099,Physiotherapist | FOOT REFLEXOLOGIST | Staff Nurse | SPA THERAPIST | Occupational Therapist,Healthcare / Pharmaceutical,0.992,2082,4500.0,5800.0,7000.0,2500.0,0.587,True
+15,2033,Beautician | BEAUTICIAN | Interior Designer | Retail Associate | Beauty Consultant,Sales / Retail,0.976,1984,2800.0,3800.0,5000.0,2200.0,0.519,True
+17,1927,Customer Service Officer | Customer Service Executive | Customer Experience Executive | Customer Service Manager | Senior Customer Service Officer,Customer Service,0.983,1895,2800.0,3400.0,4000.0,1200.0,0.398,True
+22,1843,Finance Manager | Accountant | Senior Accountant | Senior Accounts Executive | Accounts Manager,Accounting / Auditing / Taxation,0.989,1823,6000.0,8500.0,12000.0,6000.0,2.438,False
+10,1738,HR Executive | Recruitment Consultant | HR & Admin Executive | HR Assistant | HR EXECUTIVE,Human Resources,0.99,1720,3200.0,3800.0,4500.0,1300.0,0.887,False
+6,1085,HR Manager | SUPERVISOR | Senior HR Executive | Assistant HR Manager | Human Resource Manager,Human Resources,0.995,1080,5000.0,7000.0,9000.0,4000.0,0.573,True
+1,832,Corporate Secretarial Executive | Legal Counsel | Paralegal | Corporate Secretary | Legal Secretary,Legal,0.995,828,4500.0,7000.0,10000.0,5500.0,1.433,False

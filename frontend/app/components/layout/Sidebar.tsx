@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart2, Building2, Scale } from 'lucide-react'
+import { BarChart2, Building2, Flame, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
   { href: '/', label: 'Salary Checker', icon: Scale },
+  { href: '/hot-jobs', label: 'Hot Jobs', icon: Flame, beta: true },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
   { href: '/companies', label: 'Companies', icon: Building2 },
 ]
@@ -35,7 +36,7 @@ export default function Sidebar({ userSlot }: SidebarProps) {
         </div>
 
         <nav className="flex-1 px-4 space-y-1" aria-label="Primary navigation">
-          {navLinks.map(({ href, label, icon: Icon }) => {
+          {navLinks.map(({ href, label, icon: Icon, beta }) => {
             const isActive = pathname === href
             return (
               <Link
@@ -52,6 +53,11 @@ export default function Sidebar({ userSlot }: SidebarProps) {
               >
                 <Icon className="size-4 shrink-0" aria-hidden />
                 {label}
+                {beta && (
+                  <span className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700">
+                    BETA
+                  </span>
+                )}
               </Link>
             )
           })}

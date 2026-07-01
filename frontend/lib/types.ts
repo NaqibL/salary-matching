@@ -117,6 +117,27 @@ export interface SimilarJob {
   canonical_skills?: string[] | null
 }
 
+export interface HotJob {
+  job_uuid: string
+  title: string | null
+  company_name: string | null
+  salary_min: number | null
+  salary_max: number | null
+  above_market_pct: number | null
+  job_url: string | null
+  cluster_label: string | null
+  categories: string[]
+  position_levels: string[]
+  inferred_seniority: string | null
+  canonical_skills: string[] | null
+  posted_date: string | null
+}
+
+export interface HotJobsResponse {
+  jobs: HotJob[]
+  count: number
+}
+
 export interface SalarySearchJob {
   job_uuid: string
   title: string

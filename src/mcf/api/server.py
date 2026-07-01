@@ -19,7 +19,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from mcf.api.config import settings
 from mcf.api.deps import _make_store, close_store, set_embedder, set_store
 from mcf.api.limiter import limiter
-from mcf.api.routes import admin, companies, dashboard, jobs, lowball, matches, profile
+from mcf.api.routes import admin, companies, dashboard, hot_jobs, jobs, lowball, matches, profile
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,7 @@ app.include_router(matches.router)
 app.include_router(admin.router)
 app.include_router(lowball.router)
 app.include_router(companies.router)
+app.include_router(hot_jobs.router)
 
 
 # ---------------------------------------------------------------------------

@@ -215,6 +215,11 @@ def run_incremental_crawl(
                     except Exception as e:
                         print(f"Warning: job classification failed, skipping: {e}")
 
+                    try:
+                        store.assign_hot_jobs_scores([job_uuid for job_uuid, _ in embedded])
+                    except Exception as e:
+                        print(f"Warning: hot-jobs scoring failed, skipping: {e}")
+
         store.update_daily_stats(run.run_id)
         store.finish_run(
             run.run_id,

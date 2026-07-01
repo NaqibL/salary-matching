@@ -24,6 +24,13 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Coarse k=23 peer-group clusters occasionally pair a high-comp role (finance,
+# leadership) with a peer-group median that doesn't reflect its true pay band,
+# producing absurd above_market_pct blowouts (e.g. 4000%+). Cap the value used
+# for filtering/ranking/display; the raw stored value is kept for review.
+HOT_JOBS_PCT_CAP = 150.0
+
+
 class PostgresStore(Storage):
     """PostgreSQL-backed persistence layer (Supabase)."""
 
@@ -413,6 +420,87 @@ class PostgresStore(Storage):
             row = cur.fetchone()
         return row[0] if row else 0
 
+    def get_hot_jobs(
+        self,
+        min_pct: float = 20.0,
+        category: str | None = None,
+        position_level: str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                SELECT
+                  j.job_uuid,
+                  j.title,
+                  COALESCE(j.company_canonical, j.company_name) AS company_name,
+                  j.salary_min,
+                  j.salary_max,
+                  LEAST(j.above_market_pct, %(pct_cap)s) AS above_market_pct,
+                  j.job_url,
+                  j.hot_jobs_cluster,
+                  j.llm_fields_json,
+                  j.categories_json,
+                  j.position_levels_json,
+                  j.posted_date,
+                  c.label AS cluster_label
+                FROM jobs j
+                LEFT JOIN hot_jobs_cluster_centroids c ON c.cluster_id = j.hot_jobs_cluster
+                WHERE j.is_active = TRUE
+                  AND j.above_market_pct >= %(min_pct)s
+                  AND (j.salary_max IS NULL OR j.salary_max <= 2 * j.salary_min)
+                  AND (%(category)s IS NULL
+                       OR j.categories_json ILIKE '%%' || %(category)s || '%%')
+                  AND (%(position_level)s IS NULL
+                       OR j.position_levels_json ILIKE '%%' || %(position_level)s || '%%')
+                ORDER BY j.posted_date DESC NULLS LAST,
+                         LEAST(j.above_market_pct, %(pct_cap)s) DESC
+                LIMIT %(limit)s
+                """,
+                {
+                    "min_pct": min_pct,
+                    "pct_cap": HOT_JOBS_PCT_CAP,
+                    "category": category,
+                    "position_level": position_level,
+                    "limit": limit,
+                },
+            )
+            cols = [c.name for c in cur.description]
+            rows = cur.fetchall()
+
+        jobs = []
+        for row in rows:
+            r = dict(zip(cols, row))
+            try:
+                llm = json.loads(r["llm_fields_json"]) if r["llm_fields_json"] else {}
+            except (json.JSONDecodeError, TypeError):
+                llm = {}
+            try:
+                categories = json.loads(r["categories_json"]) if r["categories_json"] else []
+            except (json.JSONDecodeError, TypeError):
+                categories = []
+            try:
+                position_levels = json.loads(r["position_levels_json"]) if r["position_levels_json"] else []
+            except (json.JSONDecodeError, TypeError):
+                position_levels = []
+            jobs.append({
+                "job_uuid": r["job_uuid"],
+                "title": r["title"],
+                "company_name": r["company_name"],
+                "salary_min": r["salary_min"],
+                "salary_max": r["salary_max"],
+                "above_market_pct": r["above_market_pct"],
+                "job_url": r["job_url"],
+                "cluster_label": r["cluster_label"],
+                "categories": categories,
+                "position_levels": position_levels,
+                "inferred_seniority": llm.get("inferred_seniority"),
+                "canonical_skills": llm.get("canonical_skills"),
+                "posted_date": r["posted_date"].isoformat() if r["posted_date"] else None,
+            })
+        return jobs
+
     # === Embeddings cache (content_hash -> embedding) ===
 
     def get_embedding_by_content_hash(
@@ -742,6 +830,44 @@ class PostgresStore(Storage):
                 "UPDATE jobs SET role_clusters_json = %s WHERE job_uuid = %s",
                 [(clusters, uuid) for uuid, clusters in data],
                 page_size=500,
+            )
+
+    def assign_hot_jobs_scores(self, job_uuids: list[str]) -> None:
+        if not job_uuids:
+            return
+        with self._cur() as cur:
+            cur.execute(
+                """
+                UPDATE jobs j
+                SET hot_jobs_cluster = (
+                  SELECT c.cluster_id
+                  FROM hot_jobs_cluster_centroids c
+                  ORDER BY je.embedding <=> c.centroid
+                  LIMIT 1
+                )
+                FROM job_embeddings je
+                WHERE je.job_uuid = j.job_uuid
+                  AND j.job_uuid = ANY(%s)
+                """,
+                [job_uuids],
+            )
+            cur.execute(
+                """
+                UPDATE jobs j
+                SET above_market_pct = ROUND(
+                  CAST((j.salary_min::float / p.salary_median - 1) * 100 AS numeric), 1
+                )
+                FROM hot_jobs_salary_profiles p
+                WHERE j.job_uuid = ANY(%s)
+                  AND j.hot_jobs_cluster = p.cluster_id
+                  AND COALESCE(
+                    (j.llm_fields_json::jsonb ->> 'inferred_seniority'),
+                    'Unknown'
+                  ) = p.seniority
+                  AND p.viable = TRUE
+                  AND j.salary_min IS NOT NULL
+                """,
+                [job_uuids],
             )
 
     def create_match_session(

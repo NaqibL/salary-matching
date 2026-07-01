@@ -143,6 +143,17 @@ class Storage(ABC):
     @abstractmethod
     def get_active_job_count(self) -> int: ...
 
+    def get_hot_jobs(
+        self,
+        min_pct: float = 20.0,
+        category: str | None = None,
+        position_level: str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        """Active jobs paying >= min_pct above their peer-group (hot_jobs_cluster
+        x seniority) median salary, ordered by above_market_pct desc."""
+        raise NotImplementedError
+
     # === Job classifications ===
 
     @abstractmethod
@@ -164,6 +175,16 @@ class Storage(ABC):
         Args:
             data: list of (job_uuid, cluster_ids) where cluster_ids is
                   all cluster IDs at cosine >= 0.85 threshold.
+        """
+        raise NotImplementedError
+
+    def assign_hot_jobs_scores(self, job_uuids: list[str]) -> None:
+        """Assign hot_jobs_cluster (nearest centroid) and above_market_pct for a
+        batch of jobs, entirely server-side against hot_jobs_cluster_centroids /
+        hot_jobs_salary_profiles.
+
+        Separate from role_cluster/predicted_tier (the matching taxonomy) —
+        this is the k=23 peer-group clustering used only by the hot-jobs page.
         """
         raise NotImplementedError
 

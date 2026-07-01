@@ -1,7 +1,7 @@
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse } from './types'
 import { supabase } from './supabase'
 
-export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany }
+export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -347,6 +347,18 @@ export const companiesApi = {
   getProfile: async (name: string): Promise<CompanyProfile> => {
     const res = await fetch(`/api/company/${encodeURIComponent(name)}`)
     if (!res.ok) throw new Error(`Company not found: ${name}`)
+    return res.json()
+  },
+}
+
+export const hotJobsApi = {
+  list: async (params?: { category?: string; position_level?: string; limit?: number }): Promise<HotJobsResponse> => {
+    const qs = new URLSearchParams()
+    if (params?.category) qs.append('category', params.category)
+    if (params?.position_level) qs.append('position_level', params.position_level)
+    qs.append('limit', String(params?.limit ?? 50))
+    const res = await fetch(`/api/hot-jobs?${qs.toString()}`)
+    if (!res.ok) return { jobs: [], count: 0 }
     return res.json()
   },
 }

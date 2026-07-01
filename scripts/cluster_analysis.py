@@ -1,12 +1,17 @@
-"""Cluster analysis for the 46,940 re-embedded jobs (BGE-base-en-v1.5, 768-dim).
+"""Cluster analysis for active jobs embedded with bge-base-sgmarket-v2 (768-dim).
 
 Usage:
     uv run python scripts/cluster_analysis.py
+    uv run python scripts/cluster_analysis.py --plot-only   # reuse cached data
 
 Outputs go to scripts/cluster_analysis_output/:
     umap_by_tier.html, umap_by_category.html, umap_by_salary.html,
     umap_hdbscan.html, umap_by_cluster.html, kmeans_sweep.html,
-    cluster_profiles.html, cluster_profiles.csv, summary.json
+    cluster_profiles.html, cluster_profiles.csv,
+    salary_distributions.html, salary_viability.csv, summary.json
+
+The salary_* outputs answer: "are clusters good enough to compute reliable
+salary percentiles?" — used to evaluate the 'best-value jobs' feature.
 """
 
 from __future__ import annotations
@@ -41,44 +46,75 @@ OUTPUT_DIR = Path(__file__).parent / "cluster_analysis_output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 EMBEDDING_DIMS = 768
-MODEL_NAME = "BAAI/bge-base-en-v1.5"
+MODEL_NAME = "NaqibL/bge-base-sgmarket-v2"
 
-TIER_MAP = {
-    "Fresh/entry level":  "T1_Entry",
-    "Non-executive":      "T1_Entry",
-    "Junior Executive":   "T2_Junior",
-    "Executive":          "T2_Junior",
-    "Professional":       "T3_Senior",
-    "Senior Executive":   "T3_Senior",
-    "Manager":            "T4_Management",
-    "Middle Management":  "T4_Management",
-    "Senior Management":  "T4_Management",
-    "C-Suite/VP":         "T4_Management",
+SENIORITY_LEVELS = ["Intern", "Entry", "Junior", "Mid", "Senior", "Lead", "Manager", "Director"]
+SENIORITY_COLORS = {
+    "Intern":    "#90CAF9",
+    "Entry":     "#2196F3",
+    "Junior":    "#4CAF50",
+    "Mid":       "#8BC34A",
+    "Senior":    "#FF9800",
+    "Lead":      "#FF5722",
+    "Manager":   "#F44336",
+    "Director":  "#9C27B0",
+    "Unknown":   "#CCCCCC",
 }
-TIER_COLORS = {
-    "T1_Entry":      "#2196F3",
-    "T2_Junior":     "#4CAF50",
-    "T3_Senior":     "#FF9800",
-    "T4_Management": "#F44336",
-    "Unknown":       "#CCCCCC",
-}
+# v1 baselines (BAAI/bge-base-en-v1.5) — beat these to confirm v2 improves clustering
 V1_SILHOUETTE   = 0.054
 V1_KNN_CV       = 0.620
 V1_MEAN_PURITY  = 0.164
+
+# Salary viability thresholds — cluster level
+SALARY_MIN_COVERAGE = 0.30
+SALARY_MIN_JOBS     = 50
+SALARY_MAX_CV       = 0.60
+
+# Salary viability thresholds — stratified (cluster × seniority) level
+# Groups are smaller so we relax min_jobs; CV target is tighter since seniority variance is removed
+STRAT_MIN_COVERAGE  = 0.30
+STRAT_MIN_JOBS      = 20
+STRAT_MAX_CV        = 0.50
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. DATA FETCH
 # ──────────────────────────────────────────────────────────────────────────────
 
-def fetch_jobs() -> tuple[np.ndarray, pd.DataFrame]:
-    """Return (X, df) for jobs embedded in the most recent 24-hour window."""
+def fetch_jobs(active_only: bool = False, sample: int = 50_000) -> tuple[np.ndarray, pd.DataFrame]:
+    """Return (X, df) — random sample of embedded jobs (sample=0 fetches all)."""
     print("Connecting to Supabase...")
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(
+        os.environ["DATABASE_URL"],
+        connect_timeout=0,
+        keepalives=1,
+        keepalives_idle=60,
+        keepalives_interval=10,
+        keepalives_count=5,
+        options="-c statement_timeout=0 -c idle_in_transaction_session_timeout=0",
+    )
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SET statement_timeout = 0")
+    cur.execute("SET idle_in_transaction_session_timeout = 0")
 
-    print("Fetching jobs + embeddings (may take a few minutes)…")
-    cur.execute("""
+    active_filter = "AND j.is_active = TRUE" if active_only else ""
+
+    if sample > 0 and not active_only:
+        # pg_class catalog estimate — instant, no table scan
+        cur.execute("SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = 'job_embeddings'")
+        total_estimate = cur.fetchone()["estimate"] or 200_000
+        fraction = min(sample / total_estimate * 1.2, 1.0)  # 20% buffer for variance
+        sample_filter = f"AND RANDOM() < {fraction:.6f}"
+        print(f"Fetching ~{sample:,} jobs (est. total={total_estimate:,}, fraction={fraction:.3f})…")
+    elif active_only:
+        # Active jobs are a small subset — fetch all, no sampling needed
+        sample_filter = ""
+        print("Fetching all active jobs + embeddings (no sampling for active-only mode)…")
+    else:
+        sample_filter = ""
+        print("Fetching all jobs + embeddings…")
+
+    cur.execute(f"""
         SELECT
             j.job_uuid,
             j.title,
@@ -86,7 +122,7 @@ def fetch_jobs() -> tuple[np.ndarray, pd.DataFrame]:
             j.salary_min,
             j.salary_max,
             j.skills_json,
-            j.predicted_tier,
+            j.llm_fields_json,
             COALESCE(
                 NULLIF(TRIM(BOTH '"' FROM (j.categories_json::jsonb->0)::text), ''),
                 'Unknown'
@@ -98,11 +134,9 @@ def fetch_jobs() -> tuple[np.ndarray, pd.DataFrame]:
             e.embedding::text AS embedding_text
         FROM jobs j
         JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-        WHERE j.is_active = TRUE
-          AND e.embedding IS NOT NULL
-          AND e.embedded_at >= (
-                SELECT MAX(embedded_at) FROM job_embeddings
-              ) - INTERVAL '24 hours'
+        WHERE e.embedding IS NOT NULL
+          {active_filter}
+          {sample_filter}
     """)
     rows = cur.fetchall()
     cur.close()
@@ -123,17 +157,27 @@ def fetch_jobs() -> tuple[np.ndarray, pd.DataFrame]:
         except (json.JSONDecodeError, TypeError):
             skills = []
 
+        try:
+            llm = json.loads(r["llm_fields_json"] or "{}")
+            seniority = llm.get("inferred_seniority") or "Unknown"
+            if seniority not in SENIORITY_LEVELS:
+                seniority = "Unknown"
+        except (json.JSONDecodeError, TypeError):
+            seniority = "Unknown"
+
         embeddings.append(emb)
+        sal_min = r["salary_min"] if r["salary_min"] and r["salary_min"] >= 100 else None
+        sal_max = r["salary_max"] if r["salary_max"] and r["salary_max"] >= 100 else None
         records.append({
             "job_uuid":       r["job_uuid"],
             "title":          r["title"] or "",
             "company_name":   r["company_name"] or "",
-            "salary_min":     r["salary_min"],
-            "salary_max":     r["salary_max"],
+            "salary_min":     sal_min,
+            "salary_max":     sal_max,
             "skills":         skills,
             "category":       r["category"],
             "position_level": r["position_level"],
-            "predicted_tier": r["predicted_tier"] or "Unknown",
+            "seniority":      seniority,
         })
 
     X = np.array(embeddings, dtype=np.float32)
@@ -194,10 +238,14 @@ def kmeans_sweep(X: np.ndarray) -> dict[int, float]:
 
 def fit_best_kmeans(X: np.ndarray, best_k: int) -> np.ndarray:
     print(f"\nFitting final K-Means k={best_k}...")
+    km_cache = OUTPUT_DIR / "km_labels.npy"
+    if km_cache.exists() and len(np.load(km_cache)) != len(X):
+        km_cache.unlink()
     km = MiniBatchKMeans(n_clusters=best_k, random_state=42, n_init=10, batch_size=4096)
     km.fit(X)
     labels = km.labels_
-    np.save(OUTPUT_DIR / "km_labels.npy", labels)
+    np.save(km_cache, labels)
+    np.save(OUTPUT_DIR / "km_centroids.npy", km.cluster_centers_)
     return labels
 
 
@@ -221,10 +269,9 @@ def run_hdbscan(xy: np.ndarray) -> np.ndarray:
 
 def knn_tier_cv(X: np.ndarray, df: pd.DataFrame) -> tuple[float, float]:
     df = df.copy()
-    df["tier"] = df["position_level"].map(TIER_MAP)
-    labeled = df[df["tier"].notna()]
+    labeled = df[df["seniority"] != "Unknown"]
     X_lab = X[labeled.index]
-    y_lab = labeled["tier"].to_numpy()
+    y_lab = labeled["seniority"].to_numpy()
 
     print(f"\nKNN tier CV on {len(X_lab):,} labeled jobs...")
     print(pd.Series(y_lab).value_counts().to_string())
@@ -240,89 +287,136 @@ def knn_tier_cv(X: np.ndarray, df: pd.DataFrame) -> tuple[float, float]:
 # 6. VISUALISATIONS
 # ──────────────────────────────────────────────────────────────────────────────
 
+SCATTER_SAMPLE = 30_000  # cap for visual UMAP plots — Scattergl handles this fine in browser
+
+
 def _save(fig: go.Figure, name: str) -> None:
     path = OUTPUT_DIR / name
     fig.write_html(str(path), include_plotlyjs="cdn")
     print(f"Saved -> {path}")
 
 
-def plot_by_tier(xy: np.ndarray, df: pd.DataFrame) -> None:
-    plot_df = pd.DataFrame({"x": xy[:, 0], "y": xy[:, 1],
-                            "tier": df["predicted_tier"].values,
-                            "title": df["title"].values,
-                            "company": df["company_name"].values})
-    fig = px.scatter(
-        plot_df, x="x", y="y", color="tier",
-        color_discrete_map=TIER_COLORS,
-        hover_data={"title": True, "company": True, "tier": True, "x": False, "y": False},
-        opacity=0.5,
-        title=f"UMAP — predicted tier  ({len(df):,} jobs)",
-        labels={"x": "UMAP-1", "y": "UMAP-2", "tier": "Tier"},
+def _umap_sample(xy: np.ndarray, df: pd.DataFrame, extra: dict | None = None, rng_seed: int = 42):
+    """Stratified-random sample of UMAP coords + df rows capped at SCATTER_SAMPLE."""
+    n = len(xy)
+    if n <= SCATTER_SAMPLE:
+        idx = np.arange(n)
+    else:
+        rng = np.random.default_rng(rng_seed)
+        idx = rng.choice(n, size=SCATTER_SAMPLE, replace=False)
+    result = {"xy": xy[idx], "df": df.iloc[idx].reset_index(drop=True)}
+    if extra:
+        result.update({k: v[idx] for k, v in extra.items()})
+    return result
+
+
+def _scatter_layout(fig: go.Figure, title: str) -> go.Figure:
+    fig.update_layout(
+        title=title, xaxis_title="UMAP-1", yaxis_title="UMAP-2",
+        plot_bgcolor="rgba(245,245,245,1)", paper_bgcolor="white",
+        hoverlabel=dict(bgcolor="white", font_size=12),
+        legend=dict(itemsizing="constant"),
     )
-    fig.update_traces(marker_size=3)
-    fig.update_layout(legend=dict(itemsizing="constant"))
+    return fig
+
+
+def plot_by_tier(xy: np.ndarray, df: pd.DataFrame) -> None:
+    s = _umap_sample(xy, df)
+    sdf, sxy = s["df"], s["xy"]
+    fig = go.Figure()
+    for tier, color in SENIORITY_COLORS.items():
+        mask = np.array(sdf["seniority"]) == tier
+        if not mask.any():
+            continue
+        fig.add_trace(go.Scattergl(
+            x=sxy[mask, 0], y=sxy[mask, 1], mode="markers", name=tier,
+            marker=dict(size=3, color=color, opacity=0.5),
+            hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<br>" + tier + "<extra></extra>",
+            customdata=np.stack([np.array(sdf["title"])[mask], np.array(sdf["company_name"])[mask]], axis=1),
+        ))
+    n_shown = len(sxy)
+    _scatter_layout(fig, f"UMAP — inferred seniority  ({len(df):,} jobs, {n_shown:,} shown)")
     _save(fig, "umap_by_tier.html")
 
 
 def plot_by_category(xy: np.ndarray, df: pd.DataFrame) -> None:
     top12 = df["category"].value_counts().head(12).index.tolist()
-    cats = df["category"].where(df["category"].isin(top12), other="Other")
-    plot_df = pd.DataFrame({"x": xy[:, 0], "y": xy[:, 1],
-                            "category": cats.values,
-                            "title": df["title"].values,
-                            "company": df["company_name"].values})
-    fig = px.scatter(
-        plot_df, x="x", y="y", color="category",
-        color_discrete_sequence=px.colors.qualitative.Dark24,
-        hover_data={"title": True, "company": True, "category": True, "x": False, "y": False},
-        opacity=0.5,
-        title=f"UMAP — top category  ({len(df):,} jobs)",
-        labels={"x": "UMAP-1", "y": "UMAP-2"},
-    )
-    fig.update_traces(marker_size=3)
-    fig.update_layout(legend=dict(itemsizing="constant"))
+    cats = df["category"].where(df["category"].isin(top12), other="Other").values
+    s = _umap_sample(xy, df, extra={"cats": cats})
+    sdf, sxy, scats = s["df"], s["xy"], s["cats"]
+    palette = px.colors.qualitative.Dark24
+    unique_cats = ["Other"] + top12
+    color_map = {c: palette[i % len(palette)] for i, c in enumerate(unique_cats)}
+    fig = go.Figure()
+    for cat in unique_cats:
+        mask = scats == cat
+        if not mask.any():
+            continue
+        fig.add_trace(go.Scattergl(
+            x=sxy[mask, 0], y=sxy[mask, 1], mode="markers", name=cat,
+            marker=dict(size=3, color=color_map[cat], opacity=0.5),
+            hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<br>" + cat + "<extra></extra>",
+            customdata=np.stack([np.array(sdf["title"])[mask], np.array(sdf["company_name"])[mask]], axis=1),
+        ))
+    _scatter_layout(fig, f"UMAP — top category  ({len(df):,} jobs, {len(sxy):,} shown)")
     _save(fig, "umap_by_category.html")
 
 
 def plot_by_salary(xy: np.ndarray, df: pd.DataFrame) -> None:
-    has_sal = ~(df["salary_min"].isna() | (df["salary_min"] == 0))
-    plot_df = pd.DataFrame({
-        "x": xy[:, 0], "y": xy[:, 1],
-        "salary_min": df["salary_min"].where(has_sal).values,
-        "title": df["title"].values,
-        "company": df["company_name"].values,
-    })
-    fig = px.scatter(
-        plot_df, x="x", y="y", color="salary_min",
-        color_continuous_scale="Plasma",
-        hover_data={"title": True, "company": True, "salary_min": True, "x": False, "y": False},
-        opacity=0.6,
-        title=f"UMAP — salary_min  ({has_sal.sum():,} with salary, grey = no salary)",
-        labels={"x": "UMAP-1", "y": "UMAP-2", "salary_min": "Salary min (SGD)"},
-    )
-    fig.update_traces(marker_size=3)
-    fig.update_layout(coloraxis_colorbar=dict(title="SGD min"))
+    has_sal = (~df["salary_min"].isna()).values
+    sal_vals = df["salary_min"].fillna(0).values
+    s = _umap_sample(xy, df, extra={"has_sal": has_sal, "sal": sal_vals})
+    sdf, sxy = s["df"], s["xy"]
+    shas, ssal = s["has_sal"], s["sal"]
+
+    fig = go.Figure()
+    # Grey for no-salary
+    if (~shas).any():
+        fig.add_trace(go.Scattergl(
+            x=sxy[~shas, 0], y=sxy[~shas, 1], mode="markers", name="No salary",
+            marker=dict(size=3, color="#CCCCCC", opacity=0.4),
+            hovertemplate="<b>%{customdata[0]}</b><br>No salary<extra></extra>",
+            customdata=np.array(sdf["title"])[~shas].reshape(-1, 1),
+        ))
+    # Coloured by salary
+    if shas.any():
+        fig.add_trace(go.Scattergl(
+            x=sxy[shas, 0], y=sxy[shas, 1], mode="markers", name="Has salary",
+            marker=dict(
+                size=3, opacity=0.6,
+                color=ssal[shas],
+                colorscale="Plasma",
+                showscale=True,
+                colorbar=dict(title="SGD min"),
+            ),
+            hovertemplate="<b>%{customdata[0]}</b><br>SGD %{customdata[1]:,.0f}<extra></extra>",
+            customdata=np.stack([np.array(sdf["title"])[shas], ssal[shas]], axis=1),
+        ))
+    _scatter_layout(fig, f"UMAP — salary_min  ({has_sal.sum():,} with salary, {len(sxy):,} shown)")
     _save(fig, "umap_by_salary.html")
 
 
 def plot_hdbscan(xy: np.ndarray, df: pd.DataFrame, hdb_labels: np.ndarray) -> None:
     labels_str = np.where(hdb_labels == -1, "Noise", "C" + hdb_labels.astype(str))
-    plot_df = pd.DataFrame({"x": xy[:, 0], "y": xy[:, 1],
-                            "cluster": labels_str,
-                            "title": df["title"].values,
-                            "company": df["company_name"].values,
-                            "category": df["category"].values})
+    s = _umap_sample(xy, df, extra={"labels": labels_str})
+    sdf, sxy, slabels = s["df"], s["xy"], s["labels"]
     n_clusters = int(hdb_labels.max() + 1) if hdb_labels.max() >= 0 else 0
-    fig = px.scatter(
-        plot_df, x="x", y="y", color="cluster",
-        hover_data={"title": True, "company": True, "category": True, "cluster": True, "x": False, "y": False},
-        opacity=0.5,
-        title=f"UMAP — HDBSCAN ({n_clusters} clusters, {(hdb_labels==-1).mean()*100:.1f}% noise)",
-        labels={"x": "UMAP-1", "y": "UMAP-2"},
-        color_discrete_sequence=["#CCCCCC"] + px.colors.qualitative.Dark24 + px.colors.qualitative.Light24,
-    )
-    fig.update_traces(marker_size=3)
-    fig.update_layout(legend=dict(itemsizing="constant", font_size=10))
+    palette = ["#CCCCCC"] + px.colors.qualitative.Dark24 + px.colors.qualitative.Light24
+    unique_labels = ["Noise"] + [f"C{i}" for i in range(n_clusters)]
+    color_map = {lbl: palette[i % len(palette)] for i, lbl in enumerate(unique_labels)}
+    fig = go.Figure()
+    for lbl in unique_labels:
+        mask = slabels == lbl
+        if not mask.any():
+            continue
+        fig.add_trace(go.Scattergl(
+            x=sxy[mask, 0], y=sxy[mask, 1], mode="markers", name=lbl,
+            marker=dict(size=3, color=color_map[lbl], opacity=0.5),
+            hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<br>" + lbl + "<extra></extra>",
+            customdata=np.stack([np.array(sdf["title"])[mask], np.array(sdf["category"])[mask]], axis=1),
+        ))
+    _scatter_layout(fig, f"UMAP — HDBSCAN ({n_clusters} clusters, {(hdb_labels==-1).mean()*100:.1f}% noise, {len(sxy):,} shown)")
+    fig.update_layout(legend=dict(font_size=10))
     _save(fig, "umap_hdbscan.html")
 
 
@@ -434,27 +528,64 @@ def build_cluster_profiles(df: pd.DataFrame, km_labels: np.ndarray) -> pd.DataFr
         for skills in sub["skills"]:
             all_skills.extend(skills)
         top_skills = [s for s, _ in Counter(all_skills).most_common(5)]
-        tier_dist = sub["predicted_tier"].value_counts(normalize=True).round(3).to_dict()
+        tier_dist = sub["seniority"].value_counts(normalize=True).round(3).to_dict()
+
+        sal = sub["salary_max"].dropna()
+        n_with_salary = len(sal)
+        pct_with_salary = n_with_salary / len(sub) if len(sub) else 0
+        if n_with_salary >= 2:
+            sal_median = sal.median()
+            sal_p25    = sal.quantile(0.25)
+            sal_p75    = sal.quantile(0.75)
+            sal_iqr    = sal_p75 - sal_p25
+            sal_cv     = sal.std() / sal.mean() if sal.mean() > 0 else None
+        else:
+            sal_median = sal_p25 = sal_p75 = sal_iqr = sal_cv = None
+
+        viable = (
+            pct_with_salary >= SALARY_MIN_COVERAGE
+            and n_with_salary >= SALARY_MIN_JOBS
+            and (sal_cv is None or sal_cv <= SALARY_MAX_CV)
+        )
+
         rows.append({
-            "cluster":       c,
-            "n_jobs":        len(sub),
-            "top_category":  sub["category"].value_counts().idxmax() if len(sub) else "",
-            "top_titles":    " | ".join(top_titles),
-            "top_skills":    " | ".join(top_skills),
+            "cluster":           c,
+            "n_jobs":            len(sub),
+            "top_category":      sub["category"].value_counts().idxmax() if len(sub) else "",
+            "top_titles":        " | ".join(top_titles),
+            "top_skills":        " | ".join(top_skills),
             "median_salary_min": sub["salary_min"].median() if sub["salary_min"].notna().any() else None,
-            "pct_with_salary": sub["salary_min"].notna().mean().round(3),
+            "pct_with_salary":   round(pct_with_salary, 3),
+            "n_with_salary":     n_with_salary,
+            "salary_max_p25":    round(sal_p25, 0) if sal_p25 is not None else None,
+            "salary_max_median": round(sal_median, 0) if sal_median is not None else None,
+            "salary_max_p75":    round(sal_p75, 0) if sal_p75 is not None else None,
+            "salary_max_iqr":    round(sal_iqr, 0) if sal_iqr is not None else None,
+            "salary_max_cv":     round(sal_cv, 3) if sal_cv is not None else None,
+            "salary_viable":     viable,
             **{f"tier_{k}": v for k, v in tier_dist.items()},
         })
     profiles = pd.DataFrame(rows).sort_values("n_jobs", ascending=False)
     path = OUTPUT_DIR / "cluster_profiles.csv"
     profiles.to_csv(path, index=False)
+
+    viability = profiles[[
+        "cluster", "n_jobs", "top_titles", "top_category",
+        "pct_with_salary", "n_with_salary",
+        "salary_max_p25", "salary_max_median", "salary_max_p75",
+        "salary_max_iqr", "salary_max_cv", "salary_viable",
+    ]].copy()
+    viability.to_csv(OUTPUT_DIR / "salary_viability.csv", index=False)
+
+    n_viable = viability["salary_viable"].sum()
     print(f"Saved -> {path}")
+    print(f"Salary viability: {n_viable}/{len(viability)} clusters viable for percentile benchmarking")
     return profiles
 
 
 def plot_cluster_profiles(profiles: pd.DataFrame) -> None:
-    TIER_ORDER = ["T1_Entry", "T2_Junior", "T3_Senior", "T4_Management", "Unknown"]
-    TIER_COLORS_LIST = ["#2196F3", "#4CAF50", "#FF9800", "#F44336", "#CCCCCC"]
+    TIER_ORDER = SENIORITY_LEVELS + ["Unknown"]
+    TIER_COLORS_LIST = [SENIORITY_COLORS[t] for t in TIER_ORDER]
 
     # ensure all tier columns exist
     for t in TIER_ORDER:
@@ -536,7 +667,7 @@ def plot_cluster_profiles(profiles: pd.DataFrame) -> None:
     )
 
     fig.update_layout(
-        title=dict(text="Cluster profiles — BGE-base-en-v1.5 embeddings", font_size=16),
+        title=dict(text="Cluster profiles — bge-base-sgmarket-v2 embeddings", font_size=16),
         barmode="stack",
         height=600,
         legend=dict(title="Tier", orientation="v", x=1.01, y=0.5),
@@ -552,6 +683,175 @@ def plot_cluster_profiles(profiles: pd.DataFrame) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 7b. SALARY DISTRIBUTION PER CLUSTER
+# ──────────────────────────────────────────────────────────────────────────────
+
+def plot_salary_distributions(df: pd.DataFrame, km_labels: np.ndarray, profiles: pd.DataFrame) -> None:
+    """Box plot of salary_max per cluster, ordered by median. Highlights viable clusters."""
+    df = df.copy()
+    df["cluster"] = km_labels
+
+    label_map = dict(zip(profiles["cluster"], profiles["top_titles"].str.split(" | ").str[0]))
+    viable_set = set(profiles.loc[profiles["salary_viable"], "cluster"])
+
+    rows = []
+    for c in sorted(df["cluster"].unique()):
+        sub = df[(df["cluster"] == c) & df["salary_max"].notna()]
+        if len(sub) < 5:
+            continue
+        name = label_map.get(c, f"C{c}")
+        viable = c in viable_set
+        for v in sub["salary_max"]:
+            rows.append({"cluster": c, "label": name, "salary_max": v, "viable": viable})
+
+    plot_df = pd.DataFrame(rows)
+    if plot_df.empty:
+        print("No salary data for distribution plot — skipping")
+        return
+
+    order = (
+        plot_df.groupby("label")["salary_max"].median()
+        .sort_values().index.tolist()
+    )
+    plot_df["viable_label"] = plot_df["viable"].map({True: "Viable", False: "Too sparse / noisy"})
+
+    fig = px.box(
+        plot_df, x="salary_max", y="label",
+        color="viable_label",
+        color_discrete_map={"Viable": "#4CAF50", "Too sparse / noisy": "#CCCCCC"},
+        category_orders={"label": order},
+        points=False,
+        title=(
+            f"Salary max distribution per cluster — viable = "
+            f"≥{int(SALARY_MIN_COVERAGE*100)}% coverage, "
+            f"≥{SALARY_MIN_JOBS} jobs, CV≤{SALARY_MAX_CV}"
+        ),
+        labels={"salary_max": "Salary max (SGD/mo)", "label": "Cluster (top title)", "viable_label": ""},
+    )
+    fig.update_layout(
+        height=max(400, len(order) * 22),
+        xaxis_tickprefix="$",
+        plot_bgcolor="rgba(245,245,245,1)",
+        paper_bgcolor="white",
+        hoverlabel=dict(bgcolor="white"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01),
+    )
+    _save(fig, "salary_distributions.html")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7c. STRATIFIED (CLUSTER × SENIORITY) PROFILES
+# ──────────────────────────────────────────────────────────────────────────────
+
+def build_stratified_profiles(df: pd.DataFrame, km_labels: np.ndarray, profiles: pd.DataFrame) -> pd.DataFrame:
+    """Compute salary stats per (cluster, seniority) pair."""
+    df = df.copy()
+    df["cluster"] = km_labels
+    label_map = dict(zip(profiles["cluster"], profiles["top_titles"].str.split(" | ").str[0]))
+
+    rows = []
+    for c in sorted(df["cluster"].unique()):
+        sub_c = df[df["cluster"] == c]
+        cluster_label = label_map.get(c, f"C{c}")
+        for seniority in SENIORITY_LEVELS + ["Unknown"]:
+            sub = sub_c[sub_c["seniority"] == seniority]
+            if len(sub) == 0:
+                continue
+            sal = sub["salary_max"].dropna()
+            n_with_salary = len(sal)
+            pct_with_salary = n_with_salary / len(sub) if len(sub) else 0
+            if n_with_salary >= 2:
+                sal_median = sal.median()
+                sal_p25    = sal.quantile(0.25)
+                sal_p75    = sal.quantile(0.75)
+                sal_iqr    = sal_p75 - sal_p25
+                sal_cv     = sal.std() / sal.mean() if sal.mean() > 0 else None
+            else:
+                sal_median = sal_p25 = sal_p75 = sal_iqr = sal_cv = None
+
+            viable = (
+                pct_with_salary >= STRAT_MIN_COVERAGE
+                and n_with_salary >= STRAT_MIN_JOBS
+                and (sal_cv is None or sal_cv <= STRAT_MAX_CV)
+            )
+            rows.append({
+                "cluster":           c,
+                "cluster_label":     cluster_label,
+                "seniority":         seniority,
+                "n_jobs":            len(sub),
+                "pct_with_salary":   round(pct_with_salary, 3),
+                "n_with_salary":     n_with_salary,
+                "salary_max_p25":    round(sal_p25, 0) if sal_p25 is not None else None,
+                "salary_max_median": round(sal_median, 0) if sal_median is not None else None,
+                "salary_max_p75":    round(sal_p75, 0) if sal_p75 is not None else None,
+                "salary_max_iqr":    round(sal_iqr, 0) if sal_iqr is not None else None,
+                "salary_max_cv":     round(sal_cv, 3) if sal_cv is not None else None,
+                "salary_viable":     viable,
+            })
+
+    strat = pd.DataFrame(rows)
+    path = OUTPUT_DIR / "salary_stratified_viability.csv"
+    strat.to_csv(path, index=False)
+    n_viable = int(strat["salary_viable"].sum())
+    n_total  = len(strat)
+    print(f"Saved -> {path}")
+    print(f"Stratified viability: {n_viable}/{n_total} (cluster × seniority) pairs viable")
+    return strat
+
+
+def plot_salary_distributions_stratified(df: pd.DataFrame, km_labels: np.ndarray, strat: pd.DataFrame) -> None:
+    """Box plot per viable (cluster, seniority) pair, colored by seniority."""
+    df = df.copy()
+    df["cluster"] = km_labels
+
+    viable_pairs = set(zip(strat.loc[strat["salary_viable"], "cluster"],
+                           strat.loc[strat["salary_viable"], "seniority"]))
+    label_map = dict(zip(strat["cluster"], strat["cluster_label"]))
+
+    rows = []
+    for (c, seniority) in viable_pairs:
+        sub = df[(df["cluster"] == c) & (df["seniority"] == seniority) & df["salary_max"].notna()]
+        if len(sub) < 5:
+            continue
+        cluster_label = label_map.get(c, f"C{c}")
+        label = f"{cluster_label} [{seniority}]"
+        for v in sub["salary_max"]:
+            rows.append({"label": label, "seniority": seniority, "salary_max": v})
+
+    plot_df = pd.DataFrame(rows)
+    if plot_df.empty:
+        print("No viable stratified pairs — skipping stratified distribution plot")
+        return
+
+    order = (
+        plot_df.groupby("label")["salary_max"].median()
+        .sort_values().index.tolist()
+    )
+
+    fig = px.box(
+        plot_df, x="salary_max", y="label",
+        color="seniority",
+        color_discrete_map=SENIORITY_COLORS,
+        category_orders={"label": order},
+        points=False,
+        title=(
+            f"Salary max — viable stratified pairs  "
+            f"(≥{STRAT_MIN_JOBS} jobs, CV≤{STRAT_MAX_CV})"
+        ),
+        labels={"salary_max": "Salary max (SGD/mo)", "label": "Cluster [Seniority]", "seniority": "Seniority"},
+    )
+    fig.update_layout(
+        height=max(400, len(order) * 22),
+        xaxis_tickprefix="$",
+        plot_bgcolor="rgba(245,245,245,1)",
+        paper_bgcolor="white",
+        hoverlabel=dict(bgcolor="white"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01),
+    )
+    _save(fig, "salary_distributions_stratified.html")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 8. SUMMARY JSON
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -561,18 +861,21 @@ def save_summary(
     knn_mean: float,
     knn_std: float,
     hdb_labels: np.ndarray,
+    profiles: pd.DataFrame,
+    strat: pd.DataFrame | None = None,
 ) -> None:
     best_k = max(scores, key=scores.get)
     n_hdb_clusters = int(hdb_labels.max() + 1) if hdb_labels.max() >= 0 else 0
+    n_viable = int(profiles["salary_viable"].sum()) if "salary_viable" in profiles.columns else None
     summary = {
-        "n_jobs":         n_jobs,
+        "n_jobs":          n_jobs,
         "embedding_model": MODEL_NAME,
-        "embedding_dim":  EMBEDDING_DIMS,
+        "embedding_dim":   EMBEDDING_DIMS,
         "kmeans": {
-            "best_k":           best_k,
-            "best_silhouette":  round(scores[best_k], 4),
-            "v1_baseline":      V1_SILHOUETTE,
-            "delta":            round(scores[best_k] - V1_SILHOUETTE, 4),
+            "best_k":          best_k,
+            "best_silhouette": round(scores[best_k], 4),
+            "v1_baseline":     V1_SILHOUETTE,
+            "delta":           round(scores[best_k] - V1_SILHOUETTE, 4),
         },
         "knn_tier_cv": {
             "mean_balanced_accuracy": round(knn_mean, 4),
@@ -583,8 +886,26 @@ def save_summary(
             "passes_threshold":       knn_mean >= 0.65,
         },
         "hdbscan": {
-            "n_clusters":  n_hdb_clusters,
-            "pct_noise":   round((hdb_labels == -1).mean() * 100, 2),
+            "n_clusters": n_hdb_clusters,
+            "pct_noise":  round((hdb_labels == -1).mean() * 100, 2),
+        },
+        "salary_viability": {
+            "n_clusters_total":  len(profiles),
+            "n_clusters_viable": n_viable,
+            "thresholds": {
+                "min_coverage": SALARY_MIN_COVERAGE,
+                "min_jobs":     SALARY_MIN_JOBS,
+                "max_cv":       SALARY_MAX_CV,
+            },
+        },
+        "salary_viability_stratified": {
+            "n_pairs_total":   len(strat) if strat is not None else None,
+            "n_pairs_viable":  int(strat["salary_viable"].sum()) if strat is not None else None,
+            "thresholds": {
+                "min_coverage": STRAT_MIN_COVERAGE,
+                "min_jobs":     STRAT_MIN_JOBS,
+                "max_cv":       STRAT_MAX_CV,
+            },
         },
     }
     path = OUTPUT_DIR / "summary.json"
@@ -598,7 +919,16 @@ def save_summary(
 # ──────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    plot_only = "--plot-only" in sys.argv
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--plot-only",   action="store_true")
+    parser.add_argument("--active-only", action="store_true")
+    parser.add_argument("--sample",      type=int, default=50_000,
+                        help="Random sample size (0 = fetch all, default 50000)")
+    args = parser.parse_args()
+    plot_only   = args.plot_only
+    active_only = args.active_only
+    sample      = args.sample
 
     if plot_only:
         print("Plot-only mode: loading cached data...")
@@ -611,15 +941,23 @@ def main() -> None:
         plot_by_tier(xy, df)
         plot_by_category(xy, df)
         plot_by_salary(xy, df)
+        strat = build_stratified_profiles(df, km_labels, profiles)
         plot_cluster_profiles(profiles)
         plot_umap_by_cluster(xy, df, km_labels, profiles)
+        plot_salary_distributions(df, km_labels, profiles)
+        plot_salary_distributions_stratified(df, km_labels, strat)
         print(f"\nAll outputs -> {OUTPUT_DIR.resolve()}")
         return
 
     # 1. Fetch
-    X, df = fetch_jobs()
+    X, df = fetch_jobs(active_only=active_only, sample=sample)
 
-    # 2. UMAP
+    # 2. UMAP — bust cache if row count changed
+    umap_cache = OUTPUT_DIR / "umap_coords.npy"
+    if umap_cache.exists() and len(np.load(umap_cache)) != len(X):
+        print(f"Row count changed ({len(np.load(umap_cache)):,} → {len(X):,}) — deleting stale UMAP cache")
+        umap_cache.unlink()
+
     xy = compute_umap(X)
     df["umap_x"] = xy[:, 0]
     df["umap_y"] = xy[:, 1]
@@ -649,11 +987,14 @@ def main() -> None:
 
     # 8. Cluster profiles
     profiles = build_cluster_profiles(df, km_labels)
+    strat    = build_stratified_profiles(df, km_labels, profiles)
     plot_cluster_profiles(profiles)
     plot_umap_by_cluster(xy, df, km_labels, profiles)
+    plot_salary_distributions(df, km_labels, profiles)
+    plot_salary_distributions_stratified(df, km_labels, strat)
 
     # 9. Summary
-    save_summary(len(df), scores, knn_mean, knn_std, hdb_labels)
+    save_summary(len(df), scores, knn_mean, knn_std, hdb_labels, profiles, strat)
 
     print(f"\nAll outputs -> {OUTPUT_DIR.resolve()}")
 
