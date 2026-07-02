@@ -220,6 +220,18 @@ def run_incremental_crawl(
                     except Exception as e:
                         print(f"Warning: hot-jobs scoring failed, skipping: {e}")
 
+        # Catch-up: score the newest active jobs that missed hot-jobs scoring
+        # on a previous run (e.g. transient failure above, or a job crawled
+        # as `maintained` rather than `added`). /hot-jobs only ever shows
+        # recent listings, so this is recency-ordered and bounded — not a
+        # full-table backfill of the historical backlog.
+        try:
+            stray_uuids = store.get_active_job_uuids_missing_hot_jobs_score(limit=100)
+            if stray_uuids:
+                store.assign_hot_jobs_scores(stray_uuids)
+        except Exception as e:
+            print(f"Warning: hot-jobs catch-up scoring failed, skipping: {e}")
+
         store.update_daily_stats(run.run_id)
         store.finish_run(
             run.run_id,

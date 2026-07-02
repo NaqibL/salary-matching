@@ -24,3 +24,4 @@ Project prefix: `SGSAL`
 | [SGSAL-018](tickets/SGSAL-018.md) | Write DB admin guide covering disk, vacuuming, and index management | done | medium |
 | [SGSAL-019](tickets/SGSAL-019.md) | High-value listings page — surface above-market jobs | done | medium |
 | [SGSAL-020](tickets/SGSAL-020.md) | Donation page — help keep the site alive | in-progress | low |
+| [SGSAL-021](tickets/SGSAL-021.md) | Hot Jobs scoring never runs post-crawl — new jobs invisible to /hot-jobs | done | high |

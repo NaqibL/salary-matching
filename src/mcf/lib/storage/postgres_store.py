@@ -870,6 +870,23 @@ class PostgresStore(Storage):
                 [job_uuids],
             )
 
+    def get_active_job_uuids_missing_hot_jobs_score(self, limit: int) -> list[str]:
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT j.job_uuid FROM jobs j
+                WHERE j.is_active = TRUE
+                  AND j.above_market_pct IS NULL
+                  AND EXISTS (
+                    SELECT 1 FROM job_embeddings je WHERE je.job_uuid = j.job_uuid
+                  )
+                ORDER BY j.posted_date DESC NULLS LAST
+                LIMIT %(limit)s
+                """,
+                {"limit": limit},
+            )
+            return [r[0] for r in cur.fetchall()]
+
     def create_match_session(
         self, *, user_id: str, mode: str, ranked_ids: list[str], ttl_seconds: int = 7200
     ) -> str:

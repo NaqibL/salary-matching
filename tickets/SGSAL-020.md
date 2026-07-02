@@ -2,53 +2,55 @@
 id: SGSAL-020
 project: salary-matching
 title: Donation page — help keep the site alive
-status: done
+status: in-progress
 priority: low
 type: feature
 labels: [frontend, monetisation]
 created: 2026-06-29
-updated: 2026-06-29
+updated: 2026-06-30
 ---
 
 ## Summary
 
-A simple public page explaining the project and giving visitors a way to donate (Buy Me a Coffee / Ko-fi / Stripe) to cover hosting costs.
+A public `/support` page explaining the project with a full-screen donation overlay (Ko-fi + PayNow). Designed to feel personal and illustrated, not transactional.
 
-## Context
+## UX flow
 
-- Surface: `/support` — public-facing, no auth required
-- Costs to cover: Railway (~$5/mo API), Supabase (free tier currently), Vercel (free)
-- Keeping it honest: not monetising, just covering infra costs
+```
+/support (landing)
+  └── "Support Me!" button
+        └── Full-screen overlay (no navigation)
+              ├── Ko-fi button — left ("Buy me a teh peng")
+              ├── Teh peng illustration — centre, tilted (artist asset)
+              └── PayNow QR + chibi — right (artist assets)
+```
 
-## Approach
+## What's done
 
-### Donation provider
+- [x] `/support` page built — centred title + tagline, two-column story/costs layout, amber "Support Me!" button
+- [x] Button has Ko-fi symbol (left) and PayNow logo (right) flanking the text, equal-width slots for symmetry
+- [x] `SupportOverlay` component — full-screen takeover, Escape to close, white/cream background
+- [x] Overlay has three-column layout: Ko-fi button left, tilted teh peng placeholder centre, PayNow QR + chibi placeholder right
+- [x] `kofi_symbol.png` and `paynow_logo.png` added to `/public`
+- [x] Page accessible at `/support` directly — no auth required
 
-Use **Buy Me a Coffee** or **Ko-fi** — both are zero-setup, link-based, and have embeddable widgets. Stripe is overkill for a personal project.
+## What's remaining
 
-Recommended: Ko-fi (no platform fee on one-time donations; clean embed).
+- [ ] Add `/support` link to sidebar (currently hidden — waiting until page is fully polished before exposing to users)
+- [ ] Commission artist drawings: teh peng illustration (centre hero, tilted), chibi of Luqman (above PayNow QR with "Thank you!")
+- [ ] Replace teh peng placeholder with real illustration asset
+- [ ] Replace chibi placeholder with real artist asset
+- [ ] Source a styled/modified PayNow QR to replace the plain `paynow_qr.png`
+- [ ] Overlay background — white/cream for now, may revisit once art assets arrive
 
-### Page content
+## Design decisions
 
-- One paragraph: what the tool does, who built it, why it's free
-- What donations cover (Railway compute, crawl storage)
-- Embed or button linking to Ko-fi / Buy Me a Coffee profile
-- Optional: a small "supporters" shoutout section if donations come in
-
-### Frontend
-
-- New page `frontend/app/support/page.tsx` — static, no API calls
-- Link from footer (not nav — keep nav clean) with a subtle "Support" or "☕" label
-- Keep it minimal: no animations, no guilt-trip copy
-
-## Acceptance Criteria
-
-- [ ] Donation provider account created (Ko-fi or Buy Me a Coffee)
-- [ ] `/support` page live with project description + donation link/embed
-- [ ] Footer links to `/support`
-- [ ] No auth required, fully public
+- Overlay style: full-screen takeover (gives artwork room to breathe)
+- Button: amber, not full-width, logos flanking the text
+- Background: `#fdf8f0` (warm white/cream) — single variable, easy to swap
+- Nav: sidebar only (not mobile bottom bar), added only when page is ready for public eyes
 
 ## Notes
 
-- Don't add to main nav — footer only, so it doesn't distract from the core tool
-- Keep the page copy honest and low-pressure
+- See `.claude/donation-page.md` for full design doc
+- Page is live on prod via URL — just not linked anywhere yet

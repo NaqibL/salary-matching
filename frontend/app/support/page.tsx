@@ -2,12 +2,17 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { Mail, Linkedin, Github } from 'lucide-react'
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
 import SupportOverlay from './SupportOverlay'
 
 const KOFI_USERNAME = 'naqibl'
+
+const CONTACT_EMAIL = 'lookmannaqib@gmail.com'
+const CONTACT_LINKEDIN = 'https://www.linkedin.com/in/luqman-naqib/'
+const CONTACT_GITHUB = 'https://github.com/NaqibL/'
 
 export default function SupportPage() {
   const [overlayOpen, setOverlayOpen] = useState(false)
@@ -90,6 +95,19 @@ export default function SupportPage() {
             <Image src="/paynow_logo.png" alt="PayNow" width={96} height={48} className="w-24 h-auto object-contain" />
           </div>
         </button>
+      </div>
+
+      {/* ── Contact Me ────────────────────────────────────────────────────── */}
+      <div className="mt-6 flex items-center justify-center gap-4 text-slate-400">
+        <a href={`mailto:${CONTACT_EMAIL}`} title={CONTACT_EMAIL} className="hover:text-slate-600 transition-colors">
+          <Mail className="size-5" />
+        </a>
+        <a href={CONTACT_LINKEDIN} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="hover:text-slate-600 transition-colors">
+          <Linkedin className="size-5" />
+        </a>
+        <a href={CONTACT_GITHUB} target="_blank" rel="noopener noreferrer" title="GitHub" className="hover:text-slate-600 transition-colors">
+          <Github className="size-5" />
+        </a>
       </div>
 
       <SupportOverlay open={overlayOpen} onClose={() => setOverlayOpen(false)} />

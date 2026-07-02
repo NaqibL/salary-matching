@@ -188,6 +188,15 @@ class Storage(ABC):
         """
         raise NotImplementedError
 
+    def get_active_job_uuids_missing_hot_jobs_score(self, limit: int) -> list[str]:
+        """Return active job UUIDs with an embedding but no above_market_pct yet,
+        newest posted first. /hot-jobs only ever surfaces recent listings, so
+        this is a recency-ordered catch-up, not a full backlog drain — jobs
+        that fall outside the newest slice are irrelevant to the page and are
+        deliberately left unscored.
+        """
+        raise NotImplementedError
+
     # === Job embeddings ===
 
     @abstractmethod
