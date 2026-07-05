@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart2, Building2, Flame, Scale } from 'lucide-react'
+import { BarChart2, Building2, Flame, Scale, Heart, Mail, Linkedin, Github } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
@@ -10,7 +10,12 @@ const navLinks = [
   { href: '/hot-jobs', label: 'Hot Jobs', icon: Flame, beta: true },
   { href: '/dashboard', label: 'Dashboard', icon: BarChart2 },
   { href: '/companies', label: 'Companies', icon: Building2 },
+  { href: '/support', label: 'Support', icon: Heart },
 ]
+
+const CONTACT_EMAIL = 'lookmannaqib@gmail.com'
+const CONTACT_LINKEDIN = 'https://www.linkedin.com/in/luqman-naqib/'
+const CONTACT_GITHUB = 'https://github.com/NaqibL/'
 
 export interface SidebarProps {
   userSlot?: React.ReactNode
@@ -62,6 +67,21 @@ export default function Sidebar({ userSlot }: SidebarProps) {
             )
           })}
         </nav>
+
+        <div className="px-6 py-4 border-t border-slate-200">
+          <p className="text-xs font-medium text-slate-400 mb-3">Contact me</p>
+          <div className="flex items-center gap-4 text-slate-400">
+            <a href={`mailto:${CONTACT_EMAIL}`} title={CONTACT_EMAIL} className="hover:text-slate-600 transition-colors">
+              <Mail className="size-5" />
+            </a>
+            <a href={CONTACT_LINKEDIN} target="_blank" rel="noopener noreferrer" title="LinkedIn" className="hover:text-slate-600 transition-colors">
+              <Linkedin className="size-5" />
+            </a>
+            <a href={CONTACT_GITHUB} target="_blank" rel="noopener noreferrer" title="GitHub" className="hover:text-slate-600 transition-colors">
+              <Github className="size-5" />
+            </a>
+          </div>
+        </div>
 
         {userSlot && (
           <div className="p-4 border-t border-slate-200">

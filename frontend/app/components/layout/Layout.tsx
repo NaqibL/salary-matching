@@ -4,13 +4,16 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import Sidebar from './Sidebar'
 import MobileNav from './MobileNav'
+import { cn } from '@/lib/utils'
 
 export interface LayoutProps {
   children: React.ReactNode
   userSlot?: React.ReactNode
+  /** Skip the max-w-[1280px] centering — content hugs the sidebar and fills the full width. */
+  fullWidth?: boolean
 }
 
-export default function Layout({ children, userSlot }: LayoutProps) {
+export default function Layout({ children, userSlot, fullWidth }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const onToggle = useCallback(() => setMobileMenuOpen((o) => !o), [])
 
@@ -34,7 +37,10 @@ export default function Layout({ children, userSlot }: LayoutProps) {
       </header>
 
       <main className="flex-1 min-w-0 lg:min-h-screen">
-        <div className="w-full max-w-[1280px] mx-auto px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8">
+        <div className={cn(
+          'w-full px-4 lg:px-8 py-6 lg:py-8 pb-24 lg:pb-8',
+          !fullWidth && 'max-w-[1280px] mx-auto'
+        )}>
           {children}
         </div>
       </main>
