@@ -27,19 +27,19 @@ dependencies = [
     "plotly>=6.7.0",
     "slowapi>=0.1.9",
     "pgvector>=0.4.2",
-    "torch==2.10.0+cu128",
+    "torch==2.10.0",
 ]
 
 [project.scripts]
 mcf = "mcf.cli.cli:main"
 
 [[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [tool.uv.sources]
-torch = { index = "pytorch-cu128" }
+torch = { index = "pytorch-cpu" }
 
 [build-system]
 requires = ["uv_build>=0.8.23,<0.9.0"]
