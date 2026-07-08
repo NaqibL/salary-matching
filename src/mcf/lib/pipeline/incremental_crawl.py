@@ -139,7 +139,13 @@ def run_incremental_crawl(
             # Tuple: (normalized, job_text, llm_result)
             jobs_to_embed: list[tuple[NormalizedJob, str, LLMCleanResult | None]] = []
             for external_id in added:
-                normalized = job_source.get_job_detail(external_id)
+                try:
+                    normalized = job_source.get_job_detail(external_id)
+                except Exception as e:
+                    # A single malformed/erroring listing (e.g. MCF's own API returning a
+                    # transient 4xx/5xx for one job) shouldn't abort the whole crawl run.
+                    print(f"Warning: skipping {external_id}: {e}")
+                    continue
                 job_uuid = normalized.job_uuid
                 job_text, llm_result = build_job_text_from_normalized(normalized)
 
