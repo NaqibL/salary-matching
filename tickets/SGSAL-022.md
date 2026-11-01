@@ -34,7 +34,16 @@ the 2026-11-01 spikes are at the bottom.
       Run 1 (8 workers) 1.07 jobs/s and run 2 (12 workers) 1.23 jobs/s → both
       cancelled: the bottleneck was one `update_llm_extracted_fields` round trip
       per job from the US runner, not the LLM. Fixed with a batched update
-      (commit 04893b8). Run 3: https://github.com/NaqibL/salary-matching/actions/runs/41281073409
+      (commit 04893b8). Run 3 (06:30 UTC, 1.37 jobs/s) got to 23,296 and FAILED at
+      11:17 UTC: Supabase put the project into READ-ONLY mode
+      (`default_transaction_read_only=on` injected per session by the pooler).
+      DB was 11 GB (embeddings_cache 3.9 GB = pure duplicate of job_embeddings,
+      0 query rows) → truncated it, DB now 7 GB, WAL 160 MB, no replication
+      slots — still read-only, so it is a Supabase project restriction (most
+      likely Pro spend cap + disk overage, visible only in the dashboard).
+      Run 4 (11:22 UTC) failed immediately for the same reason. ~4,600 jobs
+      still to repair; the Jev backfill (C5) stopped at 2,400/71,324 for the
+      same reason. Both resume with the same commands once writes work.
       Original notes: Verified in the DB on 2026-11-01: every job embedded
       from 2026-10-22 to 10-31 has EMPTY LLM fields (`llm_fields_json` is present
       but all-null because the cleaner's failure fallback still writes the row);
@@ -93,8 +102,10 @@ the 2026-11-01 spikes are at the bottom.
       key is set, legacy KMeans/LR otherwise; low confidence → "other", id 0).
       `re-embed` never classified, so the backfill script covers existing jobs.
 - [ ] C5. Script done 2026-11-01: `scripts/backfill_role_families.py` (resumable,
-      `--dry-run`, `--limit`). RUN IT after the A5 repair finishes (72.9k active
-      jobs, ≈ $5, ~1.5 h locally with 8 workers). Note: before Jev only 59 active
+      `--dry-run`, `--limit`). Started 10:50 UTC at 13 jobs/s (8 workers, 0
+      failures, $0.17 for 2,400 jobs) → stopped by the Supabase read-only
+      incident (see A5). Re-run `uv run python scripts/backfill_role_families.py --workers 8`
+      once writes work (~90 min, ≈ $5). Note: before Jev only 59 active
       jobs had any `predicted_tier`, so the old filters were effectively dead.
 - [x] C6. Done 2026-11-01 backend-side: `/api/jobs/taxonomy` serves
       `role_families` (ids = `jobs.role_cluster`), so `RoleClusterSelect` needs
