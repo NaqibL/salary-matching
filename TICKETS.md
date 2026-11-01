@@ -25,3 +25,4 @@ Project prefix: `SGSAL`
 | [SGSAL-019](tickets/SGSAL-019.md) | High-value listings page — surface above-market jobs | done | medium |
 | [SGSAL-020](tickets/SGSAL-020.md) | Donation page — help keep the site alive | in-progress | low |
 | [SGSAL-021](tickets/SGSAL-021.md) | Hot Jobs scoring never runs post-crawl — new jobs invisible to /hot-jobs | done | high |
+| [SGSAL-022](tickets/SGSAL-022.md) | Replace ML classifiers with Jev, switch cleaner model, repair LLM-field gap | in-progress | high |

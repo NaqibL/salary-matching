@@ -1,0 +1,51 @@
+title,cur_role,jev_role,jev_role_conf,mcf_level,cur_tier,jev_tier,jev_tier_conf,gemini_sen
+"Officer/Executive, Programmes Unit (PHH)",Social Work & Counselling,education_social_services,0.72,Fresh/entry level,T2_Junior,T1_Entry,0.66,Entry
+TRAVEL AGENCY MANAGER,"Creative, Media & Design",operations_strategy_pm,0.95,Manager,T4_Management,T4_Management,1.0,Manager
+Sales Executive (Laboratory & Medical Equipment),Marketing & Digital Marketing,sales_business_dev,1.0,Junior Executive,T1_Entry,T2_Junior,0.59,Entry
+Bus Captain,Drivers & Delivery,warehouse_drivers_delivery,0.98,Non-executive,T3_Senior,T2_Junior,0.94,Mid
+Clinical Psychologist (Sunbeam Place),Allied Health & Therapy,healthcare_allied,0.8,Professional,T3_Senior,T2_Junior,0.72,Senior
+Electrical Design Engineer,IT Infrastructure & DevOps,engineering_manufacturing,1.0,Professional,T3_Senior,T4_Management,0.82,Mid
+"Merchandising/Category Manager, FMCG (Non-Food)",Retail & Store Operations,procurement_supply_chain_logistics,0.51,Junior Executive,T2_Junior,T2_Junior,0.64,Mid
+"Masseur, Massage therapist, SPA therapist",Allied Health & Therapy,retail_beauty,0.92,Fresh/entry level,T3_Senior,T1_Entry,0.9,Entry
+OFFICE CLEANER,Cleaning & Facilities,cleaning_security_general_labour,1.0,Fresh/entry level,T1_Entry,T1_Entry,0.99,Entry
+KY11 - Senior Physiotherapist [MSK / Neuro / Post-Op Cases | Hospital Setting],Allied Health & Therapy,healthcare_allied,1.0,Professional,T3_Senior,T3_Senior,0.75,Mid
+Property Executive,Executive & Corporate Secretarial,construction_architecture_property,1.0,Executive,T2_Junior,T3_Senior,0.38,Entry
+Sales Ambassador,Marketing & Digital Marketing,sales_business_dev,0.92,Non-executive,T1_Entry,T1_Entry,1.0,Entry
+Workshop Manager (4S Operations),Construction Project Management,trades_technicians,0.46,Middle Management,T4_Management,T4_Management,1.0,Manager
+Multimedia Designer,Marketing & Digital Marketing,creative_design,0.99,Executive,T3_Senior,T3_Senior,0.98,Senior
+Buyer,Warehouse & Logistics,procurement_supply_chain_logistics,1.0,Senior Executive,T2_Junior,T2_Junior,1.0,Mid
+Procurement Bid & Project Manager,Procurement & Supply Chain,procurement_supply_chain_logistics,0.98,Manager,T3_Senior,T3_Senior,0.84,Senior
+"Process Engineer, WETS (JR11984)",IT Infrastructure & DevOps,engineering_manufacturing,1.0,Executive,T2_Junior,T1_Entry,0.6,Mid
+Senior Software Developer (.NET/ AngularJS),IT Infrastructure & DevOps,software_engineering,1.0,Executive,T3_Senior,T3_Senior,1.0,Senior
+"Software Lead Director (Bank, Permanent)",IT Infrastructure & DevOps,software_engineering,1.0,Senior Management,T4_Management,T4_Management,0.88,Lead
+Sales Executive,Marketing & Digital Marketing,sales_business_dev,1.0,Executive,T3_Senior,T2_Junior,1.0,Mid
+HR & Admin Executive,Human Resources,human_resources,0.96,Executive,T2_Junior,T2_Junior,0.99,Entry
+Medic / EMT/ Nurse (Medical Transport),Nursing & Patient Care,healthcare_allied,1.0,Fresh/entry level,T1_Entry,T1_Entry,1.0,Entry
+Computer Systems Validation (CSV) Engineer,IT Infrastructure & DevOps,software_engineering,0.39,Professional,T3_Senior,T2_Junior,0.91,Mid
+In House Legal Advisor,"Finance, Legal & Compliance",legal_compliance_cosec,1.0,Senior Management,T3_Senior,T3_Senior,1.0,Senior
+Locum Healthcare Assistant ($18/H) #HJO,Nursing & Patient Care,healthcare_allied,1.0,Fresh/entry level,T1_Entry,T1_Entry,0.96,Entry
+Cybersecurity Operations Engineer,IT Infrastructure & DevOps,it_infra_support_security,1.0,Junior Executive,T2_Junior,T2_Junior,0.98,Mid
+Software Development Manager(Traffic Management System),IT Infrastructure & DevOps,software_engineering,0.76,Manager,T4_Management,T4_Management,1.0,Manager
+Logistics Executive,Warehouse & Logistics,procurement_supply_chain_logistics,0.77,Executive,T1_Entry,T2_Junior,0.8,Mid
+Salesforce Developer,IT Infrastructure & DevOps,software_engineering,1.0,Senior Executive,T3_Senior,T2_Junior,0.61,Senior
+Community Care Associate (ID: 700378),Clinic & Dental Support,healthcare_allied,0.94,Non-executive,T1_Entry,T1_Entry,0.99,Entry
+Network Engineer,IT Infrastructure & DevOps,it_infra_support_security,1.0,Executive,T3_Senior,T2_Junior,0.99,Mid
+Senior Projects Manager,Procurement & Supply Chain,procurement_supply_chain_logistics,0.96,Professional,T4_Management,T3_Senior,0.49,Senior
+Pool & Gym Attendant,Cleaning & Facilities,fnb_hospitality,0.62,Fresh/entry level,T1_Entry,T1_Entry,1.0,Entry
+Physiotherapist - Home Care,Allied Health & Therapy,healthcare_allied,1.0,Professional,T3_Senior,T2_Junior,0.99,Mid
+"Head of Transport, SEA Cluster",Warehouse & Logistics,procurement_supply_chain_logistics,0.66,Senior Management,T4_Management,T4_Management,1.0,Manager
+Head of Human Resources Boutique Corporate Bank – Singapore,Human Resources,human_resources,1.0,Senior Management,T4_Management,T4_Management,1.0,Manager
+Backend Engineer,IT Infrastructure & DevOps,software_engineering,1.0,Professional,T3_Senior,T3_Senior,0.97,Senior
+Project Engineer @ Loyang,IT Infrastructure & DevOps,engineering_manufacturing,0.73,Executive,T2_Junior,T2_Junior,0.74,Mid
+Recruitment Coordinator (APAC) - Contract,Social Work & Counselling,human_resources,0.98,Executive,T2_Junior,T1_Entry,0.7,Entry
+Mechanical Design Engineer,IT Infrastructure & DevOps,engineering_manufacturing,1.0,Executive,T2_Junior,T2_Junior,0.96,Mid
+Senior Product Engineer,IT Infrastructure & DevOps,engineering_manufacturing,1.0,Professional,T3_Senior,T3_Senior,1.0,Senior
+R&D Test Engineer / Senior Engineer  - JY,IT Infrastructure & DevOps,engineering_manufacturing,1.0,Executive,T3_Senior,T3_Senior,0.75,Senior
+Physiotherapist (Grade I / Bright Hill / Up to $7k) - SS10,Allied Health & Therapy,healthcare_allied,1.0,Executive,T3_Senior,T2_Junior,0.62,Mid
+Traffic Engineer,IT Infrastructure & DevOps,construction_architecture_property,0.98,Executive,T2_Junior,T2_Junior,1.0,Mid
+Quality Control Executive (Manufacturing Industry),Electrical & Mechanical Technicians,engineering_manufacturing,0.99,Executive,T2_Junior,T2_Junior,0.99,Mid
+Inventory & Logistics Assistant – Recycling Industry,Warehouse & Logistics,warehouse_drivers_delivery,0.99,Non-executive,T1_Entry,T1_Entry,1.0,Entry
+YR23 - Preschool Cook Cum Cleaner 【East/West Side| Food Hygiene Certificate】,F&B Kitchen & Culinary,fnb_hospitality,0.74,Fresh/entry level,T1_Entry,T1_Entry,0.96,Entry
+Senior Technician A&C,Electrical & Mechanical Technicians,trades_technicians,0.98,Non-executive,T3_Senior,T2_Junior,0.96,Senior
+Delivery Driver,Warehouse & Logistics,warehouse_drivers_delivery,1.0,Non-executive,T1_Entry,T1_Entry,0.98,Entry
+Tutor (Full-Time),Education & Teaching,education_social_services,1.0,Executive,T3_Senior,T2_Junior,0.59,Entry
