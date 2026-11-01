@@ -110,6 +110,13 @@ the 2026-11-01 spikes are at the bottom.
       started it is closed. HOW TO CHECK: `SELECT count(*) FROM jobs WHERE is_active
       AND role_family IS NULL` (target: 0). TO RESUME:
       `uv run python scripts/backfill_role_families.py --workers 8`
+      AUTHORIZED: Luqman explicitly approved Claude running this backfill
+      unattended (2026-11-01). Run it in the FOREGROUND in chunks so it survives
+      tool timeouts: `--limit 4000` takes ~7-8 min per chunk; loop until the
+      count above is 0. Each chunk is resumable. Cost ≈ $0.07 per 1k jobs.
+      If the permission classifier blocks it, Luqman adds this allow rule to
+      `.claude/settings.local.json` (Claude cannot edit that file):
+      `"Bash(uv run python scripts/backfill_role_families.py:*)"`.
 - [x] C6. Done 2026-11-01 backend-side: `/api/jobs/taxonomy` serves
       `role_families` (ids = `jobs.role_cluster`), so `RoleClusterSelect` needs
       no change. `ROLE_TAXONOMY_SOURCE=kmeans` reverts.
