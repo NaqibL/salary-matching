@@ -91,6 +91,11 @@ the 2026-11-01 spikes are at the bottom.
 
 ### D. Loose ends from the cleanup
 
+- [x] D0. Incident 2026-11-01: the Railway redeploy after the key change CRASHED on
+      startup (torch mixed-version import error, ~20 min of 502s). Fixed by
+      pinning `torch==2.10.0` in `Dockerfile.api` so the pip pre-install matches
+      uv.lock. Any future Railway rebuild would have hit this; now deterministic.
+
 - [ ] D1. Stray personal files parked (not deleted) in Claude's scratchpad
       `removed-files` folder on the desktop PC: take-home PDF, article.txt,
       section1 notes, errors.txt, jobdescription.txt, railway-config-pull. Delete
