@@ -3,8 +3,16 @@
 import { useState, useEffect } from 'react'
 import { lowballApi, companiesApi } from '@/lib/api'
 import type { LowballResult, SimilarJob } from '@/lib/types'
+import {
+  EMPTY_FILTERS,
+  applySimilarRoleFilters,
+  hasActiveFilters,
+  seniorityOptions,
+  type SimilarRoleFilters,
+} from '@/lib/similarRoleFilters'
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
+import SimilarRoleFilterBar from './SimilarRoleFilterBar'
 import { Card, CardBody } from '@/components/design'
 import { Input } from '@/components/ui/input'
 import CompanyCombobox from '@/components/ui/CompanyCombobox'
@@ -393,6 +401,8 @@ export function LowballContent() {
   const [companyAliases, setCompanyAliases] = useState<Record<string, string>>({})
   const [companyInput, setCompanyInput] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'company'>('all')
+  // Client-side filters for the similar-roles list; reset on every new check / tab switch
+  const [filters, setFilters] = useState<SimilarRoleFilters>(EMPTY_FILTERS)
   const [trafficNoticeDismissed, setTrafficNoticeDismissed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('traffic_notice_dismissed') === 'true'
@@ -421,6 +431,7 @@ export function LowballContent() {
       const data = await lowballApi.check(title, description, salaryValue, selectedCompany || undefined, seniority || undefined)
       setResult(data)
       setActiveTab('all')
+      setFilters(EMPTY_FILTERS)
       setState('result')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -433,7 +444,14 @@ export function LowballContent() {
     setResult(null)
     setError(null)
     setActiveTab('all')
+    setFilters(EMPTY_FILTERS)
     setSeniority('')
+  }
+
+  // Seniority chips are derived from the visible tab's results, so clear filters on switch
+  const switchTab = (tab: 'all' | 'company') => {
+    setActiveTab(tab)
+    setFilters(EMPTY_FILTERS)
   }
 
   const fmt = (v: number) => `$${v.toLocaleString()}`
@@ -453,7 +471,7 @@ export function LowballContent() {
         </div>
         <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
           Explore the pay range for any role in Singapore — powered by live MCF data.
-          Enter the job title and description to see market rates, or add an offered salary to check if you're being lowballed.
+          Enter the job title and description to see market rates, or add an offered salary to check if you&apos;re being lowballed.
         </p>
       </div>
 
@@ -678,7 +696,7 @@ export function LowballContent() {
                         <span className="ml-1.5 text-xl font-semibold text-slate-500 dark:text-slate-400">/mo</span>
                       </p>
                       <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                        Median of {result.salary_coverage} similar listings · each listing's (min + max) ÷ 2, monthly base SGD
+                        Median of {result.salary_coverage} similar listings · each listing&apos;s (min + max) ÷ 2, monthly base SGD
                       </p>
                     </div>
 
@@ -726,6 +744,10 @@ export function LowballContent() {
                 : result.similar_jobs
               const activeCount = displayJobs.filter(j => j.is_active !== false).length
               const totalCount = displayJobs.length
+              // Filters apply to the cards only — the benchmark above always uses the full set
+              const filteredJobs = applySimilarRoleFilters(displayJobs, filters)
+              const filtersActive = hasActiveFilters(filters)
+              const filtersHideSome = filtersActive && filteredJobs.length !== totalCount
 
               return (
                 <div>
@@ -737,7 +759,7 @@ export function LowballContent() {
                       <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
                         <button
                           type="button"
-                          onClick={() => setActiveTab('all')}
+                          onClick={() => switchTab('all')}
                           className={`px-3 py-1.5 font-medium transition-colors ${
                             activeTab === 'all'
                               ? 'bg-indigo-600 text-white'
@@ -748,7 +770,7 @@ export function LowballContent() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setActiveTab('company')}
+                          onClick={() => switchTab('company')}
                           className={`px-3 py-1.5 font-medium transition-colors border-l border-slate-200 dark:border-slate-700 ${
                             activeTab === 'company'
                               ? 'bg-indigo-600 text-white'
@@ -769,9 +791,36 @@ export function LowballContent() {
                       {activeCount} active · {totalCount - activeCount} historical
                     </p>
                   )}
-                  {displayJobs.length > 0 ? (
+                  {displayJobs.length > 0 && (
+                    <SimilarRoleFilterBar
+                      filters={filters}
+                      onChange={setFilters}
+                      seniorityOptions={seniorityOptions(displayJobs)}
+                      shownCount={filteredJobs.length}
+                      totalCount={totalCount}
+                    />
+                  )}
+                  {filtersHideSome && (
+                    <p className="mb-3 px-1 text-xs text-slate-400 dark:text-slate-500">
+                      Filters only affect the cards below — the pay range above is still based on all {result.total_matched} matched roles.
+                    </p>
+                  )}
+                  {displayJobs.length > 0 && filteredJobs.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 px-6 py-8 text-center">
+                      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        No roles match these filters
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setFilters(EMPTY_FILTERS)}
+                        className="mt-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : displayJobs.length > 0 ? (
                     <div className="space-y-3">
-                      {displayJobs.map((job) => (
+                      {filteredJobs.map((job) => (
                         <SimilarJobCard key={job.job_uuid} job={job} />
                       ))}
                     </div>
