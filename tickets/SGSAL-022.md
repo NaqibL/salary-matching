@@ -28,7 +28,14 @@ the 2026-11-01 spikes are at the bottom.
 - [x] A3. `railway login` so Claude can read logs/metrics via the railway agent.
 - [x] A4. Add `DATABASE_URL` (Supabase session-pooler URI) to local `.env` so
       Claude can query the DB, run migrations and backfills.
-- [ ] A5. Repair the gap. Verified in the DB on 2026-11-01: every job embedded
+- [ ] A5. IN PROGRESS 2026-11-01. Repair runs via
+      `gh workflow run re-embed.yml -f since_days=13 -f missing_llm_only=true -f llm_workers=12`
+      (29,018 jobs selected; `--missing-llm-only` makes re-triggers resume).
+      Run 1 (8 workers) 1.07 jobs/s and run 2 (12 workers) 1.23 jobs/s → both
+      cancelled: the bottleneck was one `update_llm_extracted_fields` round trip
+      per job from the US runner, not the LLM. Fixed with a batched update
+      (commit 04893b8). Run 3: https://github.com/NaqibL/salary-matching/actions/runs/41281073409
+      Original notes: Verified in the DB on 2026-11-01: every job embedded
       from 2026-10-22 to 10-31 has EMPTY LLM fields (`llm_fields_json` is present
       but all-null because the cleaner's failure fallback still writes the row);
       10-20 and 10-21 were ~65% empty (partial failure). That is 25,020 active
