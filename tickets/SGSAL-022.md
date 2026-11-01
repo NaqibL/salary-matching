@@ -22,21 +22,29 @@ the 2026-11-01 spikes are at the bottom.
 - [x] A1. Push the new OpenRouter key into GitHub Actions secret `OPENROUTER_API_KEY`
       (Claude is blocked from reading the key; Luqman runs
       `gh secret set OPENROUTER_API_KEY --body <key>` himself or uses the GitHub web UI).
-- [ ] A2. Check Railway variables for `OPENROUTER_API_KEY`; update if present.
-- [ ] A3. `railway login` so Claude can read logs/metrics via the railway agent.
-- [ ] A4. Add `DATABASE_URL` (Supabase session-pooler URI) to local `.env` so
+- [ ] A2. Railway HAS `OPENROUTER_API_KEY` (old, dead) and `OPENROUTER_MODEL`. Update the
+      key: `railway variables --set "OPENROUTER_API_KEY=<key>"` (Luqman runs it; Claude
+      is blocked from reading the key). Only owner-only resume cleaning uses it.
+- [x] A3. `railway login` so Claude can read logs/metrics via the railway agent.
+- [x] A4. Add `DATABASE_URL` (Supabase session-pooler URI) to local `.env` so
       Claude can query the DB, run migrations and backfills.
-- [ ] A5. Repair the gap: Gemini calls returned 401 in every daily embed from
-      ~2026-10-22 to 2026-10-31 (2-4k failures per run, ~30k jobs embedded from
-      raw text with no skills/years/seniority). Correct mechanism is
-      `mcf re-embed --since-days 11` WITH `OPENROUTER_API_KEY` +
-      `JOB_EXTRACTOR_LLM_ENABLED=1` (NOT `backfill-rich-fields`, which only
-      refetches MCF metadata). Blockers: (1) `.github/workflows/re-embed.yml`
-      re-embeds ALL jobs and passes no LLM env - add a `since_days` input and
-      the two env vars; (2) the re-embed loop in `cli.py` (~line 778) calls the
-      LLM serially, ~1 job/s, so 30k jobs = 8+ h > the 6 h workflow timeout.
-      Do B2 (thread pool) first, then run the repair. Repo is public, so
-      Actions minutes are free.
+- [ ] A5. Repair the gap. Verified in the DB on 2026-11-01: every job embedded
+      from 2026-10-22 to 10-31 has EMPTY LLM fields (`llm_fields_json` is present
+      but all-null because the cleaner's failure fallback still writes the row);
+      10-20 and 10-21 were ~65% empty (partial failure). That is 25,020 active
+      jobs. Normal days run ~30% empty (no skills in the text), so target the
+      outage window, not "all empty".
+      Mechanism: `mcf re-embed` with LLM on (`OPENROUTER_API_KEY` +
+      `JOB_EXTRACTOR_LLM_ENABLED=1`), selecting active jobs whose
+      `job_embeddings.embedded_at >= 2026-10-20` AND skills/seniority are null.
+      `--since-days 13` is the nearest existing flag (re-embeds ~35k); a targeted
+      `--missing-llm-since <date>` flag would be cleaner. NOT `backfill-rich-fields`
+      (that only refetches MCF metadata).
+      Blockers: (1) `.github/workflows/re-embed.yml` re-embeds ALL jobs and
+      passes no LLM env - add inputs + env; (2) the re-embed loop in `cli.py`
+      (~line 778) calls the LLM serially (~1 job/s) so 25k jobs = 7 h > the 6 h
+      workflow timeout. Do B2 (thread pool) first. Repo is public, so Actions
+      minutes are free. Cost ≈ $4 on Gemini, ≈ $2 on GPT-OSS.
 - [ ] A6. Confirm the next daily embed shows 0 `401 Unauthorized` lines.
 
 ### B. Cheaper cleaner model (one-line change)
@@ -70,7 +78,7 @@ the 2026-11-01 spikes are at the bottom.
 - [ ] C4. Wire into the embed path (`incremental_crawl.py` and `re-embed` in
       `cli.py`): replace `classify_jobs` / `classify_jobs_multilabel` calls with
       the Jev call. Low confidence (<0.5) → role "other".
-- [ ] C5. Backfill script for all active jobs (~25k, ≈ $2). Reuse the batch
+- [ ] C5. Backfill script for all active jobs (72.9k active on 2026-11-01, ≈ $5). Reuse the batch
       pattern from `scripts/finetune/import_embeddings.py`.
 - [ ] C6. Frontend: `RoleClusterSelect` and the taxonomy API read from
       `role_families` instead of `role_taxonomy_v2.json`.
@@ -95,7 +103,7 @@ the 2026-11-01 spikes are at the bottom.
 
 **Jev, 50 jobs, `typesafe/jev-1.14`:** 0 errors, p50 0.45 s, $0.000072/job
 (~1,700 input tokens because the role criteria ride along) → ≈ $9/month at
-4k jobs/day, ≈ $2 for a full backfill. Role family: Jev clearly better than
+4k jobs/day, ≈ $5 for a full backfill (72.9k active jobs). Role family: Jev clearly better than
 KMeans (KMeans misfiled ~12/50, e.g. mechanical/process/traffic engineers →
 "IT Infrastructure & DevOps", travel agency manager → "Creative, Media &
 Design", recruiter → "Social Work"). Tier: 62% agreement with the LR model; on
