@@ -54,10 +54,11 @@ the 2026-11-01 spikes are at the bottom.
       gpt-oss-120b, 2x faster, 25k repair fits the 6 h limit) or
       `openai/gpt-oss-120b` (cheapest of the good ones but 9 s/call; the repair
       would need ~16 workers or two runs). Awaiting Luqman's call.
-- [ ] B2. CONFIRMED serial: `build_job_text_from_dict` is called once per job inside
-      the re-embed loop (`cli.py` ~line 778) and in `incremental_crawl.py`, so
-      each LLM call blocks. Add a thread pool (6-8 workers) around the LLM calls
-      before switching models or running A5.
+- [x] B2. Done 2026-11-01: `build_texts_parallel()` in `job_text.py` runs the
+      text/LLM step on a thread pool (env `LLM_CLEAN_WORKERS`, default 8;
+      `mcf re-embed --llm-workers N`). Used by the re-embed loop and
+      `incremental_crawl.py`. Runs inline when the LLM is off. DB batch writes
+      unchanged. Unit test: `tests/test_job_text_parallel.py`.
 - [ ] B3. Update `OPENROUTER_MODEL` in `.env`, `.env.example`, GitHub secret, and
       the default in `src/mcf/lib/embeddings/llm_cleaner.py`. Rename
       `GeminiFlashCleaner` → `OpenRouterCleaner` (keep an alias).

@@ -45,7 +45,7 @@ from mcf.lib.embeddings.base import EmbedderProtocol
 from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
 from mcf.lib.embeddings.job_description_extractor import LLMCleanResult
-from mcf.lib.embeddings.job_text import build_job_text_from_normalized
+from mcf.lib.embeddings.job_text import build_job_text_from_normalized, build_texts_parallel
 from mcf.lib.sources.base import NormalizedJob
 from mcf.lib.sources.mcf_source import MCFJobSource
 from mcf.lib.storage.base import RunStats, Storage
@@ -136,8 +136,7 @@ def run_incremental_crawl(
                 batch_size = cfg.batch_size if cfg and hasattr(cfg, "batch_size") else 32
 
             # Phase 1: Fetch job details and upsert (no embeddings yet)
-            # Tuple: (normalized, job_text, llm_result)
-            jobs_to_embed: list[tuple[NormalizedJob, str, LLMCleanResult | None]] = []
+            fetched: list[NormalizedJob] = []
             for external_id in added:
                 try:
                     normalized = job_source.get_job_detail(external_id)
@@ -147,7 +146,7 @@ def run_incremental_crawl(
                     print(f"Warning: skipping {external_id}: {e}")
                     continue
                 job_uuid = normalized.job_uuid
-                job_text, llm_result = build_job_text_from_normalized(normalized)
+                fetched.append(normalized)
 
                 store.upsert_new_job_detail(
                     run_id=run.run_id,
@@ -167,6 +166,13 @@ def run_incremental_crawl(
                     description=normalized.description,
                 )
 
+            # Phase 1b: Build embedding text. The optional LLM cleaning call is
+            # network-bound, so it runs on a thread pool (LLM_CLEAN_WORKERS).
+            # Tuple: (normalized, job_text, llm_result)
+            jobs_to_embed: list[tuple[NormalizedJob, str, LLMCleanResult | None]] = []
+            for normalized, (job_text, llm_result) in zip(
+                fetched, build_texts_parallel(fetched, build_job_text_from_normalized)
+            ):
                 if job_text:
                     jobs_to_embed.append((normalized, job_text, llm_result))
 

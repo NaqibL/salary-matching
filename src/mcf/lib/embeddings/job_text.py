@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import os
 import re
-from typing import Callable
+from concurrent.futures import ThreadPoolExecutor
+from typing import Callable, Iterable, Iterator, TypeVar
 
-from mcf.lib.embeddings.job_description_extractor import LLMCleanResult, extract_high_signal_description
+from mcf.lib.embeddings.job_description_extractor import (
+    LLMCleanResult,
+    extract_high_signal_description,
+    get_llm_cleaner,
+)
 from mcf.lib.sources.base import NormalizedJob
 
 # ---------------------------------------------------------------------------
@@ -278,3 +284,54 @@ def build_job_text_from_dict(
     if description_text:
         parts.append(f"Description: {description_text}")
     return "\n".join(parts), llm_result
+
+
+# ---------------------------------------------------------------------------
+# Parallel text building (the LLM cleaning call is network-bound)
+# ---------------------------------------------------------------------------
+
+_T = TypeVar("_T")
+_R = TypeVar("_R")
+
+_DEFAULT_LLM_WORKERS = 8
+
+
+def default_llm_workers() -> int:
+    """Worker count for parallel LLM cleaning (env ``LLM_CLEAN_WORKERS``, default 8)."""
+    raw = os.getenv("LLM_CLEAN_WORKERS", "").strip()
+    try:
+        return max(1, int(raw)) if raw else _DEFAULT_LLM_WORKERS
+    except ValueError:
+        return _DEFAULT_LLM_WORKERS
+
+
+def build_texts_parallel(
+    items: Iterable[_T],
+    build_fn: Callable[[_T], _R],
+    workers: int | None = None,
+) -> Iterator[_R]:
+    """Apply ``build_fn`` to every item, yielding results in input order.
+
+    When an LLM cleaner is registered the calls are network-bound, so they run
+    on a thread pool of ``workers`` threads (default :func:`default_llm_workers`).
+    Without a cleaner the work is pure CPU, so it runs inline to avoid GIL
+    contention.  Items are processed in chunks so memory stays bounded for
+    large re-embeds.
+    """
+    if workers is None:
+        workers = default_llm_workers()
+    if workers <= 1 or get_llm_cleaner() is None:
+        for item in items:
+            yield build_fn(item)
+        return
+
+    chunk_size = workers * 4
+    chunk: list[_T] = []
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for item in items:
+            chunk.append(item)
+            if len(chunk) >= chunk_size:
+                yield from ex.map(build_fn, chunk)
+                chunk = []
+        if chunk:
+            yield from ex.map(build_fn, chunk)

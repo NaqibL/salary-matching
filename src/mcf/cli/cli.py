@@ -21,7 +21,7 @@ from mcf.lib.external.client import MCFAPIError
 from mcf.lib.crawler.crawler import CrawlProgress
 from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
-from mcf.lib.embeddings.job_text import build_job_text_from_dict
+from mcf.lib.embeddings.job_text import build_job_text_from_dict, build_texts_parallel, default_llm_workers
 from mcf.lib.embeddings.resume import extract_resume_text, preprocess_resume_text
 from mcf.lib.pipeline.incremental_crawl import run_incremental_crawl
 from mcf.lib.sources.cag_source import CareersGovJobSource
@@ -694,6 +694,10 @@ def re_embed(
         bool,
         typer.Option("--skip-llm", help="Skip LLM extraction and build text from stored fields only (faster, no API calls)"),
     ] = False,
+    llm_workers: Annotated[
+        Optional[int],
+        typer.Option("--llm-workers", help="Parallel LLM cleaning calls (default: LLM_CLEAN_WORKERS env or 8)"),
+    ] = None,
 ) -> None:
     """Re-embed all jobs with the current model and structured text format.
 
@@ -751,7 +755,8 @@ def re_embed(
         console.print(f"  Jobs to embed: [yellow]{len(all_jobs):,}[/yellow]")
         console.print(f"  Model: [green]{EmbedderConfig().model_name}[/green]")
         console.print(f"  Batch size: [yellow]{batch_size}[/yellow]")
-        llm_status = f"[green]enabled[/green] ({_llm_cleaner.model})" if _llm_cleaner and _jde._LLM_ENABLED else "[yellow]disabled[/yellow]"
+        workers = llm_workers if llm_workers is not None else default_llm_workers()
+        llm_status = f"[green]enabled[/green] ({_llm_cleaner.model}, {workers} workers)" if _llm_cleaner and _jde._LLM_ENABLED else "[yellow]disabled[/yellow]"
         console.print(f"  LLM cleaning: {llm_status}")
         console.print()
 
@@ -776,9 +781,13 @@ def re_embed(
             llm_results: list = []
             embedded = 0
 
-            for job in all_jobs:
-                job_text, llm_result = build_job_text_from_dict(job, skip_llm=skip_llm)
+            def _build(job: dict):
+                return build_job_text_from_dict(job, skip_llm=skip_llm)
 
+            # LLM cleaning runs on a thread pool; results arrive in input order.
+            for job, (job_text, llm_result) in zip(
+                all_jobs, build_texts_parallel(all_jobs, _build, workers=workers)
+            ):
                 if not job_text:
                     progress.advance(task)
                     continue
