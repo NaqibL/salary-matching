@@ -19,7 +19,7 @@ the 2026-11-01 spikes are at the bottom.
 
 ### A. Ops — do first (needs Luqman's logins)
 
-- [ ] A1. Push the new OpenRouter key into GitHub Actions secret `OPENROUTER_API_KEY`
+- [x] A1. Push the new OpenRouter key into GitHub Actions secret `OPENROUTER_API_KEY`
       (Claude is blocked from reading the key; Luqman runs
       `gh secret set OPENROUTER_API_KEY --body <key>` himself or uses the GitHub web UI).
 - [ ] A2. Check Railway variables for `OPENROUTER_API_KEY`; update if present.
@@ -27,9 +27,16 @@ the 2026-11-01 spikes are at the bottom.
 - [ ] A4. Add `DATABASE_URL` (Supabase session-pooler URI) to local `.env` so
       Claude can query the DB, run migrations and backfills.
 - [ ] A5. Repair the gap: Gemini calls returned 401 in every daily embed from
-      ~2026-10-22 to 2026-10-31 (2–4k failures per run). Run the
-      `backfill-rich-fields` workflow (`gh workflow run backfill-rich-fields.yml`)
-      after A1 so those jobs get cleaned text + skills/years/seniority.
+      ~2026-10-22 to 2026-10-31 (2-4k failures per run, ~30k jobs embedded from
+      raw text with no skills/years/seniority). Correct mechanism is
+      `mcf re-embed --since-days 11` WITH `OPENROUTER_API_KEY` +
+      `JOB_EXTRACTOR_LLM_ENABLED=1` (NOT `backfill-rich-fields`, which only
+      refetches MCF metadata). Blockers: (1) `.github/workflows/re-embed.yml`
+      re-embeds ALL jobs and passes no LLM env - add a `since_days` input and
+      the two env vars; (2) the re-embed loop in `cli.py` (~line 778) calls the
+      LLM serially, ~1 job/s, so 30k jobs = 8+ h > the 6 h workflow timeout.
+      Do B2 (thread pool) first, then run the repair. Repo is public, so
+      Actions minutes are free.
 - [ ] A6. Confirm the next daily embed shows 0 `401 Unauthorized` lines.
 
 ### B. Cheaper cleaner model (one-line change)
