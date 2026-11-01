@@ -49,7 +49,7 @@ class Settings(BaseSettings):
 
     # --- LLM job description cleaning (optional, used during re-embed/crawl) ---
     openrouter_api_key: str | None = None
-    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash-lite")
+    openrouter_model: str = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it")
     job_extractor_llm_enabled: bool = os.getenv("JOB_EXTRACTOR_LLM_ENABLED", "0") in ("1", "true", "yes")
 
     # --- Admin ---

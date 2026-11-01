@@ -86,7 +86,9 @@ External APIs (MCF REST / CAG Algolia)
 | `SUPABASE_SERVICE_KEY` | Yes | Service role key — used for resume storage uploads |
 | `ALLOWED_ORIGINS` | Yes | CORS — comma-separated Vercel + localhost URLs |
 | `SUPABASE_JWT_SECRET` | Legacy only | Skip if project uses JWT Signing Keys (new Supabase default) |
-| `OPENROUTER_API_KEY` | Optional | Enables GeminiFlashCleaner LLM pass during embed |
+| `OPENROUTER_API_KEY` | Optional | Enables the OpenRouterCleaner LLM pass during embed |
+| `OPENROUTER_MODEL` | Optional | Cleaner model slug (default `google/gemma-4-26b-a4b-it`) |
+| `LLM_CLEAN_WORKERS` | Optional | Parallel LLM cleaning calls during crawl / re-embed (default 8) |
 | `CAG_ALGOLIA_API_KEY` | Optional | CAG crawl — falls back to hardcoded public key if unset |
 | `CRON_SECRET` | Optional | Auth for post-crawl cache invalidation webhook |
 | `ALLOW_ANONYMOUS_LOCAL` | Dev only | Bypass Supabase auth for local testing |
@@ -111,7 +113,7 @@ External APIs (MCF REST / CAG Algolia)
 4. **Job UUIDs:** MCF uses raw API id. Other sources prefix: `cag:<id>`.
 5. **CAG Algolia key** in `cag_source.py` falls back to a hardcoded public key. If CAG crawl breaks, check if the key rotated.
 6. **First request after deploy:** 30–60 s — BGE model downloads at runtime, not at build time.
-7. **LLM cleaning:** `GeminiFlashCleaner` (Gemini 2.5 Flash Lite via OpenRouter) runs during embed when `OPENROUTER_API_KEY` is set. Extracts `min_years_experience` and `llm_fields_json` (canonical skills, inferred seniority). These are **hints only** — never override scraper-provided `position_levels`, `salary_min/max`, or `employment_types`.
+7. **LLM cleaning:** `OpenRouterCleaner` (default model `google/gemma-4-26b-a4b-it`, set via `OPENROUTER_MODEL`; `GeminiFlashCleaner` is a kept alias) runs during embed when `OPENROUTER_API_KEY` is set, on a thread pool (`LLM_CLEAN_WORKERS`). Note `OPENROUTER_MODEL` is also read by the owner-only resume cleaner. Extracts `min_years_experience` and `llm_fields_json` (canonical skills, inferred seniority). These are **hints only** — never override scraper-provided `position_levels`, `salary_min/max`, or `employment_types`.
 
 ---
 

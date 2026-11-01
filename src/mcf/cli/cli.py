@@ -124,13 +124,13 @@ def crawl_incremental(
 
     # Wire LLM cleaner if configured (only relevant when embed=True)
     if not no_embed:
-        from mcf.lib.embeddings.llm_cleaner import GeminiFlashCleaner
+        from mcf.lib.embeddings.llm_cleaner import OpenRouterCleaner
         from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
         import mcf.lib.embeddings.job_description_extractor as _jde
         from mcf.api.config import settings
 
         if settings.openrouter_api_key and settings.job_extractor_llm_enabled:
-            _llm_cleaner = GeminiFlashCleaner(
+            _llm_cleaner = OpenRouterCleaner(
                 api_key=settings.openrouter_api_key,
                 model=settings.openrouter_model,
             )
@@ -711,14 +711,14 @@ def re_embed(
     candidate embedding uses the same model as the jobs.
     """
     # Wire LLM cleaner if configured (skipped entirely when --skip-llm is set)
-    from mcf.lib.embeddings.llm_cleaner import GeminiFlashCleaner
+    from mcf.lib.embeddings.llm_cleaner import OpenRouterCleaner
     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
     import mcf.lib.embeddings.job_description_extractor as _jde
     from mcf.api.config import settings
 
     _llm_cleaner = None
     if not skip_llm and settings.openrouter_api_key and settings.job_extractor_llm_enabled:
-        _llm_cleaner = GeminiFlashCleaner(
+        _llm_cleaner = OpenRouterCleaner(
             api_key=settings.openrouter_api_key,
             model=settings.openrouter_model,
         )

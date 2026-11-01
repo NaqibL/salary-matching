@@ -49,19 +49,21 @@ the 2026-11-01 spikes are at the bottom.
 
 ### B. Cheaper cleaner model (one-line change)
 
-- [ ] B1. Decide the new `OPENROUTER_MODEL`. 30-job shootout (2026-11-01, below)
-      narrows it to `google/gemma-4-26b-a4b-it` (recommended: same quality as
-      gpt-oss-120b, 2x faster, 25k repair fits the 6 h limit) or
-      `openai/gpt-oss-120b` (cheapest of the good ones but 9 s/call; the repair
-      would need ~16 workers or two runs). Awaiting Luqman's call.
+- [x] B1. Decided 2026-11-01: `google/gemma-4-26b-a4b-it` (30-job shootout below:
+      same quality as gpt-oss-120b, 0 failures, 2x faster, ~$0.10/1k jobs vs
+      $0.15 on Gemini). gpt-oss-120b was the runner-up but at 9 s/call the 25k
+      repair would not fit the 6 h workflow limit.
 - [x] B2. Done 2026-11-01: `build_texts_parallel()` in `job_text.py` runs the
       text/LLM step on a thread pool (env `LLM_CLEAN_WORKERS`, default 8;
       `mcf re-embed --llm-workers N`). Used by the re-embed loop and
       `incremental_crawl.py`. Runs inline when the LLM is off. DB batch writes
       unchanged. Unit test: `tests/test_job_text_parallel.py`.
-- [ ] B3. Update `OPENROUTER_MODEL` in `.env`, `.env.example`, GitHub secret, and
-      the default in `src/mcf/lib/embeddings/llm_cleaner.py`. Rename
-      `GeminiFlashCleaner` → `OpenRouterCleaner` (keep an alias).
+- [x] B3. Done 2026-11-01 in code: default in `llm_cleaner.py` + `config.py`,
+      `.env`, `.env.example`, CLAUDE.md; `GeminiFlashCleaner` → `OpenRouterCleaner`
+      (alias kept). Luqman still needs to set the GitHub secret `OPENROUTER_MODEL`
+      (only if one exists; otherwise the workflow default applies) and the Railway
+      variable `OPENROUTER_MODEL=google/gemma-4-26b-a4b-it` (also used by the
+      owner-only resume cleaner).
 - [ ] B4. Watch one daily embed run: failure count, runtime, cost.
 
 ### C. Jev replaces the KMeans/LR classifiers

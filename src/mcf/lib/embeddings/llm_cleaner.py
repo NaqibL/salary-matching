@@ -1,4 +1,9 @@
-"""Gemini Flash Lite implementation of the LLMJobCleaner Protocol.
+"""OpenRouter implementation of the LLMJobCleaner Protocol.
+
+Model-agnostic: any OpenRouter chat model works, selected via OPENROUTER_MODEL.
+Default is google/gemma-4-26b-a4b-it (chosen in the 2026-11-01 shootout, see
+tickets/SGSAL-022.md: 0 failures on 30 jobs, 30/30 skills, ~4 s/call,
+~$0.10 per 1k jobs).
 
 Calls the OpenRouter API (OpenAI-compatible) to:
   1. Extract structured fields from the job description (min years experience,
@@ -15,17 +20,17 @@ Usage
 -----
 Register at app startup (e.g. in server.py lifespan):
 
-    from mcf.lib.embeddings.llm_cleaner import make_gemini_cleaner_from_env
+    from mcf.lib.embeddings.llm_cleaner import make_openrouter_cleaner_from_env
     from mcf.lib.embeddings.job_description_extractor import register_llm_cleaner
 
-    cleaner = make_gemini_cleaner_from_env()
+    cleaner = make_openrouter_cleaner_from_env()
     if cleaner:
         register_llm_cleaner(cleaner)
 
 Environment variables
 ---------------------
 OPENROUTER_API_KEY          Required. Your OpenRouter API key (sk-or-v1-...).
-OPENROUTER_MODEL            Optional. Model slug (default: google/gemini-2.5-flash-lite-preview-06-17).
+OPENROUTER_MODEL            Optional. Model slug (default: google/gemma-4-26b-a4b-it).
 JOB_EXTRACTOR_LLM_ENABLED   Must be "1" for the extractor to call the cleaner.
 """
 
@@ -40,7 +45,7 @@ import httpx
 from mcf.lib.embeddings.job_description_extractor import LLMCleanResult, _LLM_THRESHOLD
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_DEFAULT_MODEL = "google/gemini-2.5-flash-lite"
+_DEFAULT_MODEL = "google/gemma-4-26b-a4b-it"
 
 _SYSTEM_PROMPT = """\
 You process job descriptions for a job-matching search index. Given a job posting, \
@@ -141,8 +146,8 @@ def _parse_response(raw: str, original_description: str) -> LLMCleanResult:
     )
 
 
-class GeminiFlashCleaner:
-    """LLMJobCleaner implementation using Gemini Flash Lite via OpenRouter."""
+class OpenRouterCleaner:
+    """LLMJobCleaner implementation calling any chat model via OpenRouter."""
 
     def __init__(
         self,
@@ -209,8 +214,8 @@ class GeminiFlashCleaner:
 # ------------------------------------------------------------------
 
 
-def make_gemini_cleaner_from_env() -> GeminiFlashCleaner | None:
-    """Build a GeminiFlashCleaner from environment variables.
+def make_openrouter_cleaner_from_env() -> OpenRouterCleaner | None:
+    """Build an OpenRouterCleaner from environment variables.
 
     Returns None if OPENROUTER_API_KEY is not set.
     """
@@ -218,8 +223,9 @@ def make_gemini_cleaner_from_env() -> GeminiFlashCleaner | None:
     if not api_key:
         return None
     model = os.getenv("OPENROUTER_MODEL", _DEFAULT_MODEL).strip() or _DEFAULT_MODEL
-    return GeminiFlashCleaner(api_key=api_key, model=model)
+    return OpenRouterCleaner(api_key=api_key, model=model)
 
 
-# Keep old name as an alias so existing server.py startup code doesn't break
-make_openrouter_cleaner_from_env = make_gemini_cleaner_from_env
+# Backwards-compatible aliases (the class was named after the original model)
+GeminiFlashCleaner = OpenRouterCleaner
+make_gemini_cleaner_from_env = make_openrouter_cleaner_from_env
