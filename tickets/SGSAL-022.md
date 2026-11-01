@@ -49,9 +49,11 @@ the 2026-11-01 spikes are at the bottom.
 
 ### B. Cheaper cleaner model (one-line change)
 
-- [ ] B1. Decide: switch `OPENROUTER_MODEL` from `google/gemini-2.5-flash-lite`
-      to `openai/gpt-oss-120b` (half the cost, more fields found, but ~5x slower
-      per call — see spike numbers).
+- [ ] B1. Decide the new `OPENROUTER_MODEL`. 30-job shootout (2026-11-01, below)
+      narrows it to `google/gemma-4-26b-a4b-it` (recommended: same quality as
+      gpt-oss-120b, 2x faster, 25k repair fits the 6 h limit) or
+      `openai/gpt-oss-120b` (cheapest of the good ones but 9 s/call; the repair
+      would need ~16 workers or two runs). Awaiting Luqman's call.
 - [ ] B2. CONFIRMED serial: `build_job_text_from_dict` is called once per job inside
       the re-embed loop (`cli.py` ~line 778) and in `incremental_crawl.py`, so
       each LLM call blocks. Add a thread pool (6-8 workers) around the LLM calls
@@ -115,7 +117,28 @@ Design", recruiter → "Social Work"). Tier: 62% agreement with the LR model; on
 disagreements Jev was right ~11 vs LR ~5. Jev leans low on MCF
 "Professional" roles → feed `position_levels` into state (C2).
 
-**Cleaner model comparison, 20 jobs, production prompt:**
+**Cleaner model shootout, 30 random active DB jobs, production prompt, 6 workers (2026-11-01, run 2):**
+
+| model | failed | skills | years | seniority | p50 / p90 latency | wall (30 jobs) | $/1k jobs |
+|---|---|---|---|---|---|---|---|
+| google/gemini-2.5-flash-lite (current) | 0 | 22 | 7 | 21 | 1.4 s / 1.8 s | 14 s | 0.147 |
+| openai/gpt-oss-120b | 0 | 29 | 12 | 30 | 8.9 s / 17.9 s | 54 s | 0.065 |
+| google/gemma-4-26b-a4b-it | 0 | 30 | 11 | 29 | 4.3 s / 6.6 s | 25 s | 0.095 |
+| z-ai/glm-5.3-flash | 1 | 27 | 11 | 28 | 4.3 s / 7.9 s | 30 s | 0.128 |
+| mistralai/mistral-small-24b-instruct-2501 | 0 | 20 | 11 | 30 | 3.4 s / 11.2 s | 26 s | 0.046 |
+| meta-llama/llama-3.1-8b-instruct | 0 | 26 | 16* | 30 | 5.2 s / 7.8 s | 30 s | 0.049 |
+| openai/gpt-oss-20b | 4 (DQ) | 26 | 10 | 26 | 4.8 s | 40 s | 0.096 |
+| google/gemma-3-12b-it | 6 (DQ) | 0 | 0 | 0 | 3.9 s | 358 s | 0.064 |
+| nvidia/nemotron-3-nano-30b-a3b | 27 (DQ) | 3 | 1 | 3 | – | – | – |
+| openai/gpt-5-nano | 30 (DQ) | 0 | 0 | 0 | – | – | – |
+
+\* Llama's extra "years" hits are hallucinated (it invents 2–3 years on jobs where
+no other model and the JD itself state none) → not trusted. gpt-5-nano and
+gpt-oss-20b fail because reasoning eats the 1200 max_tokens and the reply comes
+back empty; gemma-3 ignores the ===FIELDS=== marker. Total spend ≈ $0.02.
+Script now samples from `DATABASE_URL` and pulls pricing live from OpenRouter.
+
+**Earlier run — 20 jobs, local jsonl:**
 
 | model | skills found | seniority found | failures | p50 latency | $/job |
 |---|---|---|---|---|---|
@@ -125,7 +148,7 @@ disagreements Jev was right ~11 vs LR ~5. Jev leans low on MCF
 | qwen/qwen3.7-flash | 0 | 0 | 20 | – | – |
 
 Spike scripts (throwaway, committed under `scripts/spikes/`): `jev_spike.py`,
-`cleaner_model_compare.py`. Both read local parquet/jsonl (desktop PC only), no DB needed. `jev_results.csv` is the 50-job comparison.
+`cleaner_model_compare.py`. `jev_spike.py` reads local parquet (desktop PC only); `cleaner_model_compare.py` reads from `DATABASE_URL`. `jev_results.csv` is the 50-job comparison.
 
 ## Draft role families (C1)
 
