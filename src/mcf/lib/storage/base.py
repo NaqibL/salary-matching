@@ -132,6 +132,21 @@ class Storage(ABC):
         """Persist LLM-extracted fields for a job. Called by the embedder after the LLM pass."""
         raise NotImplementedError
 
+    def update_llm_extracted_fields_batch(
+        self,
+        rows: list[tuple[str, int | None, dict | None]],
+    ) -> None:
+        """Persist LLM-extracted fields for many jobs in one round trip.
+
+        ``rows`` are ``(job_uuid, min_years_experience, llm_fields_json)``.
+        Default implementation loops over :meth:`update_llm_extracted_fields`;
+        stores should override with a single statement.
+        """
+        for job_uuid, min_years, fields in rows:
+            self.update_llm_extracted_fields(
+                job_uuid, min_years_experience=min_years, llm_fields_json=fields
+            )
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return MCF job UUIDs where categories_json is NULL or empty (need backfill).
         Used by backfill-rich-fields to populate rich metadata from the MCF API."""

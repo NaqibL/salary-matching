@@ -672,6 +672,25 @@ def reset_ratings_cli(
         store.close()
 
 
+def _persist_llm_results(store: Storage, uuids: list[str], llm_results: list) -> None:
+    """Write LLM-extracted fields for one embed batch in a single DB round trip."""
+    rows = [
+        (
+            uuid,
+            lr.min_years_experience,
+            {
+                "min_years_experience": lr.min_years_experience,
+                "canonical_skills": lr.canonical_skills,
+                "inferred_seniority": lr.inferred_seniority,
+            },
+        )
+        for uuid, lr in zip(uuids, llm_results)
+        if lr is not None
+    ]
+    if rows:
+        store.update_llm_extracted_fields_batch(rows)
+
+
 @app.command("re-embed")
 def re_embed(
     db_url: Annotated[
@@ -812,17 +831,7 @@ def re_embed(
                         model_name=embedder.model_name,
                         rows=list(zip(uuids, embeddings)),
                     )
-                    for uuid, lr in zip(uuids, llm_results):
-                        if lr is not None:
-                            store.update_llm_extracted_fields(
-                                uuid,
-                                min_years_experience=lr.min_years_experience,
-                                llm_fields_json={
-                                    "min_years_experience": lr.min_years_experience,
-                                    "canonical_skills": lr.canonical_skills,
-                                    "inferred_seniority": lr.inferred_seniority,
-                                },
-                            )
+                    _persist_llm_results(store, uuids, llm_results)
                     embedded += len(texts)
                     progress.advance(task, len(texts))
                     texts, uuids, llm_results = [], [], []
@@ -834,17 +843,7 @@ def re_embed(
                     model_name=embedder.model_name,
                     rows=list(zip(uuids, embeddings)),
                 )
-                for uuid, lr in zip(uuids, llm_results):
-                    if lr is not None:
-                        store.update_llm_extracted_fields(
-                            uuid,
-                            min_years_experience=lr.min_years_experience,
-                            llm_fields_json={
-                                "min_years_experience": lr.min_years_experience,
-                                "canonical_skills": lr.canonical_skills,
-                                "inferred_seniority": lr.inferred_seniority,
-                            },
-                        )
+                _persist_llm_results(store, uuids, llm_results)
                 embedded += len(texts)
                 progress.advance(task, len(texts))
 

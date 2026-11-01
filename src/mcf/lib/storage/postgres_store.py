@@ -270,6 +270,31 @@ class PostgresStore(Storage):
                 [min_years_experience, json.dumps(llm_fields_json) if llm_fields_json else None, job_uuid],
             )
 
+    def update_llm_extracted_fields_batch(
+        self,
+        rows: list[tuple[str, int | None, dict | None]],
+    ) -> None:
+        if not rows:
+            return
+        data = [
+            (job_uuid, min_years, json.dumps(fields) if fields else None)
+            for job_uuid, min_years, fields in rows
+        ]
+        with self._cur() as cur:
+            execute_values(
+                cur,
+                """
+                UPDATE jobs AS j
+                SET min_years_experience = v.min_years,
+                    llm_fields_json = v.fields
+                FROM (VALUES %s) AS v(job_uuid, min_years, fields)
+                WHERE j.job_uuid = v.job_uuid
+                """,
+                data,
+                template="(%s, %s::integer, %s::text)",
+                page_size=200,
+            )
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return job UUIDs where categories_json is NULL or empty."""
         with self._cur() as cur:

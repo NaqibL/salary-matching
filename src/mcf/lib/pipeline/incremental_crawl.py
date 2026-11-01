@@ -184,6 +184,7 @@ def run_incremental_crawl(
                     texts = [jt for _, jt, _ in batch]
                     try:
                         embeddings = _embedder.embed_texts(texts)
+                        llm_rows: list[tuple[str, int | None, dict | None]] = []
                         for (normalized, _, llm_result), emb in zip(batch, embeddings):
                             store.upsert_embedding(
                                 job_uuid=normalized.job_uuid,
@@ -191,16 +192,18 @@ def run_incremental_crawl(
                                 embedding=emb,
                             )
                             if llm_result is not None:
-                                store.update_llm_extracted_fields(
+                                llm_rows.append((
                                     normalized.job_uuid,
-                                    min_years_experience=llm_result.min_years_experience,
-                                    llm_fields_json={
+                                    llm_result.min_years_experience,
+                                    {
                                         "min_years_experience": llm_result.min_years_experience,
                                         "canonical_skills": llm_result.canonical_skills,
                                         "inferred_seniority": llm_result.inferred_seniority,
                                     },
-                                )
+                                ))
                             embedded.append((normalized.job_uuid, emb))
+                        if llm_rows:
+                            store.update_llm_extracted_fields_batch(llm_rows)
                     except Exception as e:
                         for normalized, _, _ in batch:
                             print(f"Warning: Failed to generate embedding for job {normalized.job_uuid}: {e}")
