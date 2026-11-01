@@ -44,9 +44,10 @@ the 2026-11-01 spikes are at the bottom.
 - [ ] B1. Decide: switch `OPENROUTER_MODEL` from `google/gemini-2.5-flash-lite`
       to `openai/gpt-oss-120b` (half the cost, more fields found, but ~5x slower
       per call — see spike numbers).
-- [ ] B2. Check whether `mcf re-embed` cleans jobs in parallel. If it is serial,
-      add a small thread pool (6–8 workers) before switching, or the daily embed
-      will take several hours.
+- [ ] B2. CONFIRMED serial: `build_job_text_from_dict` is called once per job inside
+      the re-embed loop (`cli.py` ~line 778) and in `incremental_crawl.py`, so
+      each LLM call blocks. Add a thread pool (6-8 workers) around the LLM calls
+      before switching models or running A5.
 - [ ] B3. Update `OPENROUTER_MODEL` in `.env`, `.env.example`, GitHub secret, and
       the default in `src/mcf/lib/embeddings/llm_cleaner.py`. Rename
       `GeminiFlashCleaner` → `OpenRouterCleaner` (keep an alias).
