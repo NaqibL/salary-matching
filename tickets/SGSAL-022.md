@@ -28,22 +28,24 @@ the 2026-11-01 spikes are at the bottom.
 - [x] A3. `railway login` so Claude can read logs/metrics via the railway agent.
 - [x] A4. Add `DATABASE_URL` (Supabase session-pooler URI) to local `.env` so
       Claude can query the DB, run migrations and backfills.
-- [ ] A5. IN PROGRESS 2026-11-01. Repair runs via
+- [ ] A5. IN PROGRESS. Run 5 started 11:55 UTC 2026-11-01:
+      https://github.com/NaqibL/salary-matching/actions/runs/41304064764
+      (~4,400 jobs left at 12:00 UTC, ~1.1 jobs/s, expected done ~13:05 UTC).
+      HOW TO CHECK: `gh run view 41304064764 --json status,conclusion`, then count
+      active jobs embedded in the last 13 days whose skills AND seniority are
+      empty (SQL in `scripts/backfill_role_families.py` style; see
+      `get_active_jobs_embedded_since(..., missing_llm_only=True)`). A small
+      residual (jobs whose text has no skills) is normal. If the run failed or
+      timed out, re-trigger — it resumes:
       `gh workflow run re-embed.yml -f since_days=13 -f missing_llm_only=true -f llm_workers=12`
-      (29,018 jobs selected; `--missing-llm-only` makes re-triggers resume).
-      Run 1 (8 workers) 1.07 jobs/s and run 2 (12 workers) 1.23 jobs/s → both
-      cancelled: the bottleneck was one `update_llm_extracted_fields` round trip
-      per job from the US runner, not the LLM. Fixed with a batched update
-      (commit 04893b8). Run 3 (06:30 UTC, 1.37 jobs/s) got to 23,296 and FAILED at
-      11:17 UTC: Supabase put the project into READ-ONLY mode
-      (`default_transaction_read_only=on` injected per session by the pooler).
-      DB was 11 GB (embeddings_cache 3.9 GB = pure duplicate of job_embeddings,
-      0 query rows) → truncated it, DB now 7 GB, WAL 160 MB, no replication
-      slots — still read-only, so it is a Supabase project restriction (most
-      likely Pro spend cap + disk overage, visible only in the dashboard).
-      Run 4 (11:22 UTC) failed immediately for the same reason. ~4,600 jobs
-      still to repair; the Jev backfill (C5) stopped at 2,400/71,324 for the
-      same reason. Both resume with the same commands once writes work.
+      History: runs 1-2 cancelled (per-job DB UPDATE was the bottleneck → batched,
+      commit 04893b8); run 3 reached 23,296 then FAILED 11:17 UTC when Supabase put
+      the project into read-only mode; run 4 failed instantly for the same reason.
+      Root cause: disk had auto-grown to 18 GB while the Pro spend cap allows 8 GB
+      → Supabase restricts the project. Fixed by Luqman disabling the spend cap
+      (≈ $1.25/month extra for 10 GB); writes back 11:55 UTC. Also truncated
+      `embeddings_cache` (3.9 GB duplicate of job_embeddings, nothing read it);
+      DB is 7 GB on an 18 GB disk.
       Original notes: Verified in the DB on 2026-11-01: every job embedded
       from 2026-10-22 to 10-31 has EMPTY LLM fields (`llm_fields_json` is present
       but all-null because the cleaner's failure fallback still writes the row);
@@ -101,12 +103,13 @@ the 2026-11-01 spikes are at the bottom.
 - [x] C4. Done 2026-11-01 for `incremental_crawl.py` (Phase 3 uses Jev when the
       key is set, legacy KMeans/LR otherwise; low confidence → "other", id 0).
       `re-embed` never classified, so the backfill script covers existing jobs.
-- [ ] C5. Script done 2026-11-01: `scripts/backfill_role_families.py` (resumable,
-      `--dry-run`, `--limit`). Started 10:50 UTC at 13 jobs/s (8 workers, 0
-      failures, $0.17 for 2,400 jobs) → stopped by the Supabase read-only
-      incident (see A5). Re-run `uv run python scripts/backfill_role_families.py --workers 8`
-      once writes work (~90 min, ≈ $5). Note: before Jev only 59 active
-      jobs had any `predicted_tier`, so the old filters were effectively dead.
+- [ ] C5. IN PROGRESS. `scripts/backfill_role_families.py` (resumable: selects
+      active jobs with `role_family IS NULL`). Restarted 11:56 UTC on the desktop
+      PC, 8 workers, ~9 jobs/s, 0 failures, ≈ $0.07 per 1k jobs; 68,924 to go at
+      start → expected done ~14:00 UTC. It dies if the Claude session that
+      started it is closed. HOW TO CHECK: `SELECT count(*) FROM jobs WHERE is_active
+      AND role_family IS NULL` (target: 0). TO RESUME:
+      `uv run python scripts/backfill_role_families.py --workers 8`
 - [x] C6. Done 2026-11-01 backend-side: `/api/jobs/taxonomy` serves
       `role_families` (ids = `jobs.role_cluster`), so `RoleClusterSelect` needs
       no change. `ROLE_TAXONOMY_SOURCE=kmeans` reverts.
@@ -116,6 +119,39 @@ the 2026-11-01 spikes are at the bottom.
 - [ ] C8. Unit tests done (`tests/test_jev_classifier.py`, mock transport).
       Smoke test for backfilled jobs still to add after C5.
 - [x] C9. Done 2026-11-01 (CLAUDE.md design fact 8, embeddings README).
+
+### E. Found on 2026-11-01 while repairing (not yet done)
+
+- [ ] E1. Railway var `ALLOW_ANONYMOUS_LOCAL=true` is set in PRODUCTION: it disables
+      all API auth (owner-only endpoints are open). Public routes use
+      `get_optional_user`, so removing it is safe. Luqman runs
+      `railway variables --delete ALLOW_ANONYMOUS_LOCAL` (Claude is blocked).
+- [ ] E2. Delete the unused GitHub secret `OPENROUTER_MODEL`
+      (`gh secret delete OPENROUTER_MODEL`; workflows use the code default).
+- [ ] E3. Watch the next daily embed (15:40 UTC): 0 `401` lines, runtime, cost
+      (= A6/B4). First run with gemma-4, the thread pool, batched writes and
+      `ENABLE_EMBEDDINGS_CACHE=0`.
+- [ ] E4. Apply `scripts/migrations/020_llm_fields_dashboard_index.sql` manually
+      (CONCURRENTLY, Supabase SQL editor) — speeds the skills-trend dashboard query.
+- [ ] E5. Disk hygiene (no feature impact): drop the duplicate index
+      `idx_job_embeddings_job_uuid` (same columns as the PK, 41 MB) at a quiet
+      moment — NOT while a VACUUM or backfill holds `job_embeddings`, it queues
+      behind them and blocks the live checker (happened today, terminated);
+      add a crawl step that keeps only 90 days of `job_run_status`
+      (920k of 1.5M rows are older; only the current run's rows are ever read).
+- [ ] E6. Decide a retention rule for expired jobs' embeddings (538k of 606k
+      vectors belong to expired postings; 246k are 90-180 days old). Deleting
+      embeddings (not job rows) older than 90 days would free ~1 GB and cap
+      growth; the checker's "historical" matches would reach back 3 months.
+      Luqman has not decided; not needed now that the spend cap is off.
+- [ ] E7. Dedup near-identical postings (recruiter reposts, same company).
+      Product change (affects dashboard counts + benchmarks) → own ticket.
+- [x] E8. Jobs pool never warmed in production (pgvector 0.4 `Vector` TypeError
+      on every startup). Fixed + pool TTL 15 min → 24 h (each load is ~650 MB of
+      Supabase egress; commit 2b048db).
+- [x] E9. Shipped today beyond this ticket: lowball/salary-search response cache
+      (cd7a30c), similar-roles client filters (16c7bb5), dashboard seniority /
+      top-skills / skills-trend / role-family analytics (6082f2d).
 
 ### D. Loose ends from the cleanup
 
