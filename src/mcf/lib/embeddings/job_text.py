@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
+from itertools import islice
 from typing import Callable, Iterable, Iterator, TypeVar
 
 from mcf.lib.embeddings.job_description_extractor import (
@@ -316,7 +317,9 @@ def build_texts_parallel(
     on a thread pool of ``workers`` threads (default :func:`default_llm_workers`).
     Without a cleaner the work is pure CPU, so it runs inline to avoid GIL
     contention.  Items are processed in chunks so memory stays bounded for
-    large re-embeds.
+    large re-embeds, and the next chunk is submitted before the current one
+    is yielded so the LLM calls overlap with whatever the consumer does
+    (embedding, DB writes) in between.
     """
     if workers is None:
         workers = default_llm_workers()
@@ -325,13 +328,12 @@ def build_texts_parallel(
             yield build_fn(item)
         return
 
-    chunk_size = workers * 4
-    chunk: list[_T] = []
+    chunk_size = workers * 8
+    it = iter(items)
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        for item in items:
-            chunk.append(item)
-            if len(chunk) >= chunk_size:
-                yield from ex.map(build_fn, chunk)
-                chunk = []
-        if chunk:
-            yield from ex.map(build_fn, chunk)
+        pending = [ex.submit(build_fn, x) for x in islice(it, chunk_size)]
+        while pending:
+            upcoming = [ex.submit(build_fn, x) for x in islice(it, chunk_size)]
+            for fut in pending:
+                yield fut.result()
+            pending = upcoming

@@ -970,16 +970,24 @@ class PostgresStore(Storage):
             for r in rows
         ]
 
-    def get_active_jobs_embedded_since(self, days: int) -> list[dict]:
+    def get_active_jobs_embedded_since(self, days: int, *, missing_llm_only: bool = False) -> list[dict]:
         from datetime import timedelta
         cutoff = _utcnow() - timedelta(days=days)
-        with self._cur() as cur:
-            cur.execute(
-                "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.employment_types_json"
-                " FROM jobs j JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
-                " WHERE j.is_active = TRUE AND e.embedded_at >= %s",
-                [cutoff],
+        sql = (
+            "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.employment_types_json"
+            " FROM jobs j JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
+            " WHERE j.is_active = TRUE AND e.embedded_at >= %s"
+        )
+        if missing_llm_only:
+            # llm_fields_json is written even when the cleaner fails (all-null payload),
+            # so "missing" means no skills AND no seniority rather than NULL row.
+            sql += (
+                " AND (j.llm_fields_json IS NULL OR ("
+                "  (j.llm_fields_json::jsonb ->> 'canonical_skills') IS NULL"
+                "  AND (j.llm_fields_json::jsonb ->> 'inferred_seniority') IS NULL))"
             )
+        with self._cur() as cur:
+            cur.execute(sql, [cutoff])
             rows = cur.fetchall()
         return [
             {

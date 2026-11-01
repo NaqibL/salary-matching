@@ -698,6 +698,10 @@ def re_embed(
         Optional[int],
         typer.Option("--llm-workers", help="Parallel LLM cleaning calls (default: LLM_CLEAN_WORKERS env or 8)"),
     ] = None,
+    missing_llm_only: Annotated[
+        bool,
+        typer.Option("--missing-llm-only", help="With --since-days: only jobs whose LLM fields (skills/seniority) are empty"),
+    ] = False,
 ) -> None:
     """Re-embed all jobs with the current model and structured text format.
 
@@ -725,11 +729,15 @@ def re_embed(
         register_llm_cleaner(_llm_cleaner)
         _jde._LLM_ENABLED = True
 
+    if missing_llm_only and since_days is None:
+        console.print("[red]--missing-llm-only requires --since-days[/red]")
+        raise typer.Exit(code=2)
+
     store, db_display = _open_store(db_url)
     try:
         if since_days is not None:
             try:
-                all_jobs = store.get_active_jobs_embedded_since(since_days)
+                all_jobs = store.get_active_jobs_embedded_since(since_days, missing_llm_only=missing_llm_only)
             except NotImplementedError:
                 all_jobs = store.get_all_active_jobs()
         elif only_unembedded:
@@ -747,6 +755,8 @@ def re_embed(
         console.print(f"  Database: [green]{db_display}[/green]")
         if since_days is not None:
             mode = f"[yellow]embedded in last {since_days} day(s)[/yellow]"
+            if missing_llm_only:
+                mode += " [yellow]with empty LLM fields[/yellow]"
         elif only_unembedded:
             mode = "[yellow]unembedded only[/yellow]"
         else:

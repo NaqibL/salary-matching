@@ -228,8 +228,13 @@ class Storage(ABC):
         """Return active jobs that have no row in job_embeddings. Default: filter get_all_active_jobs."""
         raise NotImplementedError
 
-    def get_active_jobs_embedded_since(self, days: int) -> list[dict]:
-        """Return active jobs whose embedding was written within the last `days` days."""
+    def get_active_jobs_embedded_since(self, days: int, *, missing_llm_only: bool = False) -> list[dict]:
+        """Return active jobs whose embedding was written within the last `days` days.
+
+        With ``missing_llm_only`` only jobs whose LLM-extracted fields are empty
+        (no canonical skills and no inferred seniority) are returned — used to
+        repair a window where the cleaner failed but the embed still ran.
+        """
         raise NotImplementedError
 
     @abstractmethod

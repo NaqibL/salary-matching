@@ -7,6 +7,24 @@ on:
         description: 'Embedding batch size (default: 32)'
         required: false
         default: '32'
+      since_days:
+        description: 'Only active jobs embedded in the last N days (blank = all active jobs)'
+        required: false
+        default: ''
+      missing_llm_only:
+        description: 'With since_days: only jobs whose LLM fields (skills/seniority) are empty'
+        required: false
+        type: boolean
+        default: false
+      llm_workers:
+        description: 'Parallel LLM cleaning calls (default: 8)'
+        required: false
+        default: '8'
+      skip_llm:
+        description: 'Skip the LLM cleaning pass entirely'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   re-embed:
@@ -37,12 +55,26 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Re-embed all active jobs
+      - name: Re-embed jobs
         run: |
-          BATCH="${{ github.event.inputs.batch_size || '32' }}"
-          uv run mcf re-embed --db-url "$DATABASE_URL" --batch-size "$BATCH"
+          ARGS=(--db-url "$DATABASE_URL" --batch-size "$BATCH_SIZE" --llm-workers "$LLM_WORKERS")
+          if [ -n "$SINCE_DAYS" ]; then ARGS+=(--since-days "$SINCE_DAYS"); fi
+          if [ "$MISSING_LLM_ONLY" = "true" ]; then ARGS+=(--missing-llm-only); fi
+          if [ "$SKIP_LLM" = "true" ]; then ARGS+=(--skip-llm); fi
+          echo "mcf re-embed ${ARGS[*]/$DATABASE_URL/<db>}"
+          uv run mcf re-embed "${ARGS[@]}"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BATCH_SIZE: ${{ github.event.inputs.batch_size || '32' }}
+          SINCE_DAYS: ${{ github.event.inputs.since_days }}
+          MISSING_LLM_ONLY: ${{ github.event.inputs.missing_llm_only }}
+          LLM_WORKERS: ${{ github.event.inputs.llm_workers || '8' }}
+          SKIP_LLM: ${{ github.event.inputs.skip_llm }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          JOB_EXTRACTOR_LLM_ENABLED: "1"
+          # Re-embedded text always changes, so the content-hash cache only adds
+          # two DB round trips per job on a runner far from the DB.
+          ENABLE_EMBEDDINGS_CACHE: "0"
 
       - name: Rebuild HNSW indexes
         run: |
