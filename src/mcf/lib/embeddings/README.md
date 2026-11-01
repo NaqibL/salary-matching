@@ -57,4 +57,5 @@ No dedicated tests. Indirectly tested via smoke tests for `/api/matches` and `/a
 
 - **Add new text type**: Add extraction function here, use `embedder.embed_query(text)` in the route
 - **Change model**: Update `EMBEDDER_MODEL` in config; note dimension change requires re-embedding all stored jobs
+- **Role family / tier (Jev)**: `jev_classifier.py` — `JevClassifier.classify_many([(title, description, position_levels)])` → `JevResult(role_key, tier, role_conf, tier_conf)`. The 24 families and their stable ids live in `ROLE_FAMILIES` / `ROLE_FAMILY_ID` (append only, never reorder). Enabled when `OPENROUTER_API_KEY` is set unless `JEV_CLASSIFIER_ENABLED=0`.
 - **Adjust resume chunking**: Modify `resume.py` — long resumes are split before embedding

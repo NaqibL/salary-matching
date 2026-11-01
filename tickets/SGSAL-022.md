@@ -79,29 +79,32 @@ the 2026-11-01 spikes are at the bottom.
 
 - [x] C1. Approved 2026-11-01 (Luqman delegated the call): keep all 24 families
       as drafted below, no renames.
-- [ ] C2. New module `src/mcf/lib/embeddings/jev_classifier.py`: calls
+- [x] C2. Done 2026-11-01. New module `src/mcf/lib/embeddings/jev_classifier.py`: calls
       `POST https://openrouter.ai/api/alpha/decisions`, model pinned to
       `typesafe/jev-1.14`, two questions (role_family choice, seniority score
       with 4 levels mapped to `T1_Entry..T4_Management`). Pass title,
       description, and MCF `position_levels` in `state`. Return
       (role_key, tier, role_conf, tier_conf). Graceful fallback to None on error.
-- [ ] C3. Migration 019: `jobs.role_family TEXT`, `jobs.role_conf REAL`,
+- [x] C3. Done 2026-11-01 (applied to Supabase; also in `ensure_schema`). Migration 019: `jobs.role_family TEXT`, `jobs.role_conf REAL`,
       `jobs.tier_conf REAL`. Keep `role_cluster INTEGER` + `predicted_tier` for
       now so the matches page keeps working; map role_family → a stable integer
       id in a new `role_families` lookup table (id, key, display_name, description).
-- [ ] C4. Wire into the embed path (`incremental_crawl.py` and `re-embed` in
-      `cli.py`): replace `classify_jobs` / `classify_jobs_multilabel` calls with
-      the Jev call. Low confidence (<0.5) → role "other".
-- [ ] C5. Backfill script for all active jobs (72.9k active on 2026-11-01, ≈ $5). Reuse the batch
-      pattern from `scripts/finetune/import_embeddings.py`.
-- [ ] C6. Frontend: `RoleClusterSelect` and the taxonomy API read from
-      `role_families` instead of `role_taxonomy_v2.json`.
+- [x] C4. Done 2026-11-01 for `incremental_crawl.py` (Phase 3 uses Jev when the
+      key is set, legacy KMeans/LR otherwise; low confidence → "other", id 0).
+      `re-embed` never classified, so the backfill script covers existing jobs.
+- [ ] C5. Script done 2026-11-01: `scripts/backfill_role_families.py` (resumable,
+      `--dry-run`, `--limit`). RUN IT after the A5 repair finishes (72.9k active
+      jobs, ≈ $5, ~1.5 h locally with 8 workers). Note: before Jev only 59 active
+      jobs had any `predicted_tier`, so the old filters were effectively dead.
+- [x] C6. Done 2026-11-01 backend-side: `/api/jobs/taxonomy` serves
+      `role_families` (ids = `jobs.role_cluster`), so `RoleClusterSelect` needs
+      no change. `ROLE_TAXONOMY_SOURCE=kmeans` reverts.
 - [ ] C7. Delete `src/mcf/matching/classifiers.py`, `src/mcf/models/*.pkl`,
       `role_taxonomy_v2.json`, `scripts/train_classifiers.py`; `uv remove scikit-learn`.
       Rebuild Railway image, check startup.
-- [ ] C8. Tests: parse/fallback unit test for the Jev client (no network),
-      smoke test that backfilled jobs have `role_family` set.
-- [ ] C9. Update CLAUDE.md design facts + `src/mcf/lib/embeddings/README.md`.
+- [ ] C8. Unit tests done (`tests/test_jev_classifier.py`, mock transport).
+      Smoke test for backfilled jobs still to add after C5.
+- [x] C9. Done 2026-11-01 (CLAUDE.md design fact 8, embeddings README).
 
 ### D. Loose ends from the cleanup
 

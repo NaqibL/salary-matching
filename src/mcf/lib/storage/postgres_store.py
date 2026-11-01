@@ -60,6 +60,17 @@ class PostgresStore(Storage):
             )""",
             "CREATE INDEX IF NOT EXISTS company_aliases_canonical_idx ON company_aliases(canonical_name)",
             "ALTER TABLE company_aliases ADD COLUMN IF NOT EXISTS is_excluded BOOLEAN NOT NULL DEFAULT FALSE",
+            # 019: Jev role families (scripts/migrations/019_role_families.sql)
+            """CREATE TABLE IF NOT EXISTS role_families (
+                id INTEGER PRIMARY KEY,
+                key TEXT UNIQUE NOT NULL,
+                display_name TEXT NOT NULL,
+                description TEXT NOT NULL
+            )""",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS role_family TEXT",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS role_conf REAL",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS tier_conf REAL",
+            "CREATE INDEX IF NOT EXISTS idx_jobs_role_family ON jobs (role_family) WHERE is_active = TRUE",
         ]
         try:
             with self._transaction_cur() as cur:
@@ -772,7 +783,8 @@ class PostgresStore(Storage):
             cur.execute(
                 """
                 SELECT job_uuid, title, company_name, location, job_url, last_seen_at, skills_json,
-                       role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max, description
+                       role_cluster, predicted_tier, role_clusters_json, salary_min, salary_max, description,
+                       role_family
                   FROM jobs WHERE job_uuid = ANY(%s)
                 """,
                 [uuids],
@@ -793,6 +805,7 @@ class PostgresStore(Storage):
                 "salary_min": r[10],
                 "salary_max": r[11],
                 "description": r[12],
+                "role_family": r[13],
             }
             for r in rows
         }
@@ -843,6 +856,85 @@ class PostgresStore(Storage):
                 params,
             )
             return {r[0] for r in cur.fetchall()}
+
+    # --- Jev role families ---
+
+    def upsert_role_families(self, rows: list[tuple[int, str, str, str]]) -> None:
+        if not rows:
+            return
+        with self._cur() as cur:
+            execute_values(
+                cur,
+                """
+                INSERT INTO role_families (id, key, display_name, description)
+                VALUES %s
+                ON CONFLICT (id) DO UPDATE SET
+                  key = EXCLUDED.key,
+                  display_name = EXCLUDED.display_name,
+                  description = EXCLUDED.description
+                """,
+                rows,
+            )
+
+    def get_role_families(self) -> list[dict]:
+        with self._cur() as cur:
+            cur.execute("SELECT id, key, display_name, description FROM role_families ORDER BY id")
+            return [
+                {"id": r[0], "key": r[1], "display_name": r[2], "description": r[3]}
+                for r in cur.fetchall()
+            ]
+
+    def batch_upsert_jev_classifications(
+        self, rows: list[tuple[str, str, int, str, float, float]]
+    ) -> None:
+        if not rows:
+            return
+        with self._cur() as cur:
+            execute_values(
+                cur,
+                """
+                UPDATE jobs AS j
+                SET role_family = v.role_family,
+                    role_cluster = v.role_id,
+                    predicted_tier = v.tier,
+                    role_conf = v.role_conf,
+                    tier_conf = v.tier_conf,
+                    role_clusters_json = NULL
+                FROM (VALUES %s) AS v(job_uuid, role_family, role_id, tier, role_conf, tier_conf)
+                WHERE j.job_uuid = v.job_uuid
+                """,
+                rows,
+                template="(%s, %s::text, %s::integer, %s::text, %s::real, %s::real)",
+                page_size=200,
+            )
+
+    def get_active_jobs_missing_role_family(self, limit: int) -> list[dict]:
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT job_uuid, title, description, position_levels_json
+                  FROM jobs
+                 WHERE is_active = TRUE AND role_family IS NULL
+                 ORDER BY job_uuid
+                 LIMIT %s
+                """,
+                [limit],
+            )
+            rows = cur.fetchall()
+        return [
+            {
+                "job_uuid": r[0],
+                "title": r[1] or "",
+                "description": r[2],
+                "position_levels": json.loads(r[3]) if r[3] else [],
+            }
+            for r in rows
+        ]
+
+    def count_active_jobs_missing_role_family(self) -> int:
+        with self._cur() as cur:
+            cur.execute("SELECT count(*) FROM jobs WHERE is_active = TRUE AND role_family IS NULL")
+            return int(cur.fetchone()[0])
 
     def batch_upsert_multi_label_clusters(
         self, data: list[tuple[str, list[int]]]

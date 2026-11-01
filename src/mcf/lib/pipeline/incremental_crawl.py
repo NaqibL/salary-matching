@@ -63,6 +63,29 @@ class IncrementalCrawlResult:
     removed: list[str]
 
 
+def _classify_with_jev(store: Storage, jev, jobs_to_embed, embedded) -> None:
+    """Run Jev over the jobs that were just embedded and persist role family + tier."""
+    from mcf.lib.embeddings.jev_classifier import ROLE_FAMILY_ID, role_family_rows
+
+    by_uuid = {n.job_uuid: n for n, _, _ in jobs_to_embed}
+    targets = [by_uuid[u] for u, _ in embedded if u in by_uuid]
+    if not targets:
+        return
+    store.upsert_role_families(role_family_rows())
+    results = jev.classify_many(
+        [(n.title, n.description, n.position_levels) for n in targets]
+    )
+    rows = [
+        (n.job_uuid, r.role_key, ROLE_FAMILY_ID[r.role_key], r.tier, r.role_conf, r.tier_conf)
+        for n, r in zip(targets, results)
+        if r is not None
+    ]
+    store.batch_upsert_jev_classifications(rows)
+    failed = len(targets) - len(rows)
+    if failed:
+        print(f"Warning: Jev left {failed}/{len(targets)} jobs unclassified")
+
+
 def run_incremental_crawl(
     *,
     store: Storage,
@@ -208,27 +231,43 @@ def run_incremental_crawl(
                         for normalized, _, _ in batch:
                             print(f"Warning: Failed to generate embedding for job {normalized.job_uuid}: {e}")
 
-                # Phase 3: Classify all new jobs in one batch (role cluster + experience tier + multi-label)
+                # Phase 3: Classify all new jobs (role family + seniority tier).
+                # Jev (SGSAL-022) when OPENROUTER_API_KEY is set; otherwise the
+                # legacy KMeans/LR models on the embeddings.
                 if embedded:
+                    jev = None
                     try:
-                        import numpy as np
-                        from mcf.matching.classifiers import classify_jobs, classify_jobs_multilabel
+                        from mcf.lib.embeddings.jev_classifier import make_jev_classifier_from_env
+                        jev = make_jev_classifier_from_env()
+                    except Exception as e:  # noqa: BLE001
+                        print(f"Warning: Jev classifier unavailable, using legacy models: {e}")
+                    if jev is not None:
+                        try:
+                            _classify_with_jev(store, jev, jobs_to_embed, embedded)
+                        except Exception as e:  # noqa: BLE001
+                            print(f"Warning: Jev classification failed, skipping: {e}")
+                        finally:
+                            jev.close()
+                    else:
+                        try:
+                            import numpy as np
+                            from mcf.matching.classifiers import classify_jobs, classify_jobs_multilabel
 
-                        emb_matrix = np.array([e for _, e in embedded], dtype=np.float32)
-                        classifications_raw = classify_jobs(emb_matrix)
-                        classifications = [
-                            (job_uuid, role_cluster, predicted_tier)
-                            for (job_uuid, _), (role_cluster, predicted_tier)
-                            in zip(embedded, classifications_raw)
-                        ]
-                        store.batch_upsert_job_classifications(classifications)
+                            emb_matrix = np.array([e for _, e in embedded], dtype=np.float32)
+                            classifications_raw = classify_jobs(emb_matrix)
+                            classifications = [
+                                (job_uuid, role_cluster, predicted_tier)
+                                for (job_uuid, _), (role_cluster, predicted_tier)
+                                in zip(embedded, classifications_raw)
+                            ]
+                            store.batch_upsert_job_classifications(classifications)
 
-                        multi_labels = classify_jobs_multilabel(emb_matrix)
-                        store.batch_upsert_multi_label_clusters(
-                            [(job_uuid, clusters) for (job_uuid, _), clusters in zip(embedded, multi_labels)]
-                        )
-                    except Exception as e:
-                        print(f"Warning: job classification failed, skipping: {e}")
+                            multi_labels = classify_jobs_multilabel(emb_matrix)
+                            store.batch_upsert_multi_label_clusters(
+                                [(job_uuid, clusters) for (job_uuid, _), clusters in zip(embedded, multi_labels)]
+                            )
+                        except Exception as e:
+                            print(f"Warning: job classification failed, skipping: {e}")
 
                     try:
                         store.assign_hot_jobs_scores([job_uuid for job_uuid, _ in embedded])

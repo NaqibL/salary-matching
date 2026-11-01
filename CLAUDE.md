@@ -114,6 +114,7 @@ External APIs (MCF REST / CAG Algolia)
 5. **CAG Algolia key** in `cag_source.py` falls back to a hardcoded public key. If CAG crawl breaks, check if the key rotated.
 6. **First request after deploy:** 30–60 s — BGE model downloads at runtime, not at build time.
 7. **LLM cleaning:** `OpenRouterCleaner` (default model `google/gemma-4-26b-a4b-it`, set via `OPENROUTER_MODEL`; `GeminiFlashCleaner` is a kept alias) runs during embed when `OPENROUTER_API_KEY` is set, on a thread pool (`LLM_CLEAN_WORKERS`). Note `OPENROUTER_MODEL` is also read by the owner-only resume cleaner. Extracts `min_years_experience` and `llm_fields_json` (canonical skills, inferred seniority). These are **hints only** — never override scraper-provided `position_levels`, `salary_min/max`, or `employment_types`.
+8. **Role family + seniority tier:** `JevClassifier` (`src/mcf/lib/embeddings/jev_classifier.py`, TypeSafe Jev via the OpenRouter decisions API) assigns one of 24 role families and a tier (`T1_Entry..T4_Management`) per job during the crawl. Written to `jobs.role_family` / `role_conf` / `tier_conf`; `role_cluster` now holds `role_families.id` and `predicted_tier` the Jev tier so the matches filters keep working. Role < 0.5 confidence → `other` (id 0). Backfill: `scripts/backfill_role_families.py` (resumable). Legacy KMeans/LR models in `mcf.matching.classifiers` only run when no `OPENROUTER_API_KEY` is set; `predict_candidate_tier` still uses the LR model.
 
 ---
 

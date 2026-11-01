@@ -21,7 +21,17 @@ from mcf.api.cache.job_pool import (
     compute_ranked_from_pool,
     get_pool_or_fetch,
 )
-from mcf.matching.classifiers import role_name as _role_name, predict_candidate_tier
+from mcf.matching.classifiers import role_name as _legacy_role_name, predict_candidate_tier
+from mcf.lib.embeddings.jev_classifier import ROLE_FAMILY_DISPLAY
+
+
+def _role_name(job: dict) -> str | None:
+    """Display name: Jev role family when present, else the legacy KMeans taxonomy."""
+    fam = job.get("role_family")
+    if fam:
+        return ROLE_FAMILY_DISPLAY.get(fam, fam)
+    rc = job.get("role_cluster")
+    return _legacy_role_name(rc) if rc is not None else None
 from mcf.lib.storage.base import Storage
 
 # Pure semantic matching — skills keyword overlap removed.
@@ -293,7 +303,7 @@ class MatchingService:
                     "job_skills": job.get("skills") or [],
                     "last_seen_at": job.get("last_seen_at"),
                     "role_cluster": rc,
-                    "role_name": _role_name(rc) if rc is not None else None,
+                    "role_name": _role_name(job),
                     "predicted_tier": job.get("predicted_tier"),
                     "role_clusters": job.get("role_clusters"),
                     "salary_min": job.get("salary_min"),
@@ -445,7 +455,7 @@ class MatchingService:
                     "job_skills": job.get("skills") or [],
                     "last_seen_at": job.get("last_seen_at"),
                     "role_cluster": rc,
-                    "role_name": _role_name(rc) if rc is not None else None,
+                    "role_name": _role_name(job),
                     "predicted_tier": job.get("predicted_tier"),
                     "role_clusters": job.get("role_clusters"),
                     "salary_min": job.get("salary_min"),

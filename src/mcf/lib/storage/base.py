@@ -182,6 +182,34 @@ class Storage(ABC):
         """
         ...
 
+    # --- Jev role families (SGSAL-022 C3/C4) ---
+
+    def upsert_role_families(self, rows: list[tuple[int, str, str, str]]) -> None:
+        """Seed/refresh the role_families lookup: (id, key, display_name, description)."""
+        raise NotImplementedError
+
+    def get_role_families(self) -> list[dict]:
+        """Return [{id, key, display_name, description}] sorted by id."""
+        raise NotImplementedError
+
+    def batch_upsert_jev_classifications(
+        self, rows: list[tuple[str, str, int, str, float, float]]
+    ) -> None:
+        """Persist Jev output for a batch of jobs.
+
+        rows: (job_uuid, role_family_key, role_family_id, predicted_tier, role_conf, tier_conf).
+        Also writes role_family_id into role_cluster and clears the stale
+        KMeans multi-label role_clusters_json so the matches filters stay consistent.
+        """
+        raise NotImplementedError
+
+    def get_active_jobs_missing_role_family(self, limit: int) -> list[dict]:
+        """Active jobs with role_family IS NULL: job_uuid, title, description, position_levels."""
+        raise NotImplementedError
+
+    def count_active_jobs_missing_role_family(self) -> int:
+        raise NotImplementedError
+
     def batch_upsert_multi_label_clusters(
         self, data: list[tuple[str, list[int]]]
     ) -> None:
