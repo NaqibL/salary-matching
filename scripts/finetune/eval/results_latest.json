@@ -1,0 +1,2576 @@
+[
+  {
+    "summary": {
+      "model": "NaqibL/bge-base-sgmarket-v2",
+      "pool": 500,
+      "cases": 100,
+      "pairs_pass": 178,
+      "pairs_total": 200,
+      "pct": 89.0,
+      "by_category": {
+        "Admin / Customer Service": {
+          "pass": 10,
+          "total": 10,
+          "pct": 100.0
+        },
+        "Data / ML / AI": {
+          "pass": 26,
+          "total": 30,
+          "pct": 86.7
+        },
+        "Engineering (Non-Tech)": {
+          "pass": 13,
+          "total": 16,
+          "pct": 81.2
+        },
+        "Finance / Banking": {
+          "pass": 22,
+          "total": 24,
+          "pct": 91.7
+        },
+        "Government / Education": {
+          "pass": 9,
+          "total": 10,
+          "pct": 90.0
+        },
+        "HR": {
+          "pass": 7,
+          "total": 10,
+          "pct": 70.0
+        },
+        "Healthcare": {
+          "pass": 12,
+          "total": 16,
+          "pct": 75.0
+        },
+        "Legal / Consulting": {
+          "pass": 11,
+          "total": 12,
+          "pct": 91.7
+        },
+        "Marketing / Sales / BD": {
+          "pass": 16,
+          "total": 16,
+          "pct": 100.0
+        },
+        "Operations / Supply Chain": {
+          "pass": 13,
+          "total": 16,
+          "pct": 81.2
+        },
+        "Product / UX": {
+          "pass": 10,
+          "total": 10,
+          "pct": 100.0
+        },
+        "Software Engineering": {
+          "pass": 29,
+          "total": 30,
+          "pct": 96.7
+        }
+      }
+    },
+    "cases": [
+      {
+        "id": "se-backend-junior",
+        "category": "Software Engineering",
+        "title": "Junior Backend Software Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "software engineer",
+            "neg": "sales executive",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 2)"
+          },
+          {
+            "pos": "backend developer",
+            "neg": "registered nurse",
+            "pos_rank": 17,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 17)"
+          }
+        ]
+      },
+      {
+        "id": "se-frontend-senior",
+        "category": "Software Engineering",
+        "title": "Senior Frontend Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "frontend engineer",
+            "neg": "financial analyst",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 2)"
+          },
+          {
+            "pos": "software engineer",
+            "neg": "warehouse manager",
+            "pos_rank": 10,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 10)"
+          }
+        ]
+      },
+      {
+        "id": "se-fullstack",
+        "category": "Software Engineering",
+        "title": "Full Stack Software Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "software engineer",
+            "neg": "accountant",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "developer",
+            "neg": "operations executive",
+            "pos_rank": 4,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'operations executive' not in top-500 (pos rank 4)"
+          }
+        ]
+      },
+      {
+        "id": "se-ios",
+        "category": "Software Engineering",
+        "title": "iOS Mobile Developer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "mobile developer",
+            "neg": "compliance officer",
+            "pos_rank": 269,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'compliance officer' not in top-500 (pos rank 269)"
+          },
+          {
+            "pos": "software engineer",
+            "neg": "pharmacist",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 2)"
+          }
+        ]
+      },
+      {
+        "id": "se-android",
+        "category": "Software Engineering",
+        "title": "Android Software Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "mobile developer",
+            "neg": "procurement specialist",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'mobile developer' not found in top-500"
+          },
+          {
+            "pos": "software engineer",
+            "neg": "social worker",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'social worker' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "se-devops",
+        "category": "Software Engineering",
+        "title": "DevOps Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "devops",
+            "neg": "registered nurse",
+            "pos_rank": 12,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 12)"
+          },
+          {
+            "pos": "infrastructure engineer",
+            "neg": "marketing executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'marketing executive' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "se-cloud",
+        "category": "Software Engineering",
+        "title": "Cloud Infrastructure Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "cloud engineer",
+            "neg": "teacher",
+            "pos_rank": 1,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'teacher' not in top-500 (pos rank 1)"
+          },
+          {
+            "pos": "infrastructure engineer",
+            "neg": "sales executive",
+            "pos_rank": 3,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 3)"
+          }
+        ]
+      },
+      {
+        "id": "se-security",
+        "category": "Software Engineering",
+        "title": "Cybersecurity Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "security analyst",
+            "neg": "accountant",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "cybersecurity",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "se-embedded",
+        "category": "Software Engineering",
+        "title": "Embedded Software Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "embedded software",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "firmware engineer",
+            "neg": "marketing manager",
+            "pos_rank": 159,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'marketing manager' not in top-500 (pos rank 159)"
+          }
+        ]
+      },
+      {
+        "id": "se-qa",
+        "category": "Software Engineering",
+        "title": "QA Automation Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "qa engineer",
+            "neg": "financial analyst",
+            "pos_rank": 1,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 1)"
+          },
+          {
+            "pos": "test automation",
+            "neg": "registered nurse",
+            "pos_rank": 6,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 6)"
+          }
+        ]
+      },
+      {
+        "id": "se-architect",
+        "category": "Software Engineering",
+        "title": "Solutions Architect",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "solutions architect",
+            "neg": "social worker",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'social worker' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "software architect",
+            "neg": "accountant",
+            "pos_rank": 10,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 10)"
+          }
+        ]
+      },
+      {
+        "id": "se-sre",
+        "category": "Software Engineering",
+        "title": "Site Reliability Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "site reliability",
+            "neg": "pharmacist",
+            "pos_rank": 8,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 8)"
+          },
+          {
+            "pos": "software engineer",
+            "neg": "procurement specialist",
+            "pos_rank": 98,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'procurement specialist' not in top-500 (pos rank 98)"
+          }
+        ]
+      },
+      {
+        "id": "se-platform",
+        "category": "Software Engineering",
+        "title": "Platform Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "platform engineer",
+            "neg": "human resource",
+            "pos_rank": 12,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'human resource' not in top-500 (pos rank 12)"
+          },
+          {
+            "pos": "infrastructure engineer",
+            "neg": "sales executive",
+            "pos_rank": 4,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 4)"
+          }
+        ]
+      },
+      {
+        "id": "se-systems",
+        "category": "Software Engineering",
+        "title": "Systems Software Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "software engineer",
+            "neg": "marketing manager",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'marketing manager' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "systems engineer",
+            "neg": "pharmacist",
+            "pos_rank": 13,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 13)"
+          }
+        ]
+      },
+      {
+        "id": "se-appsec",
+        "category": "Software Engineering",
+        "title": "Application Security Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "security engineer",
+            "neg": "teacher",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'teacher' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "software engineer",
+            "neg": "registered nurse",
+            "pos_rank": 21,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 21)"
+          }
+        ]
+      },
+      {
+        "id": "ds-junior",
+        "category": "Data / ML / AI",
+        "title": "Data Scientist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "data scientist",
+            "neg": "sales executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "machine learning",
+            "neg": "registered nurse",
+            "pos_rank": 39,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 39)"
+          }
+        ]
+      },
+      {
+        "id": "ds-senior",
+        "category": "Data / ML / AI",
+        "title": "Senior Data Scientist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "data scientist",
+            "neg": "operations manager",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'operations manager' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "machine learning",
+            "neg": "accountant",
+            "pos_rank": 13,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 13)"
+          }
+        ]
+      },
+      {
+        "id": "ds-mle",
+        "category": "Data / ML / AI",
+        "title": "Machine Learning Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "machine learning engineer",
+            "neg": "logistics coordinator",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'logistics coordinator' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "data scientist",
+            "neg": "pharmacist",
+            "pos_rank": 265,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 265)"
+          }
+        ]
+      },
+      {
+        "id": "ds-ai-research",
+        "category": "Data / ML / AI",
+        "title": "AI Research Scientist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "research scientist",
+            "neg": "sales manager",
+            "pos_rank": 5,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales manager' not in top-500 (pos rank 5)"
+          },
+          {
+            "pos": "machine learning",
+            "neg": "civil engineer",
+            "pos_rank": 1,
+            "neg_rank": 378,
+            "pass": true,
+            "reason": "pos rank 1 < neg rank 378"
+          }
+        ]
+      },
+      {
+        "id": "ds-nlp",
+        "category": "Data / ML / AI",
+        "title": "NLP Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "nlp engineer",
+            "neg": "accountant",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'nlp engineer' not found in top-500"
+          },
+          {
+            "pos": "machine learning",
+            "neg": "registered nurse",
+            "pos_rank": 43,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 43)"
+          }
+        ]
+      },
+      {
+        "id": "ds-cv",
+        "category": "Data / ML / AI",
+        "title": "Computer Vision Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "computer vision",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "machine learning engineer",
+            "neg": "warehouse manager",
+            "pos_rank": 52,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 52)"
+          }
+        ]
+      },
+      {
+        "id": "ds-analyst",
+        "category": "Data / ML / AI",
+        "title": "Data Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "data analyst",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "business intelligence",
+            "neg": "sales executive",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'business intelligence' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "ds-analyst-senior",
+        "category": "Data / ML / AI",
+        "title": "Senior Data Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "data analyst",
+            "neg": "procurement specialist",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'procurement specialist' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "analytics",
+            "neg": "pharmacist",
+            "pos_rank": 27,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 27)"
+          }
+        ]
+      },
+      {
+        "id": "ds-bi",
+        "category": "Data / ML / AI",
+        "title": "Business Intelligence Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "business intelligence",
+            "neg": "human resource",
+            "pos_rank": 0,
+            "neg_rank": 362,
+            "pass": true,
+            "reason": "pos rank 0 < neg rank 362"
+          },
+          {
+            "pos": "data analyst",
+            "neg": "teacher",
+            "pos_rank": 93,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'teacher' not in top-500 (pos rank 93)"
+          }
+        ]
+      },
+      {
+        "id": "ds-de",
+        "category": "Data / ML / AI",
+        "title": "Data Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "data engineer",
+            "neg": "sales executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "data pipeline",
+            "neg": "registered nurse",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'data pipeline' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "ds-analytics-engineer",
+        "category": "Data / ML / AI",
+        "title": "Analytics Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "analytics engineer",
+            "neg": "logistics manager",
+            "pos_rank": 12,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'logistics manager' not in top-500 (pos rank 12)"
+          },
+          {
+            "pos": "data engineer",
+            "neg": "accountant",
+            "pos_rank": 13,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 13)"
+          }
+        ]
+      },
+      {
+        "id": "ds-mlops",
+        "category": "Data / ML / AI",
+        "title": "MLOps Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "mlops",
+            "neg": "financial analyst",
+            "pos_rank": 1,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 1)"
+          },
+          {
+            "pos": "machine learning engineer",
+            "neg": "registered nurse",
+            "pos_rank": 46,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 46)"
+          }
+        ]
+      },
+      {
+        "id": "ds-quant-researcher",
+        "category": "Data / ML / AI",
+        "title": "Quantitative Researcher",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "quantitative researcher",
+            "neg": "social worker",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'social worker' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "data scientist",
+            "neg": "teacher",
+            "pos_rank": 33,
+            "neg_rank": 433,
+            "pass": true,
+            "reason": "pos rank 33 < neg rank 433"
+          }
+        ]
+      },
+      {
+        "id": "ds-manager",
+        "category": "Data / ML / AI",
+        "title": "Data Science Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "data science",
+            "neg": "warehouse manager",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "machine learning",
+            "neg": "pharmacist",
+            "pos_rank": 53,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 53)"
+          }
+        ]
+      },
+      {
+        "id": "ds-applied-scientist",
+        "category": "Data / ML / AI",
+        "title": "Applied Scientist",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "applied scientist",
+            "neg": "logistics coordinator",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'applied scientist' not found in top-500"
+          },
+          {
+            "pos": "machine learning",
+            "neg": "sales executive",
+            "pos_rank": 3,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 3)"
+          }
+        ]
+      },
+      {
+        "id": "pm-mid",
+        "category": "Product / UX",
+        "title": "Product Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "product manager",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "product owner",
+            "neg": "warehouse manager",
+            "pos_rank": 136,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 136)"
+          }
+        ]
+      },
+      {
+        "id": "pm-senior",
+        "category": "Product / UX",
+        "title": "Senior Product Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "product manager",
+            "neg": "accountant",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "product owner",
+            "neg": "pharmacist",
+            "pos_rank": 82,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 82)"
+          }
+        ]
+      },
+      {
+        "id": "ux-designer",
+        "category": "Product / UX",
+        "title": "UX/UI Designer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "ux designer",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "product designer",
+            "neg": "registered nurse",
+            "pos_rank": 3,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 3)"
+          }
+        ]
+      },
+      {
+        "id": "ux-product-designer",
+        "category": "Product / UX",
+        "title": "Product Designer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "product designer",
+            "neg": "sales executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "ux designer",
+            "neg": "logistics coordinator",
+            "pos_rank": 12,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'logistics coordinator' not in top-500 (pos rank 12)"
+          }
+        ]
+      },
+      {
+        "id": "ux-researcher",
+        "category": "Product / UX",
+        "title": "UX Researcher",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "ux researcher",
+            "neg": "accountant",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "user research",
+            "neg": "warehouse manager",
+            "pos_rank": 61,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 61)"
+          }
+        ]
+      },
+      {
+        "id": "fin-analyst",
+        "category": "Finance / Banking",
+        "title": "Financial Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "financial analyst",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "finance",
+            "neg": "registered nurse",
+            "pos_rank": 8,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 8)"
+          }
+        ]
+      },
+      {
+        "id": "fin-investment",
+        "category": "Finance / Banking",
+        "title": "Investment Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "investment analyst",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "financial analyst",
+            "neg": "registered nurse",
+            "pos_rank": 6,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 6)"
+          }
+        ]
+      },
+      {
+        "id": "fin-market-risk",
+        "category": "Finance / Banking",
+        "title": "Market Risk Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "risk analyst",
+            "neg": "teacher",
+            "pos_rank": 18,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'teacher' not in top-500 (pos rank 18)"
+          },
+          {
+            "pos": "financial analyst",
+            "neg": "logistics manager",
+            "pos_rank": 53,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'logistics manager' not in top-500 (pos rank 53)"
+          }
+        ]
+      },
+      {
+        "id": "fin-credit",
+        "category": "Finance / Banking",
+        "title": "Credit Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "credit analyst",
+            "neg": "software engineer",
+            "pos_rank": 18,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 18)"
+          },
+          {
+            "pos": "financial analyst",
+            "neg": "pharmacist",
+            "pos_rank": 29,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 29)"
+          }
+        ]
+      },
+      {
+        "id": "fin-compliance",
+        "category": "Finance / Banking",
+        "title": "Financial Compliance Officer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "compliance officer",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "financial compliance",
+            "neg": "registered nurse",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'financial compliance' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "fin-audit",
+        "category": "Finance / Banking",
+        "title": "Internal Auditor",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "internal auditor",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "audit associate",
+            "neg": "warehouse manager",
+            "pos_rank": 232,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 232)"
+          }
+        ]
+      },
+      {
+        "id": "fin-treasury",
+        "category": "Finance / Banking",
+        "title": "Treasury Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "treasury analyst",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "financial analyst",
+            "neg": "registered nurse",
+            "pos_rank": 38,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 38)"
+          }
+        ]
+      },
+      {
+        "id": "fin-fund-accounting",
+        "category": "Finance / Banking",
+        "title": "Fund Accountant",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "fund accountant",
+            "neg": "software engineer",
+            "pos_rank": 77,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 77)"
+          },
+          {
+            "pos": "accountant",
+            "neg": "teacher",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'teacher' not in top-500 (pos rank 2)"
+          }
+        ]
+      },
+      {
+        "id": "fin-actuarial",
+        "category": "Finance / Banking",
+        "title": "Actuarial Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "actuarial analyst",
+            "neg": "software engineer",
+            "pos_rank": 1,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 1)"
+          },
+          {
+            "pos": "actuary",
+            "neg": "logistics coordinator",
+            "pos_rank": 121,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'logistics coordinator' not in top-500 (pos rank 121)"
+          }
+        ]
+      },
+      {
+        "id": "fin-quant",
+        "category": "Finance / Banking",
+        "title": "Quantitative Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "quantitative analyst",
+            "neg": "human resource",
+            "pos_rank": 26,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'human resource' not in top-500 (pos rank 26)"
+          },
+          {
+            "pos": "quant analyst",
+            "neg": "registered nurse",
+            "pos_rank": 27,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 27)"
+          }
+        ]
+      },
+      {
+        "id": "fin-wealth",
+        "category": "Finance / Banking",
+        "title": "Wealth Management Associate",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "wealth management",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "financial analyst",
+            "neg": "social worker",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'financial analyst' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "fin-aml",
+        "category": "Finance / Banking",
+        "title": "AML/KYC Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "aml analyst",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "compliance analyst",
+            "neg": "pharmacist",
+            "pos_rank": 40,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 40)"
+          }
+        ]
+      },
+      {
+        "id": "ops-manager",
+        "category": "Operations / Supply Chain",
+        "title": "Operations Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "operations manager",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "operations",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "ops-sc-analyst",
+        "category": "Operations / Supply Chain",
+        "title": "Supply Chain Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "supply chain analyst",
+            "neg": "software developer",
+            "pos_rank": 7,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 7)"
+          },
+          {
+            "pos": "supply chain",
+            "neg": "financial analyst",
+            "pos_rank": 6,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 6)"
+          }
+        ]
+      },
+      {
+        "id": "ops-logistics",
+        "category": "Operations / Supply Chain",
+        "title": "Logistics Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "logistics manager",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "logistics",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "ops-procurement",
+        "category": "Operations / Supply Chain",
+        "title": "Procurement Specialist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "procurement specialist",
+            "neg": "software engineer",
+            "pos_rank": 45,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 45)"
+          },
+          {
+            "pos": "procurement",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "ops-inventory",
+        "category": "Operations / Supply Chain",
+        "title": "Demand Planning Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 0,
+        "results": [
+          {
+            "pos": "demand planning",
+            "neg": "financial analyst",
+            "pos_rank": null,
+            "neg_rank": 260,
+            "pass": false,
+            "reason": "pos 'demand planning' not found in top-500"
+          },
+          {
+            "pos": "supply chain analyst",
+            "neg": "registered nurse",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'supply chain analyst' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "ops-executive",
+        "category": "Operations / Supply Chain",
+        "title": "Operations Executive",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "operations executive",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "operations",
+            "neg": "pharmacist",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "ops-process",
+        "category": "Operations / Supply Chain",
+        "title": "Process Improvement Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "process improvement",
+            "neg": "software engineer",
+            "pos_rank": 144,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 144)"
+          },
+          {
+            "pos": "operations analyst",
+            "neg": "teacher",
+            "pos_rank": 3,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'teacher' not in top-500 (pos rank 3)"
+          }
+        ]
+      },
+      {
+        "id": "ops-vendor",
+        "category": "Operations / Supply Chain",
+        "title": "Vendor Manager",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "vendor manager",
+            "neg": "software engineer",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'vendor manager' not found in top-500"
+          },
+          {
+            "pos": "procurement manager",
+            "neg": "registered nurse",
+            "pos_rank": 1,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 1)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-digital",
+        "category": "Marketing / Sales / BD",
+        "title": "Digital Marketing Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "digital marketing manager",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "marketing manager",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-content",
+        "category": "Marketing / Sales / BD",
+        "title": "Content Marketing Executive",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "content marketing",
+            "neg": "data engineer",
+            "pos_rank": 62,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data engineer' not in top-500 (pos rank 62)"
+          },
+          {
+            "pos": "marketing executive",
+            "neg": "accountant",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'accountant' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-sales",
+        "category": "Marketing / Sales / BD",
+        "title": "B2B Sales Executive",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "sales executive",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "business development",
+            "neg": "data scientist",
+            "pos_rank": 79,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 79)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-bd",
+        "category": "Marketing / Sales / BD",
+        "title": "Business Development Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "business development manager",
+            "neg": "data analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data analyst' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "sales manager",
+            "neg": "registered nurse",
+            "pos_rank": 110,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 110)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-account",
+        "category": "Marketing / Sales / BD",
+        "title": "Key Account Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "account manager",
+            "neg": "data engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "sales manager",
+            "neg": "pharmacist",
+            "pos_rank": 64,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 64)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-performance",
+        "category": "Marketing / Sales / BD",
+        "title": "Performance Marketing Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "performance marketing",
+            "neg": "software engineer",
+            "pos_rank": 15,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 15)"
+          },
+          {
+            "pos": "digital marketing",
+            "neg": "warehouse manager",
+            "pos_rank": 5,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 5)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-brand",
+        "category": "Marketing / Sales / BD",
+        "title": "Brand Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "brand manager",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "marketing manager",
+            "neg": "financial analyst",
+            "pos_rank": 8,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 8)"
+          }
+        ]
+      },
+      {
+        "id": "mkt-regional-sales",
+        "category": "Marketing / Sales / BD",
+        "title": "Regional Sales Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "regional sales manager",
+            "neg": "data scientist",
+            "pos_rank": 4,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 4)"
+          },
+          {
+            "pos": "sales manager",
+            "neg": "registered nurse",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 2)"
+          }
+        ]
+      },
+      {
+        "id": "hr-hrbp",
+        "category": "HR",
+        "title": "HR Business Partner",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "hr business partner",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "human resource",
+            "neg": "data scientist",
+            "pos_rank": 10,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 10)"
+          }
+        ]
+      },
+      {
+        "id": "hr-recruiter",
+        "category": "HR",
+        "title": "Talent Acquisition Specialist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "talent acquisition",
+            "neg": "data engineer",
+            "pos_rank": 1,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data engineer' not in top-500 (pos rank 1)"
+          },
+          {
+            "pos": "recruiter",
+            "neg": "registered nurse",
+            "pos_rank": 3,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 3)"
+          }
+        ]
+      },
+      {
+        "id": "hr-ld",
+        "category": "HR",
+        "title": "Learning and Development Specialist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "learning and development",
+            "neg": "software engineer",
+            "pos_rank": 410,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 410)"
+          },
+          {
+            "pos": "training specialist",
+            "neg": "financial analyst",
+            "pos_rank": 8,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 8)"
+          }
+        ]
+      },
+      {
+        "id": "hr-analytics",
+        "category": "HR",
+        "title": "HR Analytics Specialist",
+        "pairs_total": 2,
+        "pairs_pass": 0,
+        "results": [
+          {
+            "pos": "hr analytics",
+            "neg": "software engineer",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'hr analytics' not found in top-500"
+          },
+          {
+            "pos": "people analytics",
+            "neg": "logistics coordinator",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'people analytics' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "hr-cb",
+        "category": "HR",
+        "title": "Compensation and Benefits Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "compensation analyst",
+            "neg": "software engineer",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'compensation analyst' not found in top-500"
+          },
+          {
+            "pos": "human resource",
+            "neg": "pharmacist",
+            "pos_rank": 63,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'pharmacist' not in top-500 (pos rank 63)"
+          }
+        ]
+      },
+      {
+        "id": "eng-mechanical",
+        "category": "Engineering (Non-Tech)",
+        "title": "Mechanical Design Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "mechanical engineer",
+            "neg": "financial analyst",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 2)"
+          },
+          {
+            "pos": "design engineer",
+            "neg": "data scientist",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "eng-civil",
+        "category": "Engineering (Non-Tech)",
+        "title": "Civil and Structural Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "civil engineer",
+            "neg": "software developer",
+            "pos_rank": 10,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 10)"
+          },
+          {
+            "pos": "structural engineer",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "eng-electrical",
+        "category": "Engineering (Non-Tech)",
+        "title": "Electrical Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "electrical engineer",
+            "neg": "marketing manager",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'marketing manager' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "power systems engineer",
+            "neg": "data scientist",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'power systems engineer' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "eng-chemical",
+        "category": "Engineering (Non-Tech)",
+        "title": "Chemical Process Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "chemical engineer",
+            "neg": "sales executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "process engineer",
+            "neg": "data analyst",
+            "pos_rank": 7,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data analyst' not in top-500 (pos rank 7)"
+          }
+        ]
+      },
+      {
+        "id": "eng-semiconductor",
+        "category": "Engineering (Non-Tech)",
+        "title": "Semiconductor Process Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "process engineer",
+            "neg": "financial analyst",
+            "pos_rank": 5,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 5)"
+          },
+          {
+            "pos": "semiconductor engineer",
+            "neg": "registered nurse",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'semiconductor engineer' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "eng-environmental",
+        "category": "Engineering (Non-Tech)",
+        "title": "Environmental Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "environmental engineer",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": 102,
+            "pass": true,
+            "reason": "pos rank 0 < neg rank 102"
+          },
+          {
+            "pos": "engineer",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "eng-biomedical",
+        "category": "Engineering (Non-Tech)",
+        "title": "Biomedical Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "biomedical engineer",
+            "neg": "marketing manager",
+            "pos_rank": 9,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'marketing manager' not in top-500 (pos rank 9)"
+          },
+          {
+            "pos": "medical device engineer",
+            "neg": "financial analyst",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'medical device engineer' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "eng-industrial",
+        "category": "Engineering (Non-Tech)",
+        "title": "Industrial and Manufacturing Engineer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "industrial engineer",
+            "neg": "data scientist",
+            "pos_rank": 55,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 55)"
+          },
+          {
+            "pos": "manufacturing engineer",
+            "neg": "sales executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "hc-nurse",
+        "category": "Healthcare",
+        "title": "Registered Nurse",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "registered nurse",
+            "neg": "software engineer",
+            "pos_rank": 5,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 5)"
+          },
+          {
+            "pos": "nurse",
+            "neg": "financial analyst",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "hc-pharmacist",
+        "category": "Healthcare",
+        "title": "Staff Pharmacist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "pharmacist",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "pharmacy",
+            "neg": "data analyst",
+            "pos_rank": 327,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data analyst' not in top-500 (pos rank 327)"
+          }
+        ]
+      },
+      {
+        "id": "hc-doctor",
+        "category": "Healthcare",
+        "title": "Medical Officer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "medical officer",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "doctor",
+            "neg": "financial analyst",
+            "pos_rank": 5,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 5)"
+          }
+        ]
+      },
+      {
+        "id": "hc-physio",
+        "category": "Healthcare",
+        "title": "Physiotherapist",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "physiotherapist",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "allied health",
+            "neg": "data analyst",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'allied health' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "hc-cra",
+        "category": "Healthcare",
+        "title": "Clinical Research Associate",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "clinical research",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "research associate",
+            "neg": "logistics manager",
+            "pos_rank": 8,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'logistics manager' not in top-500 (pos rank 8)"
+          }
+        ]
+      },
+      {
+        "id": "hc-health-analyst",
+        "category": "Healthcare",
+        "title": "Health Informatics Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "health informatics",
+            "neg": "software engineer",
+            "pos_rank": 18,
+            "neg_rank": 328,
+            "pass": true,
+            "reason": "pos rank 18 < neg rank 328"
+          },
+          {
+            "pos": "clinical data analyst",
+            "neg": "marketing manager",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'clinical data analyst' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "hc-radiographer",
+        "category": "Healthcare",
+        "title": "Radiographer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "radiographer",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "medical imaging",
+            "neg": "financial analyst",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'medical imaging' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "hc-ot",
+        "category": "Healthcare",
+        "title": "Occupational Therapist",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "occupational therapist",
+            "neg": "data engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "allied health",
+            "neg": "financial analyst",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'allied health' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "legal-inhouse",
+        "category": "Legal / Consulting",
+        "title": "Legal Counsel",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "legal counsel",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "lawyer",
+            "neg": "data scientist",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 2)"
+          }
+        ]
+      },
+      {
+        "id": "legal-corp",
+        "category": "Legal / Consulting",
+        "title": "Corporate Lawyer",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "corporate lawyer",
+            "neg": "software developer",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'corporate lawyer' not found in top-500"
+          },
+          {
+            "pos": "legal counsel",
+            "neg": "registered nurse",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "legal-consultant",
+        "category": "Legal / Consulting",
+        "title": "Management Consultant",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "management consultant",
+            "neg": "software engineer",
+            "pos_rank": 119,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 119)"
+          },
+          {
+            "pos": "strategy consultant",
+            "neg": "registered nurse",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 2)"
+          }
+        ]
+      },
+      {
+        "id": "legal-strategy",
+        "category": "Legal / Consulting",
+        "title": "Strategy and Operations Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "strategy analyst",
+            "neg": "software engineer",
+            "pos_rank": 4,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 4)"
+          },
+          {
+            "pos": "management consultant",
+            "neg": "warehouse manager",
+            "pos_rank": 140,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 140)"
+          }
+        ]
+      },
+      {
+        "id": "legal-compliance-mgr",
+        "category": "Legal / Consulting",
+        "title": "Compliance Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "compliance manager",
+            "neg": "software developer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software developer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "regulatory compliance",
+            "neg": "data engineer",
+            "pos_rank": 5,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data engineer' not in top-500 (pos rank 5)"
+          }
+        ]
+      },
+      {
+        "id": "legal-contracts",
+        "category": "Legal / Consulting",
+        "title": "Contracts Specialist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "contracts specialist",
+            "neg": "software engineer",
+            "pos_rank": 2,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 2)"
+          },
+          {
+            "pos": "legal",
+            "neg": "registered nurse",
+            "pos_rank": 13,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 13)"
+          }
+        ]
+      },
+      {
+        "id": "gov-policy",
+        "category": "Government / Education",
+        "title": "Policy Analyst",
+        "pairs_total": 2,
+        "pairs_pass": 1,
+        "results": [
+          {
+            "pos": "policy analyst",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "government analyst",
+            "neg": "registered nurse",
+            "pos_rank": null,
+            "neg_rank": null,
+            "pass": false,
+            "reason": "pos 'government analyst' not found in top-500"
+          }
+        ]
+      },
+      {
+        "id": "gov-it",
+        "category": "Government / Education",
+        "title": "ICT Officer",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "software engineer",
+            "neg": "financial analyst",
+            "pos_rank": 185,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 185)"
+          },
+          {
+            "pos": "it officer",
+            "neg": "registered nurse",
+            "pos_rank": 14,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'registered nurse' not in top-500 (pos rank 14)"
+          }
+        ]
+      },
+      {
+        "id": "gov-teacher",
+        "category": "Government / Education",
+        "title": "Secondary School Teacher",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "teacher",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "educator",
+            "neg": "financial analyst",
+            "pos_rank": 144,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 144)"
+          }
+        ]
+      },
+      {
+        "id": "gov-research-fellow",
+        "category": "Government / Education",
+        "title": "Research Fellow",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "research fellow",
+            "neg": "sales executive",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'sales executive' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "researcher",
+            "neg": "warehouse manager",
+            "pos_rank": 201,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'warehouse manager' not in top-500 (pos rank 201)"
+          }
+        ]
+      },
+      {
+        "id": "gov-social-worker",
+        "category": "Government / Education",
+        "title": "Social Worker",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "social worker",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "counsellor",
+            "neg": "financial analyst",
+            "pos_rank": 21,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 21)"
+          }
+        ]
+      },
+      {
+        "id": "admin-ea",
+        "category": "Admin / Customer Service",
+        "title": "Executive Assistant",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "executive assistant",
+            "neg": "software engineer",
+            "pos_rank": 7,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 7)"
+          },
+          {
+            "pos": "personal assistant",
+            "neg": "data scientist",
+            "pos_rank": 32,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 32)"
+          }
+        ]
+      },
+      {
+        "id": "admin-cs",
+        "category": "Admin / Customer Service",
+        "title": "Customer Service Executive",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "customer service",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "service executive",
+            "neg": "data scientist",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 0)"
+          }
+        ]
+      },
+      {
+        "id": "admin-admin",
+        "category": "Admin / Customer Service",
+        "title": "Administrative Executive",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "administrative executive",
+            "neg": "software engineer",
+            "pos_rank": 10,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 10)"
+          },
+          {
+            "pos": "admin assistant",
+            "neg": "financial analyst",
+            "pos_rank": 16,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'financial analyst' not in top-500 (pos rank 16)"
+          }
+        ]
+      },
+      {
+        "id": "admin-receptionist",
+        "category": "Admin / Customer Service",
+        "title": "Receptionist",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "receptionist",
+            "neg": "software engineer",
+            "pos_rank": 0,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 0)"
+          },
+          {
+            "pos": "front desk",
+            "neg": "data analyst",
+            "pos_rank": 40,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data analyst' not in top-500 (pos rank 40)"
+          }
+        ]
+      },
+      {
+        "id": "admin-office-mgr",
+        "category": "Admin / Customer Service",
+        "title": "Office Manager",
+        "pairs_total": 2,
+        "pairs_pass": 2,
+        "results": [
+          {
+            "pos": "office manager",
+            "neg": "software engineer",
+            "pos_rank": 3,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'software engineer' not in top-500 (pos rank 3)"
+          },
+          {
+            "pos": "facilities manager",
+            "neg": "data scientist",
+            "pos_rank": 128,
+            "neg_rank": null,
+            "pass": true,
+            "reason": "neg 'data scientist' not in top-500 (pos rank 128)"
+          }
+        ]
+      }
+    ]
+  }
+]

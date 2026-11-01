@@ -127,7 +127,8 @@ Read the relevant agent file before starting work in that area:
 | Matching, scoring, Rocchio, caching | `.claude/agents/matching-agent.md` |
 | Code review before merging | `.claude/agents/code-reviewer.md` |
 | Architecture decisions, scaling | `.claude/agents/design-consultant.md` |
-| Supabase, Railway, Vercel, GitHub Actions | `.claude/agents/infra-agent.md` |
+| Supabase, Railway, Vercel, GitHub Actions config | `.claude/agents/infra-agent.md` |
+| Live Railway queries (logs, metrics, variables, deployments) | `.claude/agents/railway-agent.md` |
 
 ---
 
@@ -137,9 +138,9 @@ Read the relevant agent file before starting work in that area:
 
 The `/api/lowball/check` endpoint is slow. Three root causes, in order of impact:
 
-1. **LLM clean on every query** — `_cleaner.clean()` in `src/mcf/api/routes/lowball.py` fires a network call to OpenRouter/Gemini on every request before embedding. The LLM clean was designed for ingestion (indexing job descriptions at crawl time). For a real-time user query, embedding the raw description is sufficient. Fix: skip `_cleaner` in the lowball route entirely.
+1. ~~**LLM clean on every query**~~ — done (SGSAL-004). The lowball route no longer calls `_cleaner`; it embeds the raw description.
 
-2. **No pgvector HNSW index** — `job_embeddings.embedding` has no ANN index. The `<=>` cosine query in `get_all_embedded_job_ids_ranked` does an exact KNN scan across every row. Fix: add index in Supabase — `CREATE INDEX ON job_embeddings USING hnsw (embedding vector_cosine_ops);` — then set `SET hnsw.ef_search = 100` at query time.
+2. ~~**No pgvector HNSW index**~~ — done (SGSAL-017). Index exists and `hnsw.ef_search` is set per query in `postgres_store.py`. Original note: — `job_embeddings.embedding` has no ANN index. The `<=>` cosine query in `get_all_embedded_job_ids_ranked` does an exact KNN scan across every row. Fix: add index in Supabase — `CREATE INDEX ON job_embeddings USING hnsw (embedding vector_cosine_ops);` — then set `SET hnsw.ef_search = 100` at query time.
 
 3. **No response cache on `/api/lowball/check`** — unlike the matches API, every lowball request re-embeds and re-queries even if the same role is checked repeatedly. Fix: add a short TTL response cache (10–15 min) keyed on `(title, description_hash, salary, company)`, following the same pattern as `src/mcf/api/cache/response.py`.
 
@@ -152,7 +153,7 @@ Also note: the active-jobs pool cache (15-min TTL, pre-stacked numpy matrix in `
 - ~~**Consolidate `/` and `/lowball`**~~ — done. `/` is now the full checker; `/lowball` redirects.
 - **Dashboard improvements** — extend market analytics with seniority breakdowns and skills trend data now available from `llm_fields_json`.
 - **Filters on similar roles** — client-side filtering of the already-fetched top-20 results by seniority, active-only, min experience, has-salary. No backend changes needed for v1.
-- **Company dropdown canonicalization** — run `scripts/canonicalize_companies.py` first to populate `company_canonical`. Then update two storage methods: (1) `get_distinct_companies()` — use `DISTINCT COALESCE(company_canonical, company_name)` so duplicates collapse in the autocomplete; (2) `get_active_job_uuids_by_company()` — match on `company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)` so the company results tab still works after canonicalization. Both DuckDB and Postgres stores need updating.
+- **Company dropdown canonicalization** — run `scripts/canonicalize_companies.py` first to populate `company_canonical`. Then update two storage methods: (1) `get_distinct_companies()` — use `DISTINCT COALESCE(company_canonical, company_name)` so duplicates collapse in the autocomplete; (2) `get_active_job_uuids_by_company()` — match on `company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)` so the company results tab still works after canonicalization. Only `PostgresStore` needs updating.
 
 ### Personal use only (matching pipeline — do not expose publicly)
 

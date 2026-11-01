@@ -25,7 +25,7 @@ RUN uv pip install --system --no-cache-dir -e . --no-build-isolation
 # Make mcf package importable (it lives in src/mcf/)
 ENV PYTHONPATH=/app/src
 
-# Note: The embedding model (BAAI/bge-small-en-v1.5, ~130 MB) is downloaded on first
+# Note: The embedding model (NaqibL/bge-base-sgmarket-v2, ~440 MB) is downloaded on first
 # use at runtime, not during build. This avoids Railway build timeouts. The first
 # request that needs embeddings may take 30-60s; subsequent requests are fast.
 

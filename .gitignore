@@ -45,3 +45,5 @@ frontend/node_modules/
 
 # Logs
 *.log
+# Fine-tune mining output (~20 MB, regenerate with scripts/finetune/mine_hard_negatives.py)
+scripts/finetune/eval/hard_negatives.json

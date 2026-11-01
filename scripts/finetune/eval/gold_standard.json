@@ -1,0 +1,1002 @@
+[
+  {
+    "id": "se-backend-junior",
+    "category": "Software Engineering",
+    "title": "Junior Backend Software Engineer",
+    "description": "Develop and maintain RESTful APIs using Python (Django/FastAPI) and work with PostgreSQL databases. Write unit and integration tests, participate in code reviews, and collaborate with cross-functional teams. 0–2 years of software development experience required.",
+    "pairs": [
+      {"pos": "software engineer", "neg": "sales executive"},
+      {"pos": "backend developer", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "se-frontend-senior",
+    "category": "Software Engineering",
+    "title": "Senior Frontend Engineer",
+    "description": "Lead frontend development for a consumer-facing web application using React, TypeScript, and modern CSS frameworks. Own component architecture, performance optimisation, and accessibility standards. 5+ years of frontend engineering experience with strong JavaScript fundamentals.",
+    "pairs": [
+      {"pos": "frontend engineer", "neg": "financial analyst"},
+      {"pos": "software engineer", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "se-fullstack",
+    "category": "Software Engineering",
+    "title": "Full Stack Software Engineer",
+    "description": "Build full-stack web applications using Node.js, React, and cloud infrastructure on AWS. Take ownership of features end-to-end from database schema design to frontend implementation and deployment. Experience with microservices and CI/CD pipelines is a plus.",
+    "pairs": [
+      {"pos": "software engineer", "neg": "accountant"},
+      {"pos": "developer", "neg": "operations executive"}
+    ]
+  },
+  {
+    "id": "se-ios",
+    "category": "Software Engineering",
+    "title": "iOS Mobile Developer",
+    "description": "Design and develop native iOS applications using Swift and UIKit/SwiftUI. Collaborate with backend engineers to integrate APIs and with designers to implement polished user interfaces. Experience publishing apps to the App Store and using Xcode profiling tools required.",
+    "pairs": [
+      {"pos": "mobile developer", "neg": "compliance officer"},
+      {"pos": "software engineer", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "se-android",
+    "category": "Software Engineering",
+    "title": "Android Software Engineer",
+    "description": "Build and maintain Android applications using Kotlin and Jetpack Compose. Work within an agile team to deliver user features and ensure robust performance across a wide range of Android devices. Experience with MVVM architecture and Coroutines preferred.",
+    "pairs": [
+      {"pos": "mobile developer", "neg": "procurement specialist"},
+      {"pos": "software engineer", "neg": "social worker"}
+    ]
+  },
+  {
+    "id": "se-devops",
+    "category": "Software Engineering",
+    "title": "DevOps Engineer",
+    "description": "Design and maintain CI/CD pipelines, infrastructure-as-code using Terraform, and container orchestration with Kubernetes on AWS. Monitor system reliability and automate operational tasks to improve developer productivity. Strong Linux, Docker, and scripting background required.",
+    "pairs": [
+      {"pos": "devops", "neg": "registered nurse"},
+      {"pos": "infrastructure engineer", "neg": "marketing executive"}
+    ]
+  },
+  {
+    "id": "se-cloud",
+    "category": "Software Engineering",
+    "title": "Cloud Infrastructure Engineer",
+    "description": "Architect and manage cloud infrastructure on AWS and Azure, including networking, storage, compute, and security configurations. Implement infrastructure-as-code and cloud cost optimisation strategies. AWS Solutions Architect or equivalent certification preferred.",
+    "pairs": [
+      {"pos": "cloud engineer", "neg": "teacher"},
+      {"pos": "infrastructure engineer", "neg": "sales executive"}
+    ]
+  },
+  {
+    "id": "se-security",
+    "category": "Software Engineering",
+    "title": "Cybersecurity Analyst",
+    "description": "Monitor security events using SIEM tools, conduct vulnerability assessments, and respond to security incidents. Develop and enforce security policies and work with engineering teams to embed security best practices into the SDLC. CISSP, CISM, or CEH certification is advantageous.",
+    "pairs": [
+      {"pos": "security analyst", "neg": "accountant"},
+      {"pos": "cybersecurity", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "se-embedded",
+    "category": "Software Engineering",
+    "title": "Embedded Software Engineer",
+    "description": "Develop firmware and low-level software for microcontroller-based embedded systems in C/C++. Work closely with hardware engineers to define interfaces, debug hardware/software integration issues, and optimise for power and performance. Experience with RTOS and serial communication protocols required.",
+    "pairs": [
+      {"pos": "embedded software", "neg": "financial analyst"},
+      {"pos": "firmware engineer", "neg": "marketing manager"}
+    ]
+  },
+  {
+    "id": "se-qa",
+    "category": "Software Engineering",
+    "title": "QA Automation Engineer",
+    "description": "Design and implement automated test suites using Selenium, Pytest, or Cypress for web and API testing. Collaborate with developers to integrate tests into CI/CD pipelines and ensure quality gates are maintained. Strong scripting skills in Python or JavaScript required.",
+    "pairs": [
+      {"pos": "qa engineer", "neg": "financial analyst"},
+      {"pos": "test automation", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "se-architect",
+    "category": "Software Engineering",
+    "title": "Solutions Architect",
+    "description": "Design enterprise-grade cloud and on-premise solutions to meet complex business requirements. Engage with clients as a technical advisor, produce architecture diagrams, and guide engineering teams through implementation. 8+ years of software engineering and architecture experience required.",
+    "pairs": [
+      {"pos": "solutions architect", "neg": "social worker"},
+      {"pos": "software architect", "neg": "accountant"}
+    ]
+  },
+  {
+    "id": "se-sre",
+    "category": "Software Engineering",
+    "title": "Site Reliability Engineer",
+    "description": "Ensure reliability and uptime of large-scale distributed systems through monitoring, alerting, and on-call incident response. Define SLOs, implement error budgets, and drive platform automation to reduce toil. Strong background in Linux, distributed systems, and Go or Python required.",
+    "pairs": [
+      {"pos": "site reliability", "neg": "pharmacist"},
+      {"pos": "software engineer", "neg": "procurement specialist"}
+    ]
+  },
+  {
+    "id": "se-platform",
+    "category": "Software Engineering",
+    "title": "Platform Engineer",
+    "description": "Build and maintain internal developer platforms, tooling, and shared infrastructure services to increase engineering velocity. Manage Kubernetes clusters, observability stacks (Prometheus, Grafana), and developer self-service workflows. Experience with Helm, ArgoCD, and cloud-native tooling preferred.",
+    "pairs": [
+      {"pos": "platform engineer", "neg": "human resource"},
+      {"pos": "infrastructure engineer", "neg": "sales executive"}
+    ]
+  },
+  {
+    "id": "se-systems",
+    "category": "Software Engineering",
+    "title": "Systems Software Engineer",
+    "description": "Develop high-performance systems software in C and C++ for operating system components, network stacks, or storage systems. Optimise for latency, throughput, and memory efficiency in constrained environments. Strong understanding of computer architecture, concurrency, and OS internals required.",
+    "pairs": [
+      {"pos": "software engineer", "neg": "marketing manager"},
+      {"pos": "systems engineer", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "se-appsec",
+    "category": "Software Engineering",
+    "title": "Application Security Engineer",
+    "description": "Perform code reviews, penetration testing, and threat modelling to identify security vulnerabilities in web and mobile applications. Champion secure coding practices and build security tooling into the CI/CD pipeline. Experience with OWASP Top 10 and tools like Burp Suite required.",
+    "pairs": [
+      {"pos": "security engineer", "neg": "teacher"},
+      {"pos": "software engineer", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ds-junior",
+    "category": "Data / ML / AI",
+    "title": "Data Scientist",
+    "description": "Analyse large datasets to derive business insights and build predictive machine learning models using Python, scikit-learn, and XGBoost. Communicate findings to non-technical stakeholders and work with data engineers to productionise models. Degree in statistics, mathematics, computer science, or related field required.",
+    "pairs": [
+      {"pos": "data scientist", "neg": "sales executive"},
+      {"pos": "machine learning", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ds-senior",
+    "category": "Data / ML / AI",
+    "title": "Senior Data Scientist",
+    "description": "Lead end-to-end machine learning projects from problem framing and data collection to model deployment and monitoring. Mentor junior data scientists, collaborate with product and engineering to define metrics, and present to leadership. 5+ years of industry data science experience required.",
+    "pairs": [
+      {"pos": "data scientist", "neg": "operations manager"},
+      {"pos": "machine learning", "neg": "accountant"}
+    ]
+  },
+  {
+    "id": "ds-mle",
+    "category": "Data / ML / AI",
+    "title": "Machine Learning Engineer",
+    "description": "Build scalable ML training pipelines, model serving infrastructure, and feature stores for production machine learning systems. Bridge the gap between research and engineering, owning model deployment, A/B testing, and monitoring. Strong Python and MLOps tooling experience required.",
+    "pairs": [
+      {"pos": "machine learning engineer", "neg": "logistics coordinator"},
+      {"pos": "data scientist", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "ds-ai-research",
+    "category": "Data / ML / AI",
+    "title": "AI Research Scientist",
+    "description": "Conduct original research in deep learning, reinforcement learning, or generative AI and publish findings at top-tier venues such as NeurIPS or ICML. Translate research results into applied prototypes and collaborate with product teams on feasibility. PhD in machine learning or related field preferred.",
+    "pairs": [
+      {"pos": "research scientist", "neg": "sales manager"},
+      {"pos": "machine learning", "neg": "civil engineer"}
+    ]
+  },
+  {
+    "id": "ds-nlp",
+    "category": "Data / ML / AI",
+    "title": "NLP Engineer",
+    "description": "Design and deploy natural language processing pipelines for tasks including text classification, information extraction, and conversational AI using transformers and LLMs. Fine-tune large pre-trained models (BERT, LLaMA) on domain-specific data. Experience with HuggingFace and vector databases required.",
+    "pairs": [
+      {"pos": "nlp engineer", "neg": "accountant"},
+      {"pos": "machine learning", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ds-cv",
+    "category": "Data / ML / AI",
+    "title": "Computer Vision Engineer",
+    "description": "Develop object detection, image segmentation, and video analytics models using PyTorch and OpenCV for industrial and consumer applications. Optimise model performance for edge deployment on embedded GPUs. Experience with YOLO, Detectron2, or similar frameworks required.",
+    "pairs": [
+      {"pos": "computer vision", "neg": "financial analyst"},
+      {"pos": "machine learning engineer", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "ds-analyst",
+    "category": "Data / ML / AI",
+    "title": "Data Analyst",
+    "description": "Query and visualise data from multiple sources using SQL and Tableau to support business decision-making. Build dashboards, identify trends, and present actionable insights to business stakeholders. Experience with Python or R for statistical analysis is a plus.",
+    "pairs": [
+      {"pos": "data analyst", "neg": "registered nurse"},
+      {"pos": "business intelligence", "neg": "sales executive"}
+    ]
+  },
+  {
+    "id": "ds-analyst-senior",
+    "category": "Data / ML / AI",
+    "title": "Senior Data Analyst",
+    "description": "Own end-to-end analytics workflows including data modelling, pipeline maintenance, and executive-level reporting. Define team analytics standards and mentor junior analysts. 4+ years of data analytics experience with strong SQL and a visualisation tool required.",
+    "pairs": [
+      {"pos": "data analyst", "neg": "procurement specialist"},
+      {"pos": "analytics", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "ds-bi",
+    "category": "Data / ML / AI",
+    "title": "Business Intelligence Analyst",
+    "description": "Design and maintain BI dashboards and reports in Power BI or Looker to support business performance tracking. Work with the data team to model data in a warehouse (Snowflake/BigQuery) and ensure data quality. Strong SQL and data visualisation skills required.",
+    "pairs": [
+      {"pos": "business intelligence", "neg": "human resource"},
+      {"pos": "data analyst", "neg": "teacher"}
+    ]
+  },
+  {
+    "id": "ds-de",
+    "category": "Data / ML / AI",
+    "title": "Data Engineer",
+    "description": "Design, build, and maintain scalable data pipelines and ETL workflows using Apache Spark, Airflow, and cloud data warehouses (BigQuery, Redshift). Ensure data reliability, governance, and performance for downstream analytics and ML teams. Strong Python and SQL skills required.",
+    "pairs": [
+      {"pos": "data engineer", "neg": "sales executive"},
+      {"pos": "data pipeline", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ds-analytics-engineer",
+    "category": "Data / ML / AI",
+    "title": "Analytics Engineer",
+    "description": "Transform raw data in a cloud warehouse using dbt to create clean, well-documented data models consumed by analysts and business stakeholders. Define data contracts, write tests, and own the semantic layer. Proficiency in SQL, dbt, and data modelling principles required.",
+    "pairs": [
+      {"pos": "analytics engineer", "neg": "logistics manager"},
+      {"pos": "data engineer", "neg": "accountant"}
+    ]
+  },
+  {
+    "id": "ds-mlops",
+    "category": "Data / ML / AI",
+    "title": "MLOps Engineer",
+    "description": "Build and operate ML platform infrastructure including model registry, feature store, experiment tracking (MLflow), and serving layer. Manage model lifecycle from training to production deployment and monitoring. Experience with Kubernetes, Docker, and cloud ML services required.",
+    "pairs": [
+      {"pos": "mlops", "neg": "financial analyst"},
+      {"pos": "machine learning engineer", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ds-quant-researcher",
+    "category": "Data / ML / AI",
+    "title": "Quantitative Researcher",
+    "description": "Research and develop systematic trading strategies using statistical modelling, time-series analysis, and machine learning on financial data. Backtest strategies and work closely with quantitative traders and engineers to deploy live models. Strong Python, statistics, and finance background required.",
+    "pairs": [
+      {"pos": "quantitative researcher", "neg": "social worker"},
+      {"pos": "data scientist", "neg": "teacher"}
+    ]
+  },
+  {
+    "id": "ds-manager",
+    "category": "Data / ML / AI",
+    "title": "Data Science Manager",
+    "description": "Lead a team of data scientists and analysts, prioritise the analytics roadmap, and partner with business units to identify high-impact AI/ML opportunities. Define best practices for experimentation and model governance. 7+ years of data science experience with at least 2 years in a team lead role.",
+    "pairs": [
+      {"pos": "data science", "neg": "warehouse manager"},
+      {"pos": "machine learning", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "ds-applied-scientist",
+    "category": "Data / ML / AI",
+    "title": "Applied Scientist",
+    "description": "Apply state-of-the-art machine learning techniques to product challenges such as recommendation systems, search ranking, and demand forecasting. Collaborate with product and engineering to design experiments and evaluate model impact. Strong background in ML, statistics, and Python required.",
+    "pairs": [
+      {"pos": "applied scientist", "neg": "logistics coordinator"},
+      {"pos": "machine learning", "neg": "sales executive"}
+    ]
+  },
+  {
+    "id": "pm-mid",
+    "category": "Product / UX",
+    "title": "Product Manager",
+    "description": "Own the product roadmap for a B2C mobile application, define feature requirements, and work with engineering and design to deliver user value. Conduct user research, analyse product metrics, and run A/B experiments to drive growth. 3+ years of product management experience required.",
+    "pairs": [
+      {"pos": "product manager", "neg": "registered nurse"},
+      {"pos": "product owner", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "pm-senior",
+    "category": "Product / UX",
+    "title": "Senior Product Manager",
+    "description": "Define the strategic vision for a platform product, manage stakeholder alignment across multiple engineering squads, and drive outcomes measured by revenue and engagement KPIs. Influence executive decisions through data and user research. 6+ years of product management experience required.",
+    "pairs": [
+      {"pos": "product manager", "neg": "accountant"},
+      {"pos": "product owner", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "ux-designer",
+    "category": "Product / UX",
+    "title": "UX/UI Designer",
+    "description": "Design user interfaces and experiences for web and mobile products using Figma, conducting user interviews and usability testing to validate design decisions. Create wireframes, prototypes, and design systems. 3+ years of UX/UI design experience with a strong portfolio required.",
+    "pairs": [
+      {"pos": "ux designer", "neg": "financial analyst"},
+      {"pos": "product designer", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ux-product-designer",
+    "category": "Product / UX",
+    "title": "Product Designer",
+    "description": "Partner with product managers and engineers to shape product experiences from concept to launch. Responsible for end-to-end design including research, interaction design, visual design, and design systems contribution. Strong Figma skills and systems thinking required.",
+    "pairs": [
+      {"pos": "product designer", "neg": "sales executive"},
+      {"pos": "ux designer", "neg": "logistics coordinator"}
+    ]
+  },
+  {
+    "id": "ux-researcher",
+    "category": "Product / UX",
+    "title": "UX Researcher",
+    "description": "Plan and conduct qualitative and quantitative user research using methods such as interviews, surveys, usability testing, and diary studies to inform product decisions. Synthesise findings into insights and present to product and design leadership. Experience with research tools like UserTesting or Dovetail preferred.",
+    "pairs": [
+      {"pos": "ux researcher", "neg": "accountant"},
+      {"pos": "user research", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "fin-analyst",
+    "category": "Finance / Banking",
+    "title": "Financial Analyst",
+    "description": "Support financial planning and analysis including budgeting, forecasting, and variance analysis for business units. Build financial models, prepare management reporting, and present insights to finance leadership. CPA or CFA qualification is advantageous.",
+    "pairs": [
+      {"pos": "financial analyst", "neg": "software engineer"},
+      {"pos": "finance", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "fin-investment",
+    "category": "Finance / Banking",
+    "title": "Investment Analyst",
+    "description": "Conduct due diligence and financial modelling for private equity or venture capital investments. Analyse industry trends, evaluate target companies, and support portfolio management. Strong financial modelling and valuation skills, and CFA Level I or above preferred.",
+    "pairs": [
+      {"pos": "investment analyst", "neg": "software developer"},
+      {"pos": "financial analyst", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "fin-market-risk",
+    "category": "Finance / Banking",
+    "title": "Market Risk Analyst",
+    "description": "Measure and monitor market risk exposures (VaR, stress testing, sensitivity analysis) for trading books across asset classes. Produce daily risk reports and work with trading desks and risk technology teams. CFA or FRM qualification and strong quantitative skills required.",
+    "pairs": [
+      {"pos": "risk analyst", "neg": "teacher"},
+      {"pos": "financial analyst", "neg": "logistics manager"}
+    ]
+  },
+  {
+    "id": "fin-credit",
+    "category": "Finance / Banking",
+    "title": "Credit Analyst",
+    "description": "Evaluate creditworthiness of corporate borrowers through financial statement analysis, industry research, and cash flow modelling. Prepare credit proposals and work with relationship managers to structure lending solutions. 2+ years of credit or financial analysis experience preferred.",
+    "pairs": [
+      {"pos": "credit analyst", "neg": "software engineer"},
+      {"pos": "financial analyst", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "fin-compliance",
+    "category": "Finance / Banking",
+    "title": "Financial Compliance Officer",
+    "description": "Ensure the firm's operations comply with MAS regulations and internal policies, monitor regulatory developments, and advise business units on compliance matters. Conduct compliance reviews and training. Experience in financial services compliance and knowledge of Singapore regulatory frameworks required.",
+    "pairs": [
+      {"pos": "compliance officer", "neg": "software developer"},
+      {"pos": "financial compliance", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "fin-audit",
+    "category": "Finance / Banking",
+    "title": "Internal Auditor",
+    "description": "Plan and execute internal audit assignments covering financial, operational, and IT risks for a regulated financial institution. Evaluate internal controls, identify gaps, and present findings to senior management and the audit committee. CIA or CPA qualification preferred.",
+    "pairs": [
+      {"pos": "internal auditor", "neg": "software engineer"},
+      {"pos": "audit associate", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "fin-treasury",
+    "category": "Finance / Banking",
+    "title": "Treasury Analyst",
+    "description": "Manage daily cash positioning, liquidity forecasting, and foreign exchange hedging for a corporate treasury function. Monitor bank relationships and ensure optimal working capital management. Experience with treasury management systems and strong analytical skills required.",
+    "pairs": [
+      {"pos": "treasury analyst", "neg": "software developer"},
+      {"pos": "financial analyst", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "fin-fund-accounting",
+    "category": "Finance / Banking",
+    "title": "Fund Accountant",
+    "description": "Perform NAV calculations, reconciliations, and financial reporting for investment funds. Coordinate with custodians, auditors, and fund administrators to ensure accurate and timely reporting. Knowledge of fund accounting principles and experience with platforms like Geneva or Investran preferred.",
+    "pairs": [
+      {"pos": "fund accountant", "neg": "software engineer"},
+      {"pos": "accountant", "neg": "teacher"}
+    ]
+  },
+  {
+    "id": "fin-actuarial",
+    "category": "Finance / Banking",
+    "title": "Actuarial Analyst",
+    "description": "Perform actuarial modelling for pricing, reserving, and capital adequacy in a life or general insurance company. Support regulatory submissions and participate in actuarial exams (SOA or IFoA). Strong mathematical and statistical background required.",
+    "pairs": [
+      {"pos": "actuarial analyst", "neg": "software engineer"},
+      {"pos": "actuary", "neg": "logistics coordinator"}
+    ]
+  },
+  {
+    "id": "fin-quant",
+    "category": "Finance / Banking",
+    "title": "Quantitative Analyst",
+    "description": "Develop and validate quantitative models for derivatives pricing, counterparty credit risk, or algorithmic trading. Implement models in Python or C++ and work with trading desks and risk management. PhD or MSc in quantitative finance, mathematics, or physics preferred.",
+    "pairs": [
+      {"pos": "quantitative analyst", "neg": "human resource"},
+      {"pos": "quant analyst", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "fin-wealth",
+    "category": "Finance / Banking",
+    "title": "Wealth Management Associate",
+    "description": "Support private banking relationship managers in serving high-net-worth clients with investment solutions, portfolio reviews, and financial planning. Prepare client proposals and market updates. Relevant degree and progress toward CFA or CFP certification preferred.",
+    "pairs": [
+      {"pos": "wealth management", "neg": "software developer"},
+      {"pos": "financial analyst", "neg": "social worker"}
+    ]
+  },
+  {
+    "id": "fin-aml",
+    "category": "Finance / Banking",
+    "title": "AML/KYC Analyst",
+    "description": "Conduct customer due diligence (CDD), enhanced due diligence (EDD), and transaction monitoring to detect and report suspicious activity. Review KYC documentation for onboarding and periodic reviews. Knowledge of MAS AML/CFT regulations and FATF guidelines required.",
+    "pairs": [
+      {"pos": "aml analyst", "neg": "software engineer"},
+      {"pos": "compliance analyst", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "ops-manager",
+    "category": "Operations / Supply Chain",
+    "title": "Operations Manager",
+    "description": "Oversee daily business operations including process design, team management, and performance tracking for a technology or consumer services company. Drive operational efficiency through process improvement initiatives and cross-functional collaboration. 5+ years of operations management experience required.",
+    "pairs": [
+      {"pos": "operations manager", "neg": "software engineer"},
+      {"pos": "operations", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ops-sc-analyst",
+    "category": "Operations / Supply Chain",
+    "title": "Supply Chain Analyst",
+    "description": "Analyse supply chain data to optimise inventory levels, identify bottlenecks, and improve end-to-end supply chain performance. Build models for demand planning and scenario analysis. Experience with ERP systems (SAP, Oracle) and strong Excel/SQL skills required.",
+    "pairs": [
+      {"pos": "supply chain analyst", "neg": "software developer"},
+      {"pos": "supply chain", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "ops-logistics",
+    "category": "Operations / Supply Chain",
+    "title": "Logistics Manager",
+    "description": "Manage end-to-end logistics operations including warehousing, freight, last-mile delivery, and customs compliance. Negotiate with 3PL providers and monitor KPIs such as on-time delivery and cost per shipment. Experience in logistics or supply chain management required.",
+    "pairs": [
+      {"pos": "logistics manager", "neg": "software engineer"},
+      {"pos": "logistics", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "ops-procurement",
+    "category": "Operations / Supply Chain",
+    "title": "Procurement Specialist",
+    "description": "Source and evaluate suppliers, negotiate contracts, and manage the procurement lifecycle for direct and indirect categories. Drive cost savings and risk mitigation while maintaining supplier relationships and compliance with procurement policies. CIPS qualification is an advantage.",
+    "pairs": [
+      {"pos": "procurement specialist", "neg": "software engineer"},
+      {"pos": "procurement", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ops-inventory",
+    "category": "Operations / Supply Chain",
+    "title": "Demand Planning Analyst",
+    "description": "Develop statistical demand forecasts using historical data and market inputs to support inventory planning across SKUs. Collaborate with sales, marketing, and supply planning teams to align demand signals. Experience with planning tools (SAP APO, Kinaxis) preferred.",
+    "pairs": [
+      {"pos": "demand planning", "neg": "financial analyst"},
+      {"pos": "supply chain analyst", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "ops-executive",
+    "category": "Operations / Supply Chain",
+    "title": "Operations Executive",
+    "description": "Support day-to-day operations coordination including scheduling, vendor liaison, and tracking of operational KPIs. Prepare reports and ensure smooth end-to-end workflow across departments. 1–3 years of operations or admin experience required.",
+    "pairs": [
+      {"pos": "operations executive", "neg": "software developer"},
+      {"pos": "operations", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "ops-process",
+    "category": "Operations / Supply Chain",
+    "title": "Process Improvement Analyst",
+    "description": "Identify inefficiencies in business processes and implement improvements using Lean and Six Sigma methodologies. Map current-state and future-state workflows, conduct root cause analysis, and track improvement metrics. Lean Six Sigma Green Belt or Black Belt certification preferred.",
+    "pairs": [
+      {"pos": "process improvement", "neg": "software engineer"},
+      {"pos": "operations analyst", "neg": "teacher"}
+    ]
+  },
+  {
+    "id": "ops-vendor",
+    "category": "Operations / Supply Chain",
+    "title": "Vendor Manager",
+    "description": "Manage relationships with key vendors and service providers, oversee SLA compliance, and lead contract negotiations. Work with internal stakeholders to assess vendor performance and drive strategic sourcing decisions. Experience in vendor management or procurement required.",
+    "pairs": [
+      {"pos": "vendor manager", "neg": "software engineer"},
+      {"pos": "procurement manager", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "mkt-digital",
+    "category": "Marketing / Sales / BD",
+    "title": "Digital Marketing Manager",
+    "description": "Plan and execute digital marketing campaigns across paid search (Google Ads), social media (Meta, LinkedIn, TikTok), email, and SEO channels to drive user acquisition and revenue. Manage agency relationships and track performance via Google Analytics and marketing dashboards. 4+ years of digital marketing experience required.",
+    "pairs": [
+      {"pos": "digital marketing manager", "neg": "software engineer"},
+      {"pos": "marketing manager", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "mkt-content",
+    "category": "Marketing / Sales / BD",
+    "title": "Content Marketing Executive",
+    "description": "Produce and optimise content across blog, social media, email newsletters, and landing pages to drive organic traffic and brand awareness. Conduct keyword research and implement SEO best practices. Strong writing skills and experience with content management systems required.",
+    "pairs": [
+      {"pos": "content marketing", "neg": "data engineer"},
+      {"pos": "marketing executive", "neg": "accountant"}
+    ]
+  },
+  {
+    "id": "mkt-sales",
+    "category": "Marketing / Sales / BD",
+    "title": "B2B Sales Executive",
+    "description": "Prospect, qualify, and close new business accounts in the SME or enterprise segment for a SaaS or fintech product. Manage the full sales cycle from outreach to contract negotiation and onboarding handoff. Proven track record in B2B sales with strong communication and objection-handling skills required.",
+    "pairs": [
+      {"pos": "sales executive", "neg": "software engineer"},
+      {"pos": "business development", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "mkt-bd",
+    "category": "Marketing / Sales / BD",
+    "title": "Business Development Manager",
+    "description": "Identify and develop strategic partnerships, new market opportunities, and enterprise accounts to drive revenue growth. Own the end-to-end BD process including prospecting, proposal development, and contract negotiation. 5+ years in BD or commercial roles, preferably in technology or financial services.",
+    "pairs": [
+      {"pos": "business development manager", "neg": "data analyst"},
+      {"pos": "sales manager", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "mkt-account",
+    "category": "Marketing / Sales / BD",
+    "title": "Key Account Manager",
+    "description": "Manage and grow relationships with key enterprise clients for a B2B technology company. Conduct business reviews, identify upsell and cross-sell opportunities, and act as the primary point of contact for escalations and renewals. 3+ years of account management or customer success experience required.",
+    "pairs": [
+      {"pos": "account manager", "neg": "data engineer"},
+      {"pos": "sales manager", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "mkt-performance",
+    "category": "Marketing / Sales / BD",
+    "title": "Performance Marketing Analyst",
+    "description": "Manage and optimise paid acquisition campaigns across Google, Meta, and affiliate channels to maximise ROI. Analyse funnel performance data, run A/B tests on ad creative and landing pages, and report on CAC and ROAS. Experience with performance marketing platforms and strong analytical skills required.",
+    "pairs": [
+      {"pos": "performance marketing", "neg": "software engineer"},
+      {"pos": "digital marketing", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "mkt-brand",
+    "category": "Marketing / Sales / BD",
+    "title": "Brand Manager",
+    "description": "Develop and execute brand strategy, integrated marketing campaigns, and new product launch plans for a FMCG or retail brand. Manage agency relationships, monitor brand health metrics, and align with trade marketing on in-store activation. 4+ years of brand or marketing management experience required.",
+    "pairs": [
+      {"pos": "brand manager", "neg": "software developer"},
+      {"pos": "marketing manager", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "mkt-regional-sales",
+    "category": "Marketing / Sales / BD",
+    "title": "Regional Sales Manager",
+    "description": "Lead a team of sales representatives across Southeast Asia to achieve regional revenue targets for a B2B product. Define sales strategy, coach the team, manage key client relationships, and provide pipeline reporting to senior leadership. 7+ years of sales experience with regional management exposure required.",
+    "pairs": [
+      {"pos": "regional sales manager", "neg": "data scientist"},
+      {"pos": "sales manager", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "hr-hrbp",
+    "category": "HR",
+    "title": "HR Business Partner",
+    "description": "Partner with business leaders to deliver people strategies covering talent management, performance, organisational design, and employee relations. Coach managers, support workforce planning, and drive HR initiatives. 5+ years of HR generalist experience with strong stakeholder management skills required.",
+    "pairs": [
+      {"pos": "hr business partner", "neg": "software engineer"},
+      {"pos": "human resource", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "hr-recruiter",
+    "category": "HR",
+    "title": "Talent Acquisition Specialist",
+    "description": "Manage end-to-end recruitment for technical and business roles, including sourcing, screening, interviewing, and offer management. Partner with hiring managers to define job requirements and improve candidate experience. Experience with ATS platforms (Workday, Greenhouse) and Boolean sourcing required.",
+    "pairs": [
+      {"pos": "talent acquisition", "neg": "data engineer"},
+      {"pos": "recruiter", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "hr-ld",
+    "category": "HR",
+    "title": "Learning and Development Specialist",
+    "description": "Design and deliver learning programmes, e-learning content, and leadership development initiatives for a corporate workforce. Conduct needs analysis, evaluate training effectiveness, and manage the LMS. Experience in instructional design and facilitation required.",
+    "pairs": [
+      {"pos": "learning and development", "neg": "software engineer"},
+      {"pos": "training specialist", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "hr-analytics",
+    "category": "HR",
+    "title": "HR Analytics Specialist",
+    "description": "Build people analytics dashboards, analyse workforce data on turnover, engagement, and headcount, and deliver data-driven HR insights to business leaders. Develop predictive models for attrition risk and talent planning. Proficiency in SQL, Python or R, and HR data systems (Workday, SAP SuccessFactors) required.",
+    "pairs": [
+      {"pos": "hr analytics", "neg": "software engineer"},
+      {"pos": "people analytics", "neg": "logistics coordinator"}
+    ]
+  },
+  {
+    "id": "hr-cb",
+    "category": "HR",
+    "title": "Compensation and Benefits Analyst",
+    "description": "Design and administer compensation structures, incentive programmes, and benefits packages to ensure market competitiveness and internal equity. Conduct salary benchmarking surveys, support annual merit review cycles, and analyse pay equity. Experience with compensation survey tools (Mercer, Radford) preferred.",
+    "pairs": [
+      {"pos": "compensation analyst", "neg": "software engineer"},
+      {"pos": "human resource", "neg": "pharmacist"}
+    ]
+  },
+  {
+    "id": "eng-mechanical",
+    "category": "Engineering (Non-Tech)",
+    "title": "Mechanical Design Engineer",
+    "description": "Design mechanical components and systems for industrial equipment or consumer products using CAD tools such as SolidWorks or CATIA. Perform design verification through FEA simulation and prototype testing. Degree in mechanical engineering and experience with GD&T and manufacturing processes required.",
+    "pairs": [
+      {"pos": "mechanical engineer", "neg": "financial analyst"},
+      {"pos": "design engineer", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "eng-civil",
+    "category": "Engineering (Non-Tech)",
+    "title": "Civil and Structural Engineer",
+    "description": "Design and analyse structures for building and infrastructure projects, including foundations, beams, slabs, and retaining walls using ETABS or STAAD.Pro. Coordinate with architects, contractors, and authorities for project delivery. PE licence registration with PEB Singapore preferred.",
+    "pairs": [
+      {"pos": "civil engineer", "neg": "software developer"},
+      {"pos": "structural engineer", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "eng-electrical",
+    "category": "Engineering (Non-Tech)",
+    "title": "Electrical Engineer",
+    "description": "Design and commission electrical power systems, switchgear, and building services for commercial or industrial facilities. Review electrical drawings, manage contractors, and ensure compliance with the Code of Practice for Electrical Installations. REI licence preferred.",
+    "pairs": [
+      {"pos": "electrical engineer", "neg": "marketing manager"},
+      {"pos": "power systems engineer", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "eng-chemical",
+    "category": "Engineering (Non-Tech)",
+    "title": "Chemical Process Engineer",
+    "description": "Optimise and troubleshoot chemical manufacturing processes in an oil & gas or specialty chemicals plant. Perform HAZOP studies, process simulations using Aspen Plus, and capital project engineering. Degree in chemical engineering and experience in a process plant environment required.",
+    "pairs": [
+      {"pos": "chemical engineer", "neg": "sales executive"},
+      {"pos": "process engineer", "neg": "data analyst"}
+    ]
+  },
+  {
+    "id": "eng-semiconductor",
+    "category": "Engineering (Non-Tech)",
+    "title": "Semiconductor Process Engineer",
+    "description": "Develop and optimise semiconductor fabrication processes (photolithography, etch, CVD, CMP) for advanced logic or memory nodes. Analyse yield data, conduct experiments, and collaborate with equipment engineers to improve process stability. Experience in a wafer fab environment required.",
+    "pairs": [
+      {"pos": "process engineer", "neg": "financial analyst"},
+      {"pos": "semiconductor engineer", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "eng-environmental",
+    "category": "Engineering (Non-Tech)",
+    "title": "Environmental Engineer",
+    "description": "Conduct environmental impact assessments, manage wastewater and air emissions compliance, and implement environmental management systems for industrial clients. Liaise with the National Environment Agency (NEA) and prepare regulatory reports. Experience in HSE or environmental consulting preferred.",
+    "pairs": [
+      {"pos": "environmental engineer", "neg": "software developer"},
+      {"pos": "engineer", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "eng-biomedical",
+    "category": "Engineering (Non-Tech)",
+    "title": "Biomedical Engineer",
+    "description": "Develop and test medical devices or laboratory instrumentation in compliance with IEC 60601, ISO 13485, and HSA regulatory requirements. Collaborate with clinical teams on product requirements and conduct design verification and validation studies. Experience in medical device R&D or regulatory affairs preferred.",
+    "pairs": [
+      {"pos": "biomedical engineer", "neg": "marketing manager"},
+      {"pos": "medical device engineer", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "eng-industrial",
+    "category": "Engineering (Non-Tech)",
+    "title": "Industrial and Manufacturing Engineer",
+    "description": "Improve manufacturing efficiency, yield, and quality through time studies, layout optimisation, and automation initiatives on the production floor. Implement lean manufacturing and kaizen projects. Degree in industrial engineering or manufacturing engineering required.",
+    "pairs": [
+      {"pos": "industrial engineer", "neg": "data scientist"},
+      {"pos": "manufacturing engineer", "neg": "sales executive"}
+    ]
+  },
+  {
+    "id": "hc-nurse",
+    "category": "Healthcare",
+    "title": "Registered Nurse",
+    "description": "Provide direct patient care in a general ward, surgical, or ICU setting, including medication administration, wound care, and vital signs monitoring. Collaborate with the multidisciplinary care team and educate patients and families on health conditions. Singapore Nursing Board registration required.",
+    "pairs": [
+      {"pos": "registered nurse", "neg": "software engineer"},
+      {"pos": "nurse", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "hc-pharmacist",
+    "category": "Healthcare",
+    "title": "Staff Pharmacist",
+    "description": "Dispense medications, counsel patients on drug therapy, and conduct medication reconciliation in a hospital or retail pharmacy setting. Participate in clinical pharmacy rounds and contribute to quality improvement initiatives. Registration with the Singapore Pharmacy Council required.",
+    "pairs": [
+      {"pos": "pharmacist", "neg": "software engineer"},
+      {"pos": "pharmacy", "neg": "data analyst"}
+    ]
+  },
+  {
+    "id": "hc-doctor",
+    "category": "Healthcare",
+    "title": "Medical Officer",
+    "description": "Provide clinical assessment, diagnosis, and management of patients in an outpatient polyclinic or hospital setting under the supervision of senior doctors. Rotate across specialties including internal medicine, emergency medicine, and surgery. Full Medical Registration with Singapore Medical Council required.",
+    "pairs": [
+      {"pos": "medical officer", "neg": "software developer"},
+      {"pos": "doctor", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "hc-physio",
+    "category": "Healthcare",
+    "title": "Physiotherapist",
+    "description": "Assess and rehabilitate patients with musculoskeletal, neurological, or cardiorespiratory conditions in a hospital or community rehabilitation setting. Develop individualised treatment plans and educate patients on exercise and injury prevention. Registration with the Allied Health Professions Council required.",
+    "pairs": [
+      {"pos": "physiotherapist", "neg": "software engineer"},
+      {"pos": "allied health", "neg": "data analyst"}
+    ]
+  },
+  {
+    "id": "hc-cra",
+    "category": "Healthcare",
+    "title": "Clinical Research Associate",
+    "description": "Monitor clinical trials to ensure protocol compliance, data integrity, and adherence to GCP guidelines. Conduct site visits, review source documents, and liaise with investigators and sponsors. Degree in life sciences or pharmacy and knowledge of ICH E6 GCP required.",
+    "pairs": [
+      {"pos": "clinical research", "neg": "software engineer"},
+      {"pos": "research associate", "neg": "logistics manager"}
+    ]
+  },
+  {
+    "id": "hc-health-analyst",
+    "category": "Healthcare",
+    "title": "Health Informatics Analyst",
+    "description": "Analyse clinical and operational data from electronic medical records (EMR) and hospital information systems to support quality improvement, population health management, and research. Build dashboards and data pipelines for clinical reporting. Knowledge of HL7 FHIR and SQL required.",
+    "pairs": [
+      {"pos": "health informatics", "neg": "software engineer"},
+      {"pos": "clinical data analyst", "neg": "marketing manager"}
+    ]
+  },
+  {
+    "id": "hc-radiographer",
+    "category": "Healthcare",
+    "title": "Radiographer",
+    "description": "Perform diagnostic imaging procedures including X-ray, CT, and MRI scanning in accordance with prescribed requests and radiation safety protocols. Position patients correctly and collaborate with radiologists to produce high-quality diagnostic images. Registration with the Allied Health Professions Council required.",
+    "pairs": [
+      {"pos": "radiographer", "neg": "software developer"},
+      {"pos": "medical imaging", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "hc-ot",
+    "category": "Healthcare",
+    "title": "Occupational Therapist",
+    "description": "Evaluate and treat patients with physical, cognitive, or mental health conditions to improve their ability to perform activities of daily living and return to work or school. Provide home and workplace assessments and adaptive equipment recommendations. AHPC registration required.",
+    "pairs": [
+      {"pos": "occupational therapist", "neg": "data engineer"},
+      {"pos": "allied health", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "legal-inhouse",
+    "category": "Legal / Consulting",
+    "title": "Legal Counsel",
+    "description": "Provide legal advice on commercial contracts, corporate transactions, regulatory compliance, and employment matters for a technology or financial services company. Draft and review agreements including NDAs, MSAs, and licensing contracts. Singapore Bar admission and 3+ years of PQE required.",
+    "pairs": [
+      {"pos": "legal counsel", "neg": "software engineer"},
+      {"pos": "lawyer", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "legal-corp",
+    "category": "Legal / Consulting",
+    "title": "Corporate Lawyer",
+    "description": "Advise on mergers and acquisitions, capital market transactions, and joint ventures for corporate clients in a leading Singapore law firm. Draft and negotiate transaction documents and manage cross-border deal teams. Singapore Bar admission and strong M&A or capital markets experience required.",
+    "pairs": [
+      {"pos": "corporate lawyer", "neg": "software developer"},
+      {"pos": "legal counsel", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "legal-consultant",
+    "category": "Legal / Consulting",
+    "title": "Management Consultant",
+    "description": "Deliver strategic advisory and transformation projects for clients across banking, government, and technology sectors. Structure and test hypotheses, build business cases, and present recommendations to C-suite. Experience at a top-tier management consulting firm (MBB, Big Four) preferred.",
+    "pairs": [
+      {"pos": "management consultant", "neg": "software engineer"},
+      {"pos": "strategy consultant", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "legal-strategy",
+    "category": "Legal / Consulting",
+    "title": "Strategy and Operations Analyst",
+    "description": "Support senior leaders in defining corporate strategy, conducting market and competitive analysis, and implementing strategic initiatives. Build financial and scenario models and produce board-level presentations. Strong analytical skills and experience in consulting or corporate strategy required.",
+    "pairs": [
+      {"pos": "strategy analyst", "neg": "software engineer"},
+      {"pos": "management consultant", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "legal-compliance-mgr",
+    "category": "Legal / Consulting",
+    "title": "Compliance Manager",
+    "description": "Oversee the compliance programme for a regulated entity, including policy development, regulatory reporting, and training. Manage interactions with regulators and lead internal compliance reviews. Deep knowledge of applicable regulations (MAS, PDPA, AML/CFT) and 5+ years in a compliance role required.",
+    "pairs": [
+      {"pos": "compliance manager", "neg": "software developer"},
+      {"pos": "regulatory compliance", "neg": "data engineer"}
+    ]
+  },
+  {
+    "id": "legal-contracts",
+    "category": "Legal / Consulting",
+    "title": "Contracts Specialist",
+    "description": "Draft, review, and negotiate a wide range of commercial contracts including procurement agreements, IT contracts, and service agreements. Maintain contract repository and advise internal stakeholders on contractual risks. Legal or business degree with experience in contract management required.",
+    "pairs": [
+      {"pos": "contracts specialist", "neg": "software engineer"},
+      {"pos": "legal", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "gov-policy",
+    "category": "Government / Education",
+    "title": "Policy Analyst",
+    "description": "Conduct policy research, stakeholder consultation, and data analysis to support the development and review of government policies in areas such as labour, housing, or digital economy. Prepare policy papers and present recommendations to senior officers. Singapore public service or equivalent background preferred.",
+    "pairs": [
+      {"pos": "policy analyst", "neg": "software engineer"},
+      {"pos": "government analyst", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "gov-it",
+    "category": "Government / Education",
+    "title": "ICT Officer",
+    "description": "Design, develop, and maintain digital government services and internal IT systems for a ministry or statutory board. Work on cloud migration, cybersecurity, and digital transformation projects aligned with Singapore's Smart Nation initiative. Degree in computing or IT required.",
+    "pairs": [
+      {"pos": "software engineer", "neg": "financial analyst"},
+      {"pos": "it officer", "neg": "registered nurse"}
+    ]
+  },
+  {
+    "id": "gov-teacher",
+    "category": "Government / Education",
+    "title": "Secondary School Teacher",
+    "description": "Teach one or more subjects to secondary school students and contribute to the holistic development of pupils through co-curricular activities and pastoral care. Plan engaging lessons, assess student progress, and collaborate with colleagues. NIE graduate teacher certification required.",
+    "pairs": [
+      {"pos": "teacher", "neg": "software engineer"},
+      {"pos": "educator", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "gov-research-fellow",
+    "category": "Government / Education",
+    "title": "Research Fellow",
+    "description": "Conduct independent academic research, publish findings in peer-reviewed journals, and collaborate on grant-funded projects at a university or research institute. Supervise graduate students and contribute to the academic community through conferences and seminars. PhD in a relevant field required.",
+    "pairs": [
+      {"pos": "research fellow", "neg": "sales executive"},
+      {"pos": "researcher", "neg": "warehouse manager"}
+    ]
+  },
+  {
+    "id": "gov-social-worker",
+    "category": "Government / Education",
+    "title": "Social Worker",
+    "description": "Provide casework, counselling, and community intervention services for vulnerable individuals and families facing issues such as poverty, family violence, or mental health challenges. Collaborate with multi-agency partners and government schemes. Degree in social work and registration with the Singapore Association of Social Workers required.",
+    "pairs": [
+      {"pos": "social worker", "neg": "software engineer"},
+      {"pos": "counsellor", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "admin-ea",
+    "category": "Admin / Customer Service",
+    "title": "Executive Assistant",
+    "description": "Provide high-level administrative support to C-suite executives including calendar management, travel coordination, board meeting preparation, and correspondence. Act as a liaison between the executive and internal and external stakeholders. 3+ years of EA or PA experience in a corporate environment required.",
+    "pairs": [
+      {"pos": "executive assistant", "neg": "software engineer"},
+      {"pos": "personal assistant", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "admin-cs",
+    "category": "Admin / Customer Service",
+    "title": "Customer Service Executive",
+    "description": "Handle inbound customer enquiries via phone, email, and live chat, resolve complaints, and ensure high customer satisfaction. Maintain knowledge of products and services, escalate complex cases, and log interactions in CRM systems. Strong communication skills and service-oriented mindset required.",
+    "pairs": [
+      {"pos": "customer service", "neg": "software engineer"},
+      {"pos": "service executive", "neg": "data scientist"}
+    ]
+  },
+  {
+    "id": "admin-admin",
+    "category": "Admin / Customer Service",
+    "title": "Administrative Executive",
+    "description": "Manage general office administration including procurement of office supplies, invoice processing, travel bookings, and coordination of meetings and events. Support HR and finance teams with documentation and filing. Proficiency in Microsoft Office and attention to detail required.",
+    "pairs": [
+      {"pos": "administrative executive", "neg": "software engineer"},
+      {"pos": "admin assistant", "neg": "financial analyst"}
+    ]
+  },
+  {
+    "id": "admin-receptionist",
+    "category": "Admin / Customer Service",
+    "title": "Receptionist",
+    "description": "Serve as the first point of contact for visitors and incoming calls for a corporate office. Manage meeting room bookings, receive and distribute mail and parcels, and provide general administrative support. Professional appearance and excellent communication skills required.",
+    "pairs": [
+      {"pos": "receptionist", "neg": "software engineer"},
+      {"pos": "front desk", "neg": "data analyst"}
+    ]
+  },
+  {
+    "id": "admin-office-mgr",
+    "category": "Admin / Customer Service",
+    "title": "Office Manager",
+    "description": "Oversee all aspects of office operations including facilities management, vendor contracts, IT support coordination, and workplace health and safety compliance. Lead a small admin team and manage the office budget. Experience in office management or facilities administration required.",
+    "pairs": [
+      {"pos": "office manager", "neg": "software engineer"},
+      {"pos": "facilities manager", "neg": "data scientist"}
+    ]
+  }
+]
