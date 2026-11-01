@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir uv "uv_build>=0.8.23,<0.9.0"
 
 # Install CPU-only PyTorch first (~400 MB vs ~2.5 GB CUDA). Must run before project deps
 # so uv sees it already satisfied and won't pull the full CUDA build.
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
 
 # Copy project files — src/ and README.md must be present for editable install
 COPY pyproject.toml README.md ./
