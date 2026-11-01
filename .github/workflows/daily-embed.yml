@@ -50,6 +50,9 @@ jobs:
           BATCH_SIZE: ${{ github.event.inputs.batch_size || '32' }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           JOB_EXTRACTOR_LLM_ENABLED: "1"
+          # New jobs always have new text, so the content-hash cache never hits
+          # and only adds two DB round trips per job from the runner.
+          ENABLE_EMBEDDINGS_CACHE: "0"
 
       - name: Rebuild HNSW indexes
         run: |

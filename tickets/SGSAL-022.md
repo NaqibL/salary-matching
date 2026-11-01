@@ -68,15 +68,17 @@ the 2026-11-01 spikes are at the bottom.
 - [x] B3. Done 2026-11-01 in code: default in `llm_cleaner.py` + `config.py`,
       `.env`, `.env.example`, CLAUDE.md; `GeminiFlashCleaner` → `OpenRouterCleaner`
       (alias kept). Luqman still needs to set the GitHub secret `OPENROUTER_MODEL`
-      (only if one exists; otherwise the workflow default applies) and the Railway
-      variable `OPENROUTER_MODEL=google/gemma-4-26b-a4b-it` (also used by the
-      owner-only resume cleaner).
+      and Railway: DONE 2026-11-01 — Railway `OPENROUTER_MODEL` set to
+      `google/gemma-4-26b-a4b-it` (also used by the owner-only resume cleaner);
+      the unused GitHub secret `OPENROUTER_MODEL` should be deleted by Luqman
+      (`gh secret delete OPENROUTER_MODEL`; Claude is blocked from secret writes;
+      workflows use the code default so it is harmless meanwhile). Daily embed now runs with `ENABLE_EMBEDDINGS_CACHE=0`.
 - [ ] B4. Watch one daily embed run: failure count, runtime, cost.
 
 ### C. Jev replaces the KMeans/LR classifiers
 
-- [ ] C1. Approve the role-family list (24 families drafted in the spike script,
-      copy below). Trim/rename as Luqman prefers. ~15–24 is the target.
+- [x] C1. Approved 2026-11-01 (Luqman delegated the call): keep all 24 families
+      as drafted below, no renames.
 - [ ] C2. New module `src/mcf/lib/embeddings/jev_classifier.py`: calls
       `POST https://openrouter.ai/api/alpha/decisions`, model pinned to
       `typesafe/jev-1.14`, two questions (role_family choice, seniority score
