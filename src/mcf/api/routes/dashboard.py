@@ -147,6 +147,61 @@ def get_dashboard_salary_distribution_public():
     return store.get_salary_distribution()
 
 
+# --- LLM-field analytics (seniority / skills / role families) ---
+
+SKILLS_TREND_MAX_SKILLS = 8
+
+
+def _parse_skills(raw: str) -> list[str]:
+    """Split a comma-separated skills param, dedupe case-insensitively, cap the count."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for part in raw.split(","):
+        s = part.strip()
+        if s and s.lower() not in seen:
+            seen.add(s.lower())
+            out.append(s)
+    return out[:SKILLS_TREND_MAX_SKILLS]
+
+
+@router.get("/api/dashboard/seniority-breakdown-public")
+@cache_response(TTL_DASHBOARD, "dashboard:seniority-breakdown-public")
+def get_dashboard_seniority_breakdown_public():
+    """Public: active jobs + median salary by LLM-inferred seniority (Intern -> Director)."""
+    store = get_store()
+    return store.get_seniority_breakdown()
+
+
+@router.get("/api/dashboard/top-skills-public")
+@cache_response(TTL_DASHBOARD, "dashboard:top-skills-public")
+def get_dashboard_top_skills_public(
+    limit: int = Query(default=25, ge=1, le=50),
+    role_family: str | None = Query(default=None, max_length=64),
+):
+    """Public: most-mentioned canonical skills across active jobs, optionally within a role family."""
+    store = get_store()
+    return store.get_top_skills(limit=limit, role_family=role_family or None)
+
+
+@router.get("/api/dashboard/skills-trend-public")
+@cache_response(TTL_DASHBOARD, "dashboard:skills-trend-public")
+def get_dashboard_skills_trend_public(
+    skills: str = Query(..., min_length=1, max_length=512, description="Comma-separated, max 8"),
+    weeks: int = Query(default=12, ge=1, le=26),
+):
+    """Public: weekly count of jobs posted that mention each skill. Returns [{week, skill, jobs}]."""
+    store = get_store()
+    return store.get_skills_trend(skills=_parse_skills(skills), weeks=weeks)
+
+
+@router.get("/api/dashboard/role-families-public")
+@cache_response(TTL_DASHBOARD, "dashboard:role-families-public")
+def get_dashboard_role_families_public():
+    """Public: active jobs + median salary by Jev role family (rows still being backfilled)."""
+    store = get_store()
+    return store.get_role_family_breakdown()
+
+
 @router.get("/api/dashboard/charts-static")
 @cache_response(TTL_DASHBOARD, "dashboard:charts-static")
 def get_dashboard_charts_static(_: str | None = Depends(get_optional_user)):

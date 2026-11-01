@@ -171,3 +171,31 @@ export interface LowballResult {
   similar_jobs: SimilarJob[]
   company_similar_jobs?: SimilarJob[] | null
 }
+
+// --- Dashboard: LLM-field analytics (seniority / skills / role families) ---
+
+export interface SeniorityBreakdownRow {
+  seniority: string
+  jobs: number
+  median_salary: number | null
+}
+
+export interface TopSkillRow {
+  skill: string
+  jobs: number
+  median_salary: number | null
+}
+
+export interface SkillsTrendRow {
+  /** ISO date of the Monday starting the week */
+  week: string
+  skill: string
+  jobs: number
+}
+
+export interface RoleFamilyRow {
+  role_family: string
+  display_name: string
+  jobs: number
+  median_salary: number | null
+}

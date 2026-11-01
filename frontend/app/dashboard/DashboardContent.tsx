@@ -20,6 +20,18 @@ import { toast } from 'sonner'
 import type { Summary } from './DashboardSummary'
 import type { JobsPostedRemovedPoint } from './JobsOverTimeChart'
 
+const LazyMarketInsightsCharts = dynamic(
+  () => import('./MarketInsightsCharts').then((m) => ({ default: m.MarketInsightsCharts })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="h-64 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-700" />
+      </div>
+    ),
+  }
+)
+
 const LazyDashboardCharts = dynamic(() => import('./DashboardCharts').then((m) => ({ default: m.DashboardCharts })), {
   ssr: false,
   loading: () => (
@@ -245,6 +257,8 @@ export function DashboardContent({ initialSummary, initialJobsOverTime }: Dashbo
                 />
               </div>
             </section>
+
+            <LazyMarketInsightsCharts />
           </div>
         )}
       </DashboardErrorBoundary>

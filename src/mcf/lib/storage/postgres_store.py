@@ -2055,6 +2055,161 @@ class PostgresStore(Storage):
         by_bucket = {r[0]: r[1] for r in rows}
         return [{"bucket": b, "count": by_bucket.get(b, 0)} for b in bucket_order]
 
+    # --- LLM-field analytics (jobs.llm_fields_json / jobs.role_family) ---
+
+    # Monthly SGD midpoint of a disclosed range; NULL when the range is missing
+    # or nonsense (0, inverted, or > 50k). Used by the median_salary aggregates.
+    _SALARY_MID_SQL = (
+        "CASE WHEN salary_min > 0 AND salary_max > 0 AND salary_max <= 50000"
+        " AND salary_max >= salary_min THEN (salary_min + salary_max) / 2.0 END"
+    )
+    # canonical_skills as a jsonb array ('[]' when absent or not an array so
+    # jsonb_array_elements_text never sees a scalar).
+    _SKILLS_SQL = (
+        "CASE WHEN jsonb_typeof(llm_fields_json::jsonb -> 'canonical_skills') = 'array'"
+        " THEN llm_fields_json::jsonb -> 'canonical_skills' ELSE '[]'::jsonb END"
+    )
+    _SENIORITY_ORDER = ["Intern", "Entry", "Junior", "Mid", "Senior", "Lead", "Manager", "Director"]
+
+    @staticmethod
+    def _median_or_none(value: Any) -> int | None:
+        return int(round(float(value))) if value is not None else None
+
+    def get_seniority_breakdown(self) -> list[dict]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                f"""
+                SELECT s.seniority, COUNT(*)::int AS jobs,
+                       percentile_cont(0.5) WITHIN GROUP (ORDER BY s.mid) AS median_salary
+                FROM (
+                    SELECT llm_fields_json::jsonb ->> 'inferred_seniority' AS seniority,
+                           {self._SALARY_MID_SQL} AS mid
+                    FROM jobs
+                    WHERE is_active = TRUE AND llm_fields_json IS NOT NULL
+                ) s
+                WHERE s.seniority IS NOT NULL
+                GROUP BY 1
+                """
+            )
+            rows = cur.fetchall()
+        by_name = {r[0]: r for r in rows}
+        known = [by_name[s] for s in self._SENIORITY_ORDER if s in by_name]
+        # Any value outside the known ladder goes last, by count desc.
+        extra = sorted(
+            (r for r in rows if r[0] not in self._SENIORITY_ORDER), key=lambda r: -r[1]
+        )
+        return [
+            {"seniority": r[0], "jobs": r[1], "median_salary": self._median_or_none(r[2])}
+            for r in known + extra
+        ]
+
+    def get_top_skills(self, limit: int = 25, role_family: str | None = None) -> list[dict]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            # Group on lower(skill); display the most common spelling (mode()).
+            cur.execute(
+                f"""
+                SELECT mode() WITHIN GROUP (ORDER BY t.skill) AS skill,
+                       COUNT(DISTINCT t.job_uuid)::int AS jobs,
+                       percentile_cont(0.5) WITHIN GROUP (ORDER BY t.mid) AS median_salary
+                FROM (
+                    SELECT j.job_uuid, j.mid, sk.skill
+                    FROM (
+                        SELECT job_uuid, {self._SALARY_MID_SQL} AS mid, {self._SKILLS_SQL} AS skills
+                        FROM jobs
+                        WHERE is_active = TRUE AND llm_fields_json IS NOT NULL
+                          AND (%s::text IS NULL OR role_family = %s)
+                    ) j
+                    CROSS JOIN LATERAL jsonb_array_elements_text(j.skills) AS sk(skill)
+                ) t
+                WHERE btrim(t.skill) <> ''
+                GROUP BY lower(btrim(t.skill))
+                ORDER BY jobs DESC, skill ASC
+                LIMIT %s
+                """,
+                [role_family, role_family, limit],
+            )
+            rows = cur.fetchall()
+        return [
+            {"skill": r[0], "jobs": r[1], "median_salary": self._median_or_none(r[2])}
+            for r in rows
+        ]
+
+    def get_skills_trend(self, skills: list[str], weeks: int = 12) -> list[dict]:
+        from datetime import date, timedelta
+
+        labels: dict[str, str] = {}
+        for s in skills:
+            key = s.strip().lower()
+            if key and key not in labels:
+                labels[key] = s.strip()
+        if not labels:
+            return []
+        # Start on the Monday `weeks` weeks ago so every bucket is a full ISO week.
+        today = date.today()
+        since = today - timedelta(days=today.weekday()) - timedelta(weeks=weeks - 1)
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                f"""
+                SELECT date_trunc('week', t.d)::date AS week, lower(btrim(t.skill)) AS skill_key,
+                       COUNT(DISTINCT t.job_uuid)::int AS jobs
+                FROM (
+                    SELECT j.job_uuid, j.d, sk.skill
+                    FROM (
+                        SELECT job_uuid,
+                               COALESCE(posted_date, first_seen_at::date) AS d,
+                               {self._SKILLS_SQL} AS skills
+                        FROM jobs
+                        WHERE COALESCE(posted_date, first_seen_at::date) >= %s
+                          AND llm_fields_json IS NOT NULL
+                    ) j
+                    CROSS JOIN LATERAL jsonb_array_elements_text(j.skills) AS sk(skill)
+                ) t
+                WHERE lower(btrim(t.skill)) = ANY(%s)
+                GROUP BY 1, 2
+                """,
+                [since, list(labels)],
+            )
+            rows = cur.fetchall()
+        counts = {(r[0], r[1]): r[2] for r in rows}
+        out: list[dict] = []
+        for i in range(weeks):
+            week = since + timedelta(weeks=i)
+            for key, label in labels.items():
+                out.append({"week": week.isoformat(), "skill": label, "jobs": counts.get((week, key), 0)})
+        return out
+
+    def get_role_family_breakdown(self) -> list[dict]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                f"""
+                SELECT s.role_family, COALESCE(rf.display_name, s.role_family) AS display_name,
+                       COUNT(*)::int AS jobs,
+                       percentile_cont(0.5) WITHIN GROUP (ORDER BY s.mid) AS median_salary
+                FROM (
+                    SELECT role_family, {self._SALARY_MID_SQL} AS mid
+                    FROM jobs
+                    WHERE is_active = TRUE AND role_family IS NOT NULL
+                ) s
+                LEFT JOIN role_families rf ON rf.key = s.role_family
+                GROUP BY 1, 2
+                ORDER BY jobs DESC, display_name ASC
+                """
+            )
+            rows = cur.fetchall()
+        return [
+            {
+                "role_family": r[0],
+                "display_name": r[1],
+                "jobs": r[2],
+                "median_salary": self._median_or_none(r[3]),
+            }
+            for r in rows
+        ]
+
     def get_jobs_with_salary_by_uuids(
         self,
         job_uuids: list[str],

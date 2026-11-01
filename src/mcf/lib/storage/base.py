@@ -469,6 +469,44 @@ class Storage(ABC):
     @abstractmethod
     def get_salary_distribution(self) -> list[dict]: ...
 
+    # --- LLM-field analytics (jobs.llm_fields_json / jobs.role_family) ---
+
+    @abstractmethod
+    def get_seniority_breakdown(self) -> list[dict]:
+        """Active jobs grouped by LLM-inferred seniority.
+
+        Returns [{seniority, jobs, median_salary}] ordered Intern -> Director.
+        Only rows with ``inferred_seniority`` present are counted; median_salary
+        is percentile_cont(0.5) of (salary_min+salary_max)/2 over valid ranges,
+        or None when no job in the group discloses a usable salary.
+        """
+        ...
+
+    @abstractmethod
+    def get_top_skills(self, limit: int = 25, role_family: str | None = None) -> list[dict]:
+        """Most-mentioned ``canonical_skills`` across active jobs, case-folded.
+
+        Returns [{skill, jobs, median_salary}] sorted by jobs desc. ``role_family``
+        (a role_families.key) restricts to that family when given.
+        """
+        ...
+
+    @abstractmethod
+    def get_skills_trend(self, skills: list[str], weeks: int = 12) -> list[dict]:
+        """Weekly count of jobs (posted in the last ``weeks`` weeks, active or not)
+        mentioning each skill (case-insensitive). Returns [{week, skill, jobs}]
+        with a row for every (week, skill) pair, zero-filled, ordered by week then skill.
+        """
+        ...
+
+    @abstractmethod
+    def get_role_family_breakdown(self) -> list[dict]:
+        """Active jobs grouped by Jev role_family (NULLs excluded).
+
+        Returns [{role_family, display_name, jobs, median_salary}] sorted by jobs desc.
+        """
+        ...
+
     def get_charts_static(self, cat_limit: int = 30, et_limit: int = 20, pl_limit: int = 20) -> dict:
         """Bundle the four time-range-independent chart datasets into a single call."""
         return {

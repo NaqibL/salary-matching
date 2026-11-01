@@ -63,6 +63,52 @@ def test_salary_distribution_public(client):
     assert isinstance(r.json(), list)
 
 
+def test_seniority_breakdown_public(client):
+    r = client.get("/api/dashboard/seniority-breakdown-public")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    for row in data:
+        assert {"seniority", "jobs", "median_salary"} <= row.keys()
+
+
+def test_top_skills_public(client):
+    r = client.get("/api/dashboard/top-skills-public", params={"limit": 5})
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) <= 5
+    for row in data:
+        assert {"skill", "jobs", "median_salary"} <= row.keys()
+    # role_family filter must not error even if the backfill has not reached it
+    r = client.get("/api/dashboard/top-skills-public", params={"limit": 5, "role_family": "software_engineering"})
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_skills_trend_public(client):
+    r = client.get("/api/dashboard/skills-trend-public", params={"skills": "Python,SQL", "weeks": 4})
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    # Zero-filled: one row per (week, skill)
+    assert len(data) == 4 * 2
+    for row in data:
+        assert {"week", "skill", "jobs"} <= row.keys()
+        assert row["skill"] in ("Python", "SQL")
+    # Missing skills param is a validation error, not a 5xx
+    assert client.get("/api/dashboard/skills-trend-public").status_code == 422
+
+
+def test_role_families_public(client):
+    r = client.get("/api/dashboard/role-families-public")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    for row in data:
+        assert {"role_family", "display_name", "jobs", "median_salary"} <= row.keys()
+
+
 def test_authed_routes_require_auth(client):
     """Auth-protected routes must not return 5xx — 401/403/404 are all acceptable."""
     for path in [

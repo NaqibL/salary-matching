@@ -1,7 +1,7 @@
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow } from './types'
 import { supabase } from './supabase'
 
-export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse }
+export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -288,6 +288,32 @@ export const dashboardApi = {
       jobs_by_position_level: Array<{ position_level: string; count: number }>
       salary_distribution: Array<{ bucket: string; count: number }>
     }>
+  },
+
+  // LLM-field analytics (seniority / skills / role families) — served via the
+  // cached Next.js BFF routes under /api/dashboard/*.
+  getSeniorityBreakdown: async () => {
+    const res = await fetch('/api/dashboard/seniority-breakdown')
+    if (!res.ok) throw new Error('Failed to fetch seniority breakdown')
+    return res.json() as Promise<SeniorityBreakdownRow[]>
+  },
+  getTopSkills: async (limit = 25, roleFamily?: string | null) => {
+    const qs = new URLSearchParams({ limit: String(limit) })
+    if (roleFamily) qs.set('role_family', roleFamily)
+    const res = await fetch(`/api/dashboard/top-skills?${qs.toString()}`)
+    if (!res.ok) throw new Error('Failed to fetch top skills')
+    return res.json() as Promise<TopSkillRow[]>
+  },
+  getSkillsTrend: async (skills: string[], weeks = 12) => {
+    const qs = new URLSearchParams({ skills: skills.join(','), weeks: String(weeks) })
+    const res = await fetch(`/api/dashboard/skills-trend?${qs.toString()}`)
+    if (!res.ok) throw new Error('Failed to fetch skills trend')
+    return res.json() as Promise<SkillsTrendRow[]>
+  },
+  getRoleFamilies: async () => {
+    const res = await fetch('/api/dashboard/role-families')
+    if (!res.ok) throw new Error('Failed to fetch role families')
+    return res.json() as Promise<RoleFamilyRow[]>
   },
 }
 
