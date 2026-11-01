@@ -22,7 +22,7 @@ the 2026-11-01 spikes are at the bottom.
 - [x] A1. Push the new OpenRouter key into GitHub Actions secret `OPENROUTER_API_KEY`
       (Claude is blocked from reading the key; Luqman runs
       `gh secret set OPENROUTER_API_KEY --body <key>` himself or uses the GitHub web UI).
-- [ ] A2. Railway HAS `OPENROUTER_API_KEY` (old, dead) and `OPENROUTER_MODEL`. Update the
+- [x] A2. Railway HAS `OPENROUTER_API_KEY` (old, dead) and `OPENROUTER_MODEL`. Update the
       key: `railway variables --set "OPENROUTER_API_KEY=<key>"` (Luqman runs it; Claude
       is blocked from reading the key). Only owner-only resume cleaning uses it.
 - [x] A3. `railway login` so Claude can read logs/metrics via the railway agent.
