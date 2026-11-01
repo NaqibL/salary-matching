@@ -108,7 +108,7 @@ External APIs (MCF REST / CAG Algolia)
 ## Design facts
 
 1. **Matching is pure semantic** — cosine similarity + recency decay. Skills overlap code exists but weight is 0.
-2. **Caching stacks (innermost → outermost):** embeddings LRU → active-jobs pool (15 min) → FastAPI matches cache (10 min/user) → FastAPI response cache → Next.js `unstable_cache`. Invalidate in reverse order.
+2. **Caching stacks (innermost → outermost):** embeddings LRU → active-jobs pool (24 h, `ACTIVE_JOBS_POOL_TTL_SECONDS`; one load is ~650 MB of Supabase egress, cleared by the post-crawl `invalidate-pool` call) → FastAPI matches cache (10 min/user) → FastAPI response cache → Next.js `unstable_cache`. Invalidate in reverse order.
 3. **Taste embeddings:** stored as `candidate_embeddings.profile_id = <uuid>:taste` alongside the resume row for the same user.
 4. **Job UUIDs:** MCF uses raw API id. Other sources prefix: `cag:<id>`.
 5. **CAG Algolia key** in `cag_source.py` falls back to a hardcoded public key. If CAG crawl breaks, check if the key rotated.

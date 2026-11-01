@@ -12,6 +12,7 @@ Invalidate when: crawl completes, jobs deactivated, embeddings updated.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from datetime import datetime
@@ -24,13 +25,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-ACTIVE_JOBS_POOL_TTL_SECONDS = 900  # 15 minutes
+# Default 24 h: the active job set only changes after the daily crawl, and the
+# post-crawl webhook (admin/invalidate-pool) clears this cache explicitly. One
+# full load is ~650 MB over the wire from Supabase, so a short TTL turns into
+# real egress cost under traffic. Override with ACTIVE_JOBS_POOL_TTL_SECONDS.
+ACTIVE_JOBS_POOL_TTL_SECONDS = int(os.getenv("ACTIVE_JOBS_POOL_TTL_SECONDS", "86400"))
 
 # (pool_meta, embeddings_matrix, expires_at)
 # pool_meta:          list of (job_uuid, last_seen_at)  — NO embeddings stored here
 # embeddings_matrix:  pre-stacked float32 array, shape (n_jobs, dim)
 _cache: tuple[list[tuple[str, datetime | None]], np.ndarray, float] | None = None
 _fetch_lock = threading.Lock()  # prevents thundering herd on cache miss
+
+
+def _as_float_array(emb: Any) -> np.ndarray:
+    """Coerce a DB embedding value (list, numpy array, or pgvector Vector) to float32."""
+    if hasattr(emb, "to_numpy"):
+        return np.asarray(emb.to_numpy(), dtype=np.float32)
+    if hasattr(emb, "to_list"):
+        return np.asarray(emb.to_list(), dtype=np.float32)
+    return np.asarray(emb, dtype=np.float32)
 
 
 def get_cached() -> tuple[list[tuple[str, datetime | None]], np.ndarray] | tuple[None, None]:
@@ -53,7 +67,9 @@ def set_cached(full_pool: list[tuple[str, Any, datetime | None]]) -> None:
     """
     global _cache
     if full_pool:
-        matrix = np.array([emb for _, emb, _ in full_pool], dtype=np.float32)
+        # pgvector >= 0.4 returns Vector objects (not lists) when register_vector
+        # is active; np.array() cannot coerce them directly.
+        matrix = np.array([_as_float_array(emb) for _, emb, _ in full_pool], dtype=np.float32)
         pool_meta: list[tuple[str, datetime | None]] = [(uuid, ts) for uuid, _, ts in full_pool]
     else:
         matrix = np.empty((0, 0), dtype=np.float32)
