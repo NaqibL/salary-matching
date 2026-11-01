@@ -13,6 +13,7 @@ from mcf.api.cache.response import (
     cache_invalidate,
     cache_list_keys,
     cache_stats as response_cache_stats,
+    invalidate_lowball,
     invalidate_matches_for_user,
 )
 from mcf.api.config import settings
@@ -48,11 +49,15 @@ def _verify_admin_or_secret(
 def admin_invalidate_pool(_: str = Depends(_verify_admin_or_secret)):
     """Invalidate the active jobs pool cache. Call after crawl completes.
 
+    Also drops cached salary checker / salary search responses, since those are
+    computed from the job set this pool represents (pool first, then responses).
+
     Auth: X-Crawl-Secret header or JWT with admin role / ADMIN_USER_IDS.
     """
     if settings.enable_active_jobs_pool_cache:
         invalidate_active_jobs_pool()
-    return {"status": "ok"}
+    removed = invalidate_lowball()
+    return {"status": "ok", "lowball_removed": removed}
 
 
 @router.post("/api/admin/invalidate-cache")

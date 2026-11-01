@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from mcf.api.auth import get_optional_user
 from mcf.api.cache.job_pool import compute_ranked_from_pool, get_pool_or_fetch
+from mcf.api.cache.response import TTL_LOWBALL, cache_get, cache_set, make_body_cache_key
 from mcf.api.config import settings
 from mcf.api.deps import get_embedder, get_store
 from mcf.api.limiter import limiter
@@ -125,6 +126,38 @@ def _salary_percentiles(salaries: list[int]) -> tuple[int, int, int]:
     return int(qs[0]), int(qs[1]), int(qs[2])
 
 
+def lowball_cache_key(body: LowballCheckRequest) -> str:
+    """Response-cache key for POST /api/lowball/check.
+
+    Every body field that changes the result is included. title/description are
+    whitespace+case normalized (they only feed the embedder); salary, top_k,
+    company_name and seniority are exact because the handler uses them verbatim
+    (company_name is an exact DB match, seniority is compared literally).
+    """
+    return make_body_cache_key(
+        "lowball",
+        title=body.title,
+        description=body.description,
+        salary=body.salary,
+        top_k=body.top_k,
+        company_name=body.company_name,
+        seniority=body.seniority,
+    )
+
+
+def salary_search_cache_key(body: SalarySearchRequest) -> str:
+    """Response-cache key for POST /api/salary/search (same rules as lowball_cache_key)."""
+    return make_body_cache_key(
+        "salary_search",
+        title=body.title,
+        description=body.description,
+        salary_min=body.salary_min,
+        salary_max=body.salary_max,
+        top_k=body.top_k,
+        offset=body.offset,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Lowball checker
 # ---------------------------------------------------------------------------
@@ -140,6 +173,20 @@ def check_lowball(
     embedder: EmbedderProtocol = Depends(get_embedder),
 ):
     """Check if an offered salary is competitive for a described role."""
+    # Short-TTL response cache keyed on the request body (not per user). Repeated
+    # checks of the same role skip the embed + pgvector scan entirely.
+    if not settings.enable_response_cache:
+        return _compute_lowball(body, store, embedder)
+    key = lowball_cache_key(body)
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+    result = _compute_lowball(body, store, embedder)
+    cache_set(key, TTL_LOWBALL, result)
+    return result
+
+
+def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: EmbedderProtocol) -> LowballResult:
     description_text, _ = extract_high_signal_description(body.description, body.title)
     job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     if body.seniority == "Intern":
@@ -232,6 +279,20 @@ def salary_search(
     embedder: EmbedderProtocol = Depends(get_embedder),
 ):
     """Semantic job search filtered by salary range."""
+    if not settings.enable_response_cache:
+        return _compute_salary_search(body, store, embedder)
+    key = salary_search_cache_key(body)
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+    result = _compute_salary_search(body, store, embedder)
+    cache_set(key, TTL_LOWBALL, result)
+    return result
+
+
+def _compute_salary_search(
+    body: SalarySearchRequest, store: Storage, embedder: EmbedderProtocol
+) -> SalarySearchResult:
     description_text, _ = extract_high_signal_description(body.description, body.title)
     job_text = f"Job Title: {body.title}\nDescription: {description_text}"
     vector = embedder.embed_text(job_text)

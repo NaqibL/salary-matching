@@ -4,6 +4,7 @@ Supports:
 - Dashboard endpoints: 1 hour TTL
 - Match results: 15 minutes per user
 - Job details: 1 hour
+- Salary checker / salary search: 15 minutes, keyed on request body (shared across users)
 
 Cache key includes user_id (when auth) and query params. Manual invalidation
 via POST /api/admin/invalidate-cache.
@@ -27,6 +28,10 @@ logger = logging.getLogger(__name__)
 TTL_DASHBOARD = 3600  # 1 hour
 TTL_MATCHES = 900  # 15 minutes
 TTL_JOB_DETAIL = 3600  # 1 hour
+# Salary checker / salary search (POST bodies). Keyed on the request body, shared across
+# users (results do not depend on who asks). Matches the active-jobs pool TTL so a cached
+# salary-search page never outlives the pool it was computed from.
+TTL_LOWBALL = 900  # 15 minutes
 
 # Hard cap on cache entries. When full, the soonest-expiring entry is evicted.
 # Prevents unbounded growth when many unique job UUIDs are accessed throughout the day.
@@ -70,6 +75,41 @@ def make_cache_key(prefix: str, *, user_id: str | None = None, **params: Any) ->
         param_str = "|".join(f"{k}={v}" for k, v in sorted_items)
         parts.append(hashlib.sha256(param_str.encode()).hexdigest()[:16])
     return ":".join(parts)
+
+
+def normalize_text(value: str | None) -> str:
+    """Collapse whitespace and lowercase, for cache-key purposes only.
+
+    Used for free-text fields that feed the embedder (title, description), where
+    case/spacing differences do not meaningfully change the result.
+    """
+    if not value:
+        return ""
+    return " ".join(value.split()).lower()
+
+
+def make_body_cache_key(prefix: str, *, title: str, description: str, **params: Any) -> str:
+    """Cache key for POST endpoints whose result depends on a free-text body.
+
+    - title: whitespace/case normalized
+    - description: whitespace/case normalized, then sha256-hashed (never stored raw)
+    - params: every other body field that changes the result (salary, top_k, ...);
+      passed through verbatim so exact-match fields (company_name) stay exact.
+
+    Returns ``<prefix>:<16-hex digest>`` — the raw text never appears in the key.
+    """
+    desc_hash = hashlib.sha256(normalize_text(description).encode()).hexdigest()
+    return make_cache_key(
+        prefix,
+        title=normalize_text(title),
+        description_sha256=desc_hash,
+        **params,
+    )
+
+
+def invalidate_lowball() -> int:
+    """Invalidate salary checker + salary search entries. Call after a crawl completes."""
+    return cache_invalidate(prefix="lowball:") + cache_invalidate(prefix="salary_search:")
 
 
 def cache_get(key: str) -> Any | None:
