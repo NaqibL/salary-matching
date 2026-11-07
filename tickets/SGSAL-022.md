@@ -7,7 +7,7 @@ priority: high
 type: feature
 labels: [backend, pipeline, llm, ops]
 created: 2026-11-01
-updated: 2026-11-01
+updated: 2026-11-07
 depends_on: []
 blocks: []
 ---
@@ -28,7 +28,10 @@ the 2026-11-01 spikes are at the bottom.
 - [x] A3. `railway login` so Claude can read logs/metrics via the railway agent.
 - [x] A4. Add `DATABASE_URL` (Supabase session-pooler URI) to local `.env` so
       Claude can query the DB, run migrations and backfills.
-- [ ] A5. IN PROGRESS. Run 5 started 11:55 UTC 2026-11-01:
+- [x] A5. DONE. Run 5 succeeded 12:54 UTC 2026-11-01. Verified 2026-11-07: 1,012
+      active jobs embedded since 10-20 still have empty LLM fields (normal residual,
+      jobs with no skills in the text); daily embeds since run 55-100 empty per
+      ~3,700 jobs/day (1.5-3%). Original notes: Run 5 started 11:55 UTC 2026-11-01:
       https://github.com/NaqibL/salary-matching/actions/runs/41304064764
       (~4,400 jobs left at 12:00 UTC, ~1.1 jobs/s, expected done ~13:05 UTC).
       HOW TO CHECK: `gh run view 41304064764 --json status,conclusion`, then count
@@ -63,7 +66,9 @@ the 2026-11-01 spikes are at the bottom.
       (~line 778) calls the LLM serially (~1 job/s) so 25k jobs = 7 h > the 6 h
       workflow timeout. Do B2 (thread pool) first. Repo is public, so Actions
       minutes are free. Cost ≈ $4 on Gemini, ≈ $2 on GPT-OSS.
-- [ ] A6. Confirm the next daily embed shows 0 `401 Unauthorized` lines.
+- [x] A6. Verified 2026-11-07 on the 11-06 embed run: 0 `401` lines (the 10 grep
+      hits are timestamps / HF progress bars), 3,765 jobs embedded in 41 min,
+      gemma-4 8 workers.
 
 ### B. Cheaper cleaner model (one-line change)
 
@@ -84,7 +89,7 @@ the 2026-11-01 spikes are at the bottom.
       the unused GitHub secret `OPENROUTER_MODEL` should be deleted by Luqman
       (`gh secret delete OPENROUTER_MODEL`; Claude is blocked from secret writes;
       workflows use the code default so it is harmless meanwhile). Daily embed now runs with `ENABLE_EMBEDDINGS_CACHE=0`.
-- [ ] B4. Watch one daily embed run: failure count, runtime, cost.
+- [x] B4. = A6 / E3. Embed step succeeded every day 11-02 .. 11-06 (~40 min).
 
 ### C. Jev replaces the KMeans/LR classifiers
 
@@ -103,7 +108,18 @@ the 2026-11-01 spikes are at the bottom.
 - [x] C4. Done 2026-11-01 for `incremental_crawl.py` (Phase 3 uses Jev when the
       key is set, legacy KMeans/LR otherwise; low confidence → "other", id 0).
       `re-embed` never classified, so the backfill script covers existing jobs.
-- [ ] C5. IN PROGRESS. `scripts/backfill_role_families.py` (resumable: selects
+- [ ] C5. IN PROGRESS. 2026-11-07: the 11-01 run died with the session at ~14.4k
+      done; 58,102 of 72,527 active jobs were still NULL. Restarted 08:53 UTC
+      2026-11-07 as a 4,000-job chunk loop (8 workers, ~14.5 jobs/s, 0 failures,
+      $0.29 per 4k chunk) → ~65 min for the rest. Log:
+      Claude scratchpad `backfill_c5.log`.
+      ALSO FOUND + FIXED 2026-11-07: no new job had been classified since 11-02
+      (3-4k/day NULL) because the production crawl runs `crawl-incremental
+      --no-embed` (Phase 3 Jev never runs in Actions) and `re-embed` does not
+      classify. `daily-embed.yml` now runs `backfill_role_families.py --workers 8`
+      after the embed step (`continue-on-error`, ~5 min/day). Needs a push before
+      the 17:00 UTC embed to take effect.
+      Original notes: `scripts/backfill_role_families.py` (resumable: selects
       active jobs with `role_family IS NULL`). Restarted 11:56 UTC on the desktop
       PC, 8 workers, ~9 jobs/s, 0 failures, ≈ $0.07 per 1k jobs; 68,924 to go at
       start → expected done ~14:00 UTC. It dies if the Claude session that
@@ -123,11 +139,21 @@ the 2026-11-01 spikes are at the bottom.
 - [ ] C7. Delete `src/mcf/matching/classifiers.py`, `src/mcf/models/*.pkl`,
       `role_taxonomy_v2.json`, `scripts/train_classifiers.py`; `uv remove scikit-learn`.
       Rebuild Railway image, check startup.
-- [ ] C8. Unit tests done (`tests/test_jev_classifier.py`, mock transport).
-      Smoke test for backfilled jobs still to add after C5.
+      Scoped 2026-11-07 — live callers that must be replaced first:
+      `matching/service.py` (`predict_candidate_tier` for the candidate's tier,
+      `_legacy_role_name`), `api/routes/jobs.py` taxonomy KMeans fallback,
+      `pipeline/incremental_crawl.py` legacy branch. `scripts/cluster_analysis.py`
+      also imports sklearn. Candidate tier could come from Jev on the resume text.
+- [x] C8. Unit tests (`tests/test_jev_classifier.py`, mock transport) + smoke test
+      `test_role_family_taxonomy_and_coverage` in `tests/test_smoke.py` (taxonomy
+      ids/keys, ≥ 95% of active jobs classified). Passes only once C5 is done.
 - [x] C9. Done 2026-11-01 (CLAUDE.md design fact 8, embeddings README).
 
 ### E. Found on 2026-11-01 while repairing (not yet done)
+
+Status check 2026-11-07: E1 still set in production (`ALLOW_ANONYMOUS_LOCAL=true`
+on Railway — API auth is OFF); E2 secret `OPENROUTER_MODEL` still exists. Both
+need Luqman (Claude is blocked from Railway/secret writes).
 
 - [ ] E1. Railway var `ALLOW_ANONYMOUS_LOCAL=true` is set in PRODUCTION: it disables
       all API auth (owner-only endpoints are open). Public routes use
@@ -135,13 +161,22 @@ the 2026-11-01 spikes are at the bottom.
       `railway variables --delete ALLOW_ANONYMOUS_LOCAL` (Claude is blocked).
 - [ ] E2. Delete the unused GitHub secret `OPENROUTER_MODEL`
       (`gh secret delete OPENROUTER_MODEL`; workflows use the code default).
-- [ ] E3. Watch the next daily embed (15:40 UTC): 0 `401` lines, runtime, cost
-      (= A6/B4). First run with gemma-4, the thread pool, batched writes and
-      `ENABLE_EMBEDDINGS_CACHE=0`.
-- [ ] E4. Apply `scripts/migrations/020_llm_fields_dashboard_index.sql` manually
-      (CONCURRENTLY, Supabase SQL editor) — speeds the skills-trend dashboard query.
-- [ ] E5. Disk hygiene (no feature impact): drop the duplicate index
-      `idx_job_embeddings_job_uuid` (same columns as the PK, 41 MB) at a quiet
+- [x] E3. Done, see A6. One failure 11-03: the Telegram step, not the embed —
+      gemini-2.5-flash-lite returned 429 on every seniority check, the check
+      failed open, all 30 jobs were kept and the 8k-char digest got
+      `400 Bad Request` from Telegram (4,096-char limit). Fixed 2026-11-07 in
+      `scripts/telegram_notify.py`: digest split into ≤ 4,096-char messages,
+      429 retried twice with backoff, model now `OPENROUTER_MODEL` (gemma-4).
+- [x] E4. Applied 2026-11-07 (CONCURRENTLY, 8 s, 3.7 MB). The migration as written
+      was invalid (`timestamptz::date` is not IMMUTABLE); expression changed to
+      `(first_seen_at AT TIME ZONE 'UTC')::date` in both the migration and the
+      skills-trend query (session TZ is UTC, so semantics unchanged). Planner uses
+      the index for short windows; at 8 weeks (23% of rows) it still seq-scans by
+      cost, which is correct.
+- [ ] E5. Disk hygiene (no feature impact): duplicate index
+      `idx_job_embeddings_job_uuid` DROPPED 2026-11-07 (`DROP INDEX CONCURRENTLY`,
+      verified identical to the PK definition first). Still open: `job_run_status`
+      retention. Original: drop at a quiet
       moment — NOT while a VACUUM or backfill holds `job_embeddings`, it queues
       behind them and blocks the live checker (happened today, terminated);
       add a crawl step that keeps only 90 days of `job_run_status`
@@ -172,8 +207,8 @@ the 2026-11-01 spikes are at the bottom.
       section1 notes, errors.txt, jobdescription.txt, railway-config-pull. Delete
       or move them elsewhere.
 - [ ] D2. Untracked `.claude/` marketing drafts: commit or delete.
-- [ ] D3. CLAUDE.md still describes the lowball latency roadmap; rewrite that
-      section once C ships.
+- [x] D3. CLAUDE.md roadmap rewritten 2026-11-07 (latency section marked done,
+      Jev pipeline status, dashboard + filters marked shipped).
 
 ## Spike results (2026-11-01)
 

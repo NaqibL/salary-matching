@@ -54,6 +54,19 @@ jobs:
           # and only adds two DB round trips per job from the runner.
           ENABLE_EMBEDDINGS_CACHE: "0"
 
+      # The production crawl runs with --no-embed, so the Jev role-family /
+      # tier step (Phase 3 of incremental_crawl.py) never runs in Actions and
+      # `re-embed` does not classify. This resumable script picks up every
+      # active job with role_family IS NULL (~4k/day, ~5 min at 8 workers,
+      # ~$0.07 per 1k jobs). Must not fail the embed if Jev is down.
+      - name: Classify role families + tiers (Jev)
+        if: always()
+        continue-on-error: true
+        run: uv run python scripts/backfill_role_families.py --workers 8
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
       - name: Rebuild HNSW indexes
         run: |
           psql "$DATABASE_URL" <<'SQL'

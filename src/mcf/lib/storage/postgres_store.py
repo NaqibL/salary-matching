@@ -2159,10 +2159,12 @@ class PostgresStore(Storage):
                     SELECT j.job_uuid, j.d, sk.skill
                     FROM (
                         SELECT job_uuid,
-                               COALESCE(posted_date, first_seen_at::date) AS d,
+                               COALESCE(posted_date, (first_seen_at AT TIME ZONE 'UTC')::date) AS d,
                                {self._SKILLS_SQL} AS skills
                         FROM jobs
-                        WHERE COALESCE(posted_date, first_seen_at::date) >= %s
+                        -- expression must match idx_jobs_posted_or_seen_date (migration 020):
+                        -- timestamptz::date is not IMMUTABLE, AT TIME ZONE 'UTC' is.
+                        WHERE COALESCE(posted_date, (first_seen_at AT TIME ZONE 'UTC')::date) >= %s
                           AND llm_fields_json IS NOT NULL
                     ) j
                     CROSS JOIN LATERAL jsonb_array_elements_text(j.skills) AS sk(skill)

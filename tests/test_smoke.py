@@ -126,3 +126,34 @@ def test_lowball_check_requires_auth(client):
         "salary_min": 5000,
     })
     assert r.status_code < 500
+
+
+def test_role_family_taxonomy_and_coverage(client):
+    """SGSAL-022 C8: Jev role families are served and cover the active population.
+
+    The taxonomy ids are what ``jobs.role_cluster`` holds after the backfill,
+    so the matches filters keep working. Coverage must stay high because the
+    daily embed workflow classifies every new job (backfill_role_families.py).
+    """
+    from mcf.api.deps import get_store
+
+    r = client.get("/api/jobs/taxonomy")
+    assert r.status_code == 200
+    clusters = r.json()["clusters"]
+    ids = [c["id"] for c in clusters]
+    assert len(ids) == len(set(ids))
+    assert 0 in ids, "id 0 is the low-confidence 'other' bucket"
+    assert len(ids) >= 25, "24 role families + other"
+    for c in clusters:
+        assert {"id", "name", "key"} <= c.keys()
+
+    breakdown = client.get("/api/dashboard/role-families-public").json()
+    classified = sum(row["jobs"] for row in breakdown)
+    missing = get_store().count_active_jobs_missing_role_family()
+    total = classified + missing
+    if total == 0:
+        pytest.skip("no active jobs in this DB")
+    keys = {c["key"] for c in clusters}
+    assert all(row["role_family"] in keys for row in breakdown)
+    coverage = classified / total
+    assert coverage >= 0.95, f"only {coverage:.1%} of {total:,} active jobs have a role_family"

@@ -137,25 +137,27 @@ Read the relevant agent file before starting work in that area:
 
 ## Current roadmap (priority order)
 
-### Performance — salary checker query latency
+### Performance — salary checker query latency (done)
 
-The `/api/lowball/check` endpoint is slow. Three root causes, in order of impact:
+All three root causes of the slow `/api/lowball/check` endpoint are fixed:
 
-1. ~~**LLM clean on every query**~~ — done (SGSAL-004). The lowball route no longer calls `_cleaner`; it embeds the raw description.
+1. **LLM clean on every query** — removed (SGSAL-004). The lowball route embeds the raw description.
+2. **pgvector HNSW index** — `idx_job_embeddings_vector` exists (SGSAL-017); `hnsw.ef_search` is set per query in `postgres_store.py`.
+3. **Response cache** — 15-min TTL cache on `/api/lowball/check` and `/api/salary/search` (commit cd7a30c), same pattern as `src/mcf/api/cache/response.py`.
 
-2. ~~**No pgvector HNSW index**~~ — done (SGSAL-017). Index exists and `hnsw.ef_search` is set per query in `postgres_store.py`. Original note: — `job_embeddings.embedding` has no ANN index. The `<=>` cosine query in `get_all_embedded_job_ids_ranked` does an exact KNN scan across every row. Fix: add index in Supabase — `CREATE INDEX ON job_embeddings USING hnsw (embedding vector_cosine_ops);` — then set `SET hnsw.ef_search = 100` at query time.
+Remaining known gap: the active-jobs pool cache (`src/mcf/api/cache/job_pool.py`, 24 h TTL) is only used by the matches route; the lowball route still queries the DB on a cache miss.
 
-3. **No response cache on `/api/lowball/check`** — unlike the matches API, every lowball request re-embeds and re-queries even if the same role is checked repeatedly. Fix: add a short TTL response cache (10–15 min) keyed on `(title, description_hash, salary, company)`, following the same pattern as `src/mcf/api/cache/response.py`.
+### Pipeline — Jev role families (SGSAL-022, in progress)
 
-Also note: the active-jobs pool cache (15-min TTL, pre-stacked numpy matrix in `src/mcf/api/cache/job_pool.py`) is only used by the matches route. The lowball route bypasses it and hits the DB fresh every time.
+The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Left to do: C7 (delete the legacy KMeans/LR classifiers — `predict_candidate_tier` in the matches service still uses the LR model, so it needs a replacement first), E6 (embedding retention), E7 (near-duplicate postings).
 
 ### Client-facing (salary checker + dashboard)
 
 - ~~**Richer salary results**~~ — done. `min_years_experience`, `inferred_seniority`, `canonical_skills` now surface on similar-roles cards.
 - ~~**Salary checker UX polish**~~ — done. Loading context, empty state, smarter reset, mobile layout, description hint.
 - ~~**Consolidate `/` and `/lowball`**~~ — done. `/` is now the full checker; `/lowball` redirects.
-- **Dashboard improvements** — extend market analytics with seniority breakdowns and skills trend data now available from `llm_fields_json`.
-- **Filters on similar roles** — client-side filtering of the already-fetched top-20 results by seniority, active-only, min experience, has-salary. No backend changes needed for v1.
+- ~~**Dashboard improvements**~~ — done (6082f2d). Seniority, top-skills, skills-trend and role-family analytics; skills-trend uses `idx_jobs_posted_or_seen_date` (migration 020).
+- ~~**Filters on similar roles**~~ — done (16c7bb5). Client-side filters on the top-20 results.
 - **Company dropdown canonicalization** — run `scripts/canonicalize_companies.py` first to populate `company_canonical`. Then update two storage methods: (1) `get_distinct_companies()` — use `DISTINCT COALESCE(company_canonical, company_name)` so duplicates collapse in the autocomplete; (2) `get_active_job_uuids_by_company()` — match on `company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)` so the company results tab still works after canonicalization. Only `PostgresStore` needs updating.
 
 ### Personal use only (matching pipeline — do not expose publicly)

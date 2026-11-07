@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -58,7 +59,9 @@ from mcf.api.deps import _make_store
 from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_OPENROUTER_MODEL = "google/gemini-2.5-flash-lite"
+# Same model as the embed cleaner (CLAUDE.md design fact 7); the old hardcoded
+# gemini-2.5-flash-lite hit 429s on 2026-11-03.
+_OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it")
 
 # Companies excluded regardless of match score (local banks)
 _EXCLUDED_COMPANIES = {"ocbc", "united overseas bank", "uob", "maybank", "rhb", "cimb"}
@@ -126,7 +129,12 @@ def _llm_seniority_check(title: str, company: str | None, description: str | Non
         "HTTP-Referer": "https://github.com/mcf-job-matcher",
     }
     try:
-        resp = httpx.post(_OPENROUTER_URL, json=payload, headers=headers, timeout=20.0)
+        for attempt in range(3):
+            resp = httpx.post(_OPENROUTER_URL, json=payload, headers=headers, timeout=20.0)
+            if resp.status_code == 429 and attempt < 2:
+                time.sleep(2.0 * (attempt + 1))  # OpenRouter rate limit: brief backoff, then retry
+                continue
+            break
         resp.raise_for_status()
         answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
         return answer.startswith("YES")
@@ -162,10 +170,41 @@ def _format_digest(jobs: list[dict]) -> str:
     return "\n".join(lines).rstrip()
 
 
+_TELEGRAM_MAX_CHARS = 4096  # sendMessage rejects longer text with 400 Bad Request
+
+
+def _split_message(text: str, limit: int = _TELEGRAM_MAX_CHARS) -> list[str]:
+    """Split the digest into <= limit-char chunks on the blank line between jobs.
+
+    A 30-job digest with URLs is ~5-6k chars; on 2026-11-03 every job was kept
+    (LLM check failed open on 429s) and the single send failed with 400.
+    """
+    if len(text) <= limit:
+        return [text]
+    chunks: list[str] = []
+    current = ""
+    for block in text.split("\n\n"):
+        candidate = f"{current}\n\n{block}" if current else block
+        if len(candidate) <= limit:
+            current = candidate
+            continue
+        if current:
+            chunks.append(current)
+        # A single block longer than the limit is hard-cut (never expected).
+        while len(block) > limit:
+            chunks.append(block[:limit])
+            block = block[limit:]
+        current = block
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 def _send_telegram(token: str, chat_id: str, text: str) -> None:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    resp = httpx.post(url, json={"chat_id": chat_id, "text": text}, timeout=15.0)
-    resp.raise_for_status()
+    for chunk in _split_message(text):
+        resp = httpx.post(url, json={"chat_id": chat_id, "text": chunk}, timeout=15.0)
+        resp.raise_for_status()
 
 
 def main(dry_run: bool = False) -> None:
