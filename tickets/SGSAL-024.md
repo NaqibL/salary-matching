@@ -57,10 +57,19 @@ Sampling (300 random duplicate-text groups, 26k random vectors) showed:
 
 ## Design
 
+Full design (backend + UI, decided 2026-11-07 with Luqman): 
+`docs/superpowers/specs/2026-11-07-content-addressed-embeddings-repost-history-design.md`.
+Decisions: one card per posting (latest occurrence) with a repost badge; exact
+key (title + description, company excluded) for now; pointer columns on `jobs`
++ `posting_groups` materialised view refreshed at crawl end.
+
 ### 1. Content hash on every job
 
-`jobs.content_hash TEXT` = `sha256(lower(trim(company_name)) || '|' ||
-lower(trim(title)) || '|' || regexp_replace(trim(description), '\s+', ' ', 'g'))`.
+`jobs.content_hash TEXT` = sha256 (first 32 hex chars) of normalised **title +
+description** — computed by one Python helper (`posting_key`), not in SQL.
+Company is deliberately *excluded*: it is not part of the embedded text, so
+agency reposts under different company names are byte-identical vectors, and
+excluding it is what makes the "posted under N company names" signal possible.
 `NULL` when `description` is empty (never dedup text-less rows; see the CAG
 NULL-title incident in SGSAL-022). Partial index
 `idx_jobs_content_hash ON jobs (content_hash) WHERE content_hash IS NOT NULL`.
