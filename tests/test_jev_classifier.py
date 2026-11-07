@@ -89,3 +89,22 @@ def test_classify_many_preserves_order_and_handles_failures():
 def test_classify_skips_empty_input():
     jev = JevClassifier(api_key="k", transport=httpx.MockTransport(lambda r: httpx.Response(500)))
     assert jev.classify(None, None) is None
+
+
+def test_classify_retries_unparseable_200(monkeypatch):
+    """A 200 with no answers (Jev degradation, 2026-11-07) is retried, not swallowed."""
+    import mcf.lib.embeddings.jev_classifier as mod
+
+    monkeypatch.setattr(mod.time, "sleep", lambda _s: None)
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(200, json={"error": {"message": "overloaded"}})
+        return httpx.Response(200, json=_response(role="finance_accounting"))
+
+    jev = JevClassifier(api_key="k", retries=1, transport=httpx.MockTransport(handler))
+    r = jev.classify("Accountant", "Prepare statements")
+    assert calls["n"] == 2
+    assert r is not None and r.role_key == "finance_accounting"

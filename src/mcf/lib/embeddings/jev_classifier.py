@@ -219,10 +219,17 @@ class JevClassifier:
             try:
                 resp = self._client.post(JEV_URL, json=payload, headers=headers)
                 if resp.status_code == 200:
-                    return parse_response(resp.json(), self._min_role_conf)
-                last_err = f"HTTP {resp.status_code}: {resp.text[:200]}"
-                if 400 <= resp.status_code < 500 and resp.status_code != 429:
-                    break  # not retryable
+                    result = parse_response(resp.json(), self._min_role_conf)
+                    if result is not None:
+                        return result
+                    # 200 with no usable answers: seen 2026-11-07 during a Jev
+                    # degradation (every call for ~10 min). Retry like a 5xx and
+                    # surface the body, otherwise the failure is silent.
+                    last_err = f"HTTP 200 unparseable: {resp.text[:200]}"
+                else:
+                    last_err = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                    if 400 <= resp.status_code < 500 and resp.status_code != 429:
+                        break  # not retryable
             except Exception as exc:  # noqa: BLE001
                 last_err = repr(exc)
             if attempt < self._retries:
