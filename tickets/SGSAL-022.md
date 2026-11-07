@@ -108,11 +108,31 @@ the 2026-11-01 spikes are at the bottom.
 - [x] C4. Done 2026-11-01 for `incremental_crawl.py` (Phase 3 uses Jev when the
       key is set, legacy KMeans/LR otherwise; low confidence → "other", id 0).
       `re-embed` never classified, so the backfill script covers existing jobs.
-- [ ] C5. IN PROGRESS. 2026-11-07: the 11-01 run died with the session at ~14.4k
+- [x] C5. DONE 11:17 UTC 2026-11-07: 0 active jobs without role_family (70,349
+      active; 2,821 = 4% `other`; tiers T1 23,248 / T2 23,340 / T3 11,091 /
+      T4 12,670). Today's run: ~56k jobs, ≈ $4.1, 0 failures in the final
+      loop. The daily-embed step keeps it at 0 from here.
+      History: the 11-01 run died with the session at ~14.4k
       done; 58,102 of 72,527 active jobs were still NULL. Restarted 08:53 UTC
       2026-11-07 as a 4,000-job chunk loop (8 workers, ~14.5 jobs/s, 0 failures,
       $0.29 per 4k chunk) → ~65 min for the rest. Log:
       Claude scratchpad `backfill_c5.log`.
+      Run notes 2026-11-07: (1) chunk 11 aborted after 848 silent failures —
+      Jev returned HTTP 200 without answers for ~10 min; `jev_classifier.py`
+      now retries and logs unparseable 200s (ed48b88). (2) Restart aborted at
+      once: 1,962 CAG rows (`cag:HRP:*`, 15 `cag:GREENHOUSE:*`) from the
+      2026-03-09/10 crawl had NO title, NO description, NO embedding but were
+      still `is_active` — Jev returns None for them without a call. Deactivated
+      them in Supabase (`UPDATE jobs SET is_active=FALSE`, 1,962 rows); the
+      selection/count now skip text-less rows (0f2945d). Active jobs 72,311 →
+      70,349. All 1,962 text-less rows in the table were from that one crawl,
+      so no recurring crawl bug. (3) Batches slowed from 30 s to 90 s+ as the
+      backfill advanced because the ORDER BY job_uuid LIMIT selection walked
+      classified rows; added partial index `idx_jobs_role_family_todo`
+      (migration 021, applied CONCURRENTLY, 856 kB; 624abc5). (4) Jev latency
+      itself varies: 0.5 s/call at 09:00 UTC (14.5 jobs/s @ 8 workers), ~2 s at
+      11:00 (4 jobs/s). OpenRouter key: $45 of $50 monthly limit left, $192
+      credits.
       ALSO FOUND + FIXED 2026-11-07: no new job had been classified since 11-02
       (3-4k/day NULL) because the production crawl runs `crawl-incremental
       --no-embed` (Phase 3 Jev never runs in Actions) and `re-embed` does not
