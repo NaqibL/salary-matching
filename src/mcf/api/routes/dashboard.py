@@ -216,3 +216,23 @@ def get_dashboard_charts_static_public():
     """Public endpoint for all static chart data (no auth). Used by Next.js cached route."""
     store = get_store()
     return store.get_charts_static()
+
+
+@router.get("/api/dashboard/most-reposted-public")
+@cache_response(TTL_DASHBOARD, "dashboard:most-reposted-public")
+def get_dashboard_most_reposted_public(
+    days: int = Query(default=365, ge=90, le=365),
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    """Public: posting groups with the most reposts in the window (SGSAL-024).
+    ``days`` is snapped to 90 or 365 (the view keeps those two counters)."""
+    if days not in (90, 365):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="days must be 90 or 365")
+    store = get_store()
+    rows = store.get_most_reposted(days=days, limit=limit)
+    for r in rows:
+        for k in ("first_posted", "last_posted"):
+            if hasattr(r.get(k), "isoformat"):
+                r[k] = r[k].isoformat()
+    return rows

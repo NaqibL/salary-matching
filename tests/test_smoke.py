@@ -236,3 +236,47 @@ def test_backfill_storage_methods_exist(client):
     for name in ("iter_jobs_needing_hash", "assign_canonicals", "copy_fields_from_canonicals",
                  "noncanonical_embedded_uuids", "delete_embeddings_by_uuids", "posting_group_stats"):
         assert callable(getattr(Storage, name)), name
+
+
+def test_reposts_endpoint_404_for_unknown_job(client):
+    r = client.get("/api/jobs/no-such-job/reposts")
+    assert r.status_code == 404
+
+
+def test_reposts_endpoint_shape_for_known_job(client):
+    from mcf.api.deps import get_store
+
+    store = get_store()
+    uuids = [u for u, _, _ in store.get_all_embedded_job_ids_ranked([0.0] * 768, limit=1)]
+    if not uuids:
+        pytest.skip("no embeddings")
+    r = client.get(f"/api/jobs/{uuids[0]}/reposts")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["repost_count"] >= 1
+    assert isinstance(data["occurrences"], list) and len(data["occurrences"]) == data["repost_count"]
+    assert {"job_uuid", "date", "company", "salary_min", "salary_max", "is_active"} <= set(data["occurrences"][0])
+
+
+def test_most_reposted_public(client):
+    r = client.get("/api/dashboard/most-reposted-public?days=365&limit=5")
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+    r = client.get("/api/dashboard/most-reposted-public?days=7")
+    assert r.status_code == 422
+
+
+def test_lowball_cards_carry_group_fields(client):
+    body = {"title": "Data Analyst", "description": "Build dashboards in Power BI and write SQL. " * 5, "top_k": 5}
+    r = client.post("/api/lowball/check", json=body)
+    assert r.status_code == 200
+    data = r.json()
+    assert "total_listings" in data
+    for j in data["similar_jobs"]:
+        assert "repost_count" in j and j["repost_count"] >= 1
+        assert "canonical_job_uuid" in j
+    # one card per posting: canonical uuids are unique
+    cu = [j["canonical_job_uuid"] for j in data["similar_jobs"]]
+    assert len(cu) == len(set(cu))
+    ju = [j["job_uuid"] for j in data["similar_jobs"]]
+    assert len(ju) == len(set(ju))

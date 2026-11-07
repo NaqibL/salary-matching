@@ -37,6 +37,70 @@ def get_job_taxonomy(_: str | None = Depends(get_optional_user)):
     }
 
 
+@router.get("/api/jobs/{job_uuid}/reposts")
+def get_job_reposts(job_uuid: str, _: str | None = Depends(get_optional_user)):
+    """Public: the posting group a job belongs to — repost count, dates, per-occurrence
+    salary/company history (SGSAL-024). Cached 1 h per job."""
+    from mcf.api.cache.response import cache_get, cache_set, make_cache_key
+
+    key = make_cache_key("jobs:reposts", job_uuid=job_uuid)
+    if settings.enable_response_cache:
+        cached = cache_get(key)
+        if cached is not None:
+            return cached
+    store = get_store()
+    group = store.get_posting_history(job_uuid)
+    if group is None:
+        job = store.get_job(job_uuid)  # title, company_name, is_active, first_seen_at (no salary)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        salary_rows = store.get_jobs_with_salary_by_uuids([job_uuid])
+        if salary_rows:
+            job = {**job, "salary_min": salary_rows[0].get("salary_min"), "salary_max": salary_rows[0].get("salary_max")}
+        group = _single_occurrence_group(job)
+    out = {
+        "canonical_job_uuid": group.get("canonical_job_uuid"),
+        "title": group.get("title"),
+        "repost_count": int(group.get("repost_count") or 1),
+        "active_count": int(group.get("active_count") or 0),
+        "first_posted": _d(group.get("first_posted")),
+        "last_posted": _d(group.get("last_posted")),
+        "reposts_90d": int(group.get("reposts_90d") or 0),
+        "reposts_365d": int(group.get("reposts_365d") or 0),
+        "distinct_companies": int(group.get("distinct_companies") or 1),
+        "latest_salary_min": group.get("latest_salary_min"),
+        "latest_salary_max": group.get("latest_salary_max"),
+        "min_salary_seen": group.get("min_salary_seen"),
+        "max_salary_seen": group.get("max_salary_seen"),
+        "occurrences": group.get("occurrences") or [],
+    }
+    if settings.enable_response_cache:
+        cache_set(key, TTL_JOB_DETAIL, out)
+    return out
+
+
+def _d(v):
+    return v.isoformat() if hasattr(v, "isoformat") else v
+
+
+def _single_occurrence_group(job: dict) -> dict:
+    # get_job() has no posted_date; first_seen_at is the crawl date, which is the
+    # same fallback the posting_groups view uses.
+    date = job["first_seen_at"].date() if job.get("first_seen_at") else None
+    return {
+        "canonical_job_uuid": job["job_uuid"], "title": job.get("title"), "repost_count": 1,
+        "active_count": 1 if job.get("is_active") else 0, "first_posted": date, "last_posted": date,
+        "reposts_90d": 0, "reposts_365d": 0, "distinct_companies": 1,
+        "latest_salary_min": job.get("salary_min"), "latest_salary_max": job.get("salary_max"),
+        "min_salary_seen": job.get("salary_min"), "max_salary_seen": job.get("salary_max"),
+        "occurrences": [{
+            "job_uuid": job["job_uuid"], "date": _d(date), "company": job.get("company_name"),
+            "salary_min": job.get("salary_min"), "salary_max": job.get("salary_max"),
+            "is_active": bool(job.get("is_active")),
+        }],
+    }
+
+
 @router.get("/api/jobs/interested")
 def get_interested_jobs(user_id: str = Depends(get_current_user)):
     """Return jobs the user has marked as interested, ordered by most recent first."""

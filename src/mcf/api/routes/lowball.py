@@ -46,6 +46,7 @@ class LowballResult(BaseModel):
     total_matched: int
     similar_jobs: list[dict]
     company_similar_jobs: list[dict] | None = None
+    total_listings: int | None = None
 
 
 class SalarySearchRequest(BaseModel):
@@ -89,8 +90,10 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
         raw_desc = j.get("description") or ""
         llm_raw = j.get("llm_fields_json")
         llm = _json.loads(llm_raw) if isinstance(llm_raw, str) else (llm_raw or {})
+        score_key = j.get("canonical_job_uuid") or j["job_uuid"]
         result.append({
             "job_uuid": j["job_uuid"],
+            "canonical_job_uuid": score_key,
             "title": j["title"],
             "company_name": j.get("company_name"),
             "location": j.get("location"),
@@ -99,13 +102,34 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
             "salary_max": j.get("salary_max"),
             "is_active": j.get("is_active", True),
             "description": raw_desc or None,
-            "similarity_score": round(uuid_to_score.get(j["job_uuid"], 0.0), 4),
+            "similarity_score": round(uuid_to_score.get(score_key, 0.0), 4),
             "min_years_experience": j.get("min_years_experience"),
             "inferred_seniority": llm.get("inferred_seniority"),
             "canonical_skills": llm.get("canonical_skills"),
+            "repost_count": int(j.get("repost_count") or 1),
+            "active_count": int(j.get("active_count") or (1 if j.get("is_active", True) else 0)),
+            "first_posted": _iso(j.get("first_posted")),
+            "last_posted": _iso(j.get("last_posted")),
+            "reposts_365d": int(j.get("reposts_365d") or 1),
+            "distinct_companies": int(j.get("distinct_companies") or 1),
+            "min_salary_seen": j.get("min_salary_seen"),
+            "max_salary_seen": j.get("max_salary_seen"),
         })
     result.sort(key=lambda x: x["similarity_score"], reverse=True)
-    return result[:top_k]
+    # Until duplicate vectors are deleted, two members of one posting group can
+    # resolve to the same latest occurrence: keep the best-scoring entry only.
+    seen: set[str] = set()
+    deduped = []
+    for r in result:
+        if r["job_uuid"] in seen:
+            continue
+        seen.add(r["job_uuid"])
+        deduped.append(r)
+    return deduped[:top_k]
+
+
+def _iso(d) -> str | None:
+    return d.isoformat() if d is not None and hasattr(d, "isoformat") else d
 
 
 def _effective_salary(job: dict) -> int | None:
@@ -207,20 +231,21 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
         if company_ranked:
             c_uuids = [uuid for uuid, _, _ in company_ranked]
             c_scores = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in company_ranked}
-            c_jobs = store.get_jobs_with_salary_by_uuids(c_uuids)
+            c_jobs = store.get_jobs_with_salary_by_uuids(c_uuids, representative=True, company_name=body.company_name)
             company_similar_jobs = _build_similar_jobs(c_jobs, c_scores, body.top_k)
 
     top_slice = ranked[: body.top_k * 5]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
 
-    jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()))
+    jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()), representative=True)
     jobs = [j for j in jobs if _has_valid_salary(j)]
     # Salary benchmark pool uses compliant ranges only (EP rule: salary_max <= 2 * salary_min).
     salary_jobs = store.get_jobs_with_salary_by_uuids(
-        list(uuid_to_score.keys()), compliant_ranges_only=True
+        list(uuid_to_score.keys()), compliant_ranges_only=True, representative=True
     )
     salary_jobs = [j for j in salary_jobs if j.get("salary_min") is not None and _has_valid_salary(j)]
     similar = _build_similar_jobs(jobs, uuid_to_score, body.top_k)
+    total_listings = sum(int(j.get("repost_count") or 1) for j in similar)
 
     # Compute market percentiles regardless of whether salary was provided
     if len(salary_jobs) < 5:
@@ -229,6 +254,7 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
             percentile=None, market_p25=None, market_p50=None, market_p75=None,
             salary_coverage=len(salary_jobs), total_matched=len(jobs),
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
+            total_listings=total_listings,
         )
 
     salaries = sorted(s for j in salary_jobs if (s := _effective_salary(j)) is not None)
@@ -241,6 +267,7 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
             percentile=None, market_p25=p25, market_p50=p50, market_p75=p75,
             salary_coverage=len(salaries), total_matched=len(jobs),
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
+            total_listings=total_listings,
         )
 
     # Salary provided — compute verdict and percentile
@@ -261,6 +288,7 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
         market_p25=p25, market_p50=p50, market_p75=p75,
         salary_coverage=len(salaries), total_matched=len(jobs),
         similar_jobs=similar, company_similar_jobs=company_similar_jobs,
+        total_listings=total_listings,
     )
 
 
@@ -304,7 +332,7 @@ def _compute_salary_search(
         ranked_all = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
     # Active-only gate for displayed results (users are browsing to apply)
-    active_uuids = store.active_job_uuids()
+    active_uuids = store.active_canonical_uuids()
 
     # Salary range filter (active-only) — only applied when the user specified a range
     salary_allowed = store.get_job_uuids_with_salary_filter(body.salary_min, body.salary_max)
@@ -317,12 +345,12 @@ def _compute_salary_search(
     page_slice = filtered[body.offset : body.offset + body.top_k]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in page_slice}
 
-    jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()))
+    jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()), representative=True)
 
     # Percentile pool: top-500 from ALL embedded, regardless of active/salary range.
     # Compliant ranges only (EP rule: salary_max <= 2 * salary_min) to avoid skewed benchmarks.
     top_500_uuids = [uuid for uuid, _, _ in ranked_all[:500]]
-    salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids, compliant_ranges_only=True)
+    salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids, compliant_ranges_only=True, representative=True)
     salary_values = sorted(
         s for j in salary_pool
         if _has_valid_salary(j) and (s := _effective_salary(j)) is not None
@@ -341,7 +369,7 @@ def _compute_salary_search(
             job_url=j.get("job_url"),
             salary_min=j.get("salary_min"),
             salary_max=j.get("salary_max"),
-            similarity_score=uuid_to_score.get(j["job_uuid"], 0.0),
+            similarity_score=uuid_to_score.get(j.get("canonical_job_uuid") or j["job_uuid"], 0.0),
             last_seen_at=str(j["last_seen_at"]) if j.get("last_seen_at") else None,
         )
         for j in jobs
