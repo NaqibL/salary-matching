@@ -48,6 +48,37 @@ store.get_dashboard_summary() -> dict
 store.get_active_jobs_by_date() -> list[dict]
 ```
 
+## Posting groups (SGSAL-024)
+
+`jobs.content_hash` and `jobs.canonical_job_uuid` (migration `scripts/migrations/022_posting_groups.sql`) group reposts of the same text; `job_embeddings` holds canonical rows only.
+
+```python
+# Write (crawl path)
+store.set_content_hashes(rows: list[tuple[str, str | None]]) -> None      # (job_uuid, content_hash) pairs
+store.find_canonicals(hashes: list[str]) -> dict[str, str]                # hash -> embedded canonical uuid
+store.link_reposts(pairs: list[tuple[str, str]]) -> int                   # set canonical_job_uuid, copy LLM/Jev fields
+store.refresh_posting_groups() -> None                                    # REFRESH MATERIALIZED VIEW CONCURRENTLY, crawl end
+
+# Read (API)
+store.get_posting_history(job_uuid: str) -> dict | None                   # group row incl. occurrences list
+store.get_most_reposted(days: int = 365, limit: int = 20) -> list[dict]   # groups ranked by reposts in window (90 or 365)
+store.active_canonical_uuids() -> set[str]                                # COALESCE(canonical, uuid) of active jobs
+store.describe_columns(relation: str) -> set[str]                         # column names, used for feature gating
+store.get_jobs_with_salary_by_uuids(..., representative=True, company_name=...)  # one card per posting
+
+# Backfill-only (scripts/backfill_posting_keys.py)
+store.iter_jobs_needing_hash(after_uuid: str, limit: int) -> list[tuple]  # keyset page of jobs without a hash
+store.assign_canonicals() -> int                                          # pick a canonical per hash (embedded existing one first)
+store.copy_fields_from_canonicals() -> int                                # fill NULL LLM fields / Jev labels on members
+store.noncanonical_embedded_uuids() -> list[str]                          # duplicate vectors safe to delete
+store.delete_embeddings_by_uuids(uuids: list[str]) -> int                 # batched by caller
+store.posting_group_stats() -> dict                                       # groups, members, repost percentiles
+```
+
+`delete_inactive_job_embeddings` was removed: jobs and expired postings are never pruned.
+
+`posting_groups` materialised view columns: `content_hash`, `canonical_job_uuid`, `latest_job_uuid`, `repost_count`, `active_count`, `first_posted`, `last_posted`, `reposts_90d`, `reposts_365d`, `distinct_companies`, `latest_salary_min`, `latest_salary_max`, `min_salary_seen`, `max_salary_seen`, `occurrences` (jsonb list of `{job_uuid, date, company, salary_min, salary_max, is_active}`).
+
 ## Configuration
 
 `DATABASE_URL` (Postgres connection string) is required. Set it in `.env` for local dev — see `.env.example`.

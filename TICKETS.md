@@ -27,5 +27,5 @@ Project prefix: `SGSAL`
 | [SGSAL-021](tickets/SGSAL-021.md) | Hot Jobs scoring never runs post-crawl — new jobs invisible to /hot-jobs | done | high |
 | [SGSAL-022](tickets/SGSAL-022.md) | Replace ML classifiers with Jev, switch cleaner model, repair LLM-field gap | in-progress | high |
 | [SGSAL-023](tickets/SGSAL-023.md) | Dedup near-identical active postings (recruiter reposts) in dashboard counts and benchmarks | todo | medium |
-| [SGSAL-024](tickets/SGSAL-024.md) | Content-addressed embeddings (one vector per posting text) + repost history per job | todo | high |
+| [SGSAL-024](tickets/SGSAL-024.md) | Content-addressed embeddings (one vector per posting text) + repost history per job | in-progress | high |
 | [SGSAL-025](tickets/SGSAL-025.md) | Vector storage roadmap — halfvec, role-family routed partitions, cold-tier quantisation (keep all history) | todo | medium |

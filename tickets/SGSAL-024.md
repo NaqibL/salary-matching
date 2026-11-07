@@ -225,3 +225,33 @@ stats: {'groups': 407109, 'members': 703398, 'max_repost_count': 949, 'p50_repos
 
 Total runtime about 33 min (01:21 to 01:54). `--apply` would delete 255,252 vectors
 (627,040 -> ~371,788 rows). Then `VACUUM (ANALYZE) job_embeddings`.
+
+## Implementation status (2026-11-08)
+
+Code-complete on branch `sgsal-024-repost-history` (commits `1ec6d87..30fbe1e`). Not merged, not deployed, backfill `--apply` NOT run.
+
+- `posting_key` (content hash of title + description, company excluded): done, `1ec6d87..30fbe1e`
+- Migration 022 (columns, indexes, `posting_groups` view): done, applied to Supabase
+- Storage methods (write / read / backfill helpers; `delete_inactive_job_embeddings` removed): done
+- Crawl linking (`mcf.lib.pipeline.reposts`, skips cleaner/embed/Jev for reposts, view refresh at crawl end): done
+- `scripts/backfill_posting_keys.py`: done, `--dry-run` run 2026-11-08
+- API: checker one card per posting with repost facts, `/api/jobs/{uuid}/reposts`, most-reposted endpoints: done
+- Frontend: types, API client, repost badge + history panel, dashboard most-reposted card: done
+
+Selection rulings applied:
+- `find_canonicals` requires the canonical to have an embedding.
+- `assign_canonicals` ranks an embedded existing canonical first.
+- Role-family selection is NOT restricted to canonicals, because reposts of never-labelled canonicals would otherwise stay unclassified.
+
+### Remaining (owner)
+
+1. `uv run python scripts/backfill_posting_keys.py --apply`, then `VACUUM (ANALYZE) job_embeddings` and the invariant queries:
+   ```sql
+   select count(*) from job_embeddings e join jobs j using(job_uuid) where j.canonical_job_uuid <> j.job_uuid;  -- non-canonical vectors, must be 0
+   select count(*) from jobs where content_hash is not null and canonical_job_uuid is null;  -- hashed rows without pointer, must be 0
+   select count(*) from jobs j where j.canonical_job_uuid = j.job_uuid and j.content_hash is not null and j.is_active and not exists (select 1 from job_embeddings e where e.job_uuid=j.job_uuid);  -- active canonicals without vector, ~today's unembedded only
+   ```
+2. Merge the branch to master and push; watch CI and Railway.
+3. After the next 02:00 UTC crawl: `gh run view <id> --log | grep -E "reposts linked|posting_groups"`.
+4. If a nightly crawl ran between the dry run and the deploy, re-run `--apply` once more (resumable) to catch jobs the old code embedded.
+5. Record post-apply `job_embeddings` row count + `pg_total_relation_size` in `tickets/SGSAL-025.md` and close this ticket.

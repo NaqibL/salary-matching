@@ -31,6 +31,8 @@ set that fits the database's memory, instead of a retention rule.
 | disk price | $0.125/GB/month beyond 8 GB — disk is not the constraint, memory is |
 | role families | 24 Jev families; largest is 12% of active jobs; 641k expired jobs are unlabelled (backfill was active-only) |
 
+2026-11-08 pre-apply: job_embeddings 627,040 rows / 4521 MB, DB 7087 MB; dry run says --apply removes 255,252 duplicate vectors (→ ≈371.8k rows).
+
 The checker's main query (`get_all_embedded_job_ids_ranked`) scans the whole
 index, active + expired, so a cold query touches an index 4× larger than
 `shared_buffers`.
