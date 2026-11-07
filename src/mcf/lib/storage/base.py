@@ -108,12 +108,6 @@ class Storage(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def delete_inactive_job_embeddings(self) -> int:
-        """Delete embeddings for inactive jobs with no user interactions.
-        Returns count of deleted rows."""
-        ...
-
     def get_job_uuids_needing_description_backfill(self, limit: int | None = None) -> list[str]:
         """Return active MCF job UUIDs where description is NULL (need description backfill)."""
         raise NotImplementedError
@@ -512,14 +506,25 @@ class Storage(ABC):
         job_uuids: list[str],
         *,
         compliant_ranges_only: bool = False,
+        representative: bool = False,
+        company_name: str | None = None,
     ) -> list[dict]:
-        """Return job_uuid, title, company_name, job_url, salary_min, salary_max for given UUIDs.
+        """Return job rows (title, company_name, location, job_url, salary_min/max,
+        last_seen_at, is_active, description, min_years_experience, llm_fields_json).
 
         Args:
-            job_uuids: UUIDs to fetch.
-            compliant_ranges_only: When True, rows where salary_max > 2 * salary_min are excluded.
-                Use this flag for salary benchmarking / percentile pools only — not for display cards.
-                Rows with a NULL salary_min or salary_max are always included regardless of this flag.
+            job_uuids: UUIDs to fetch. With ``representative=True`` these are
+                *canonical* UUIDs (what the similarity queries return).
+            compliant_ranges_only: drop rows where salary_max > 2 * salary_min
+                (benchmark pools only, never display cards). NULL bounds are kept.
+            representative: return the group's **latest occurrence** (active
+                preferred) instead of the canonical row, plus the group facts
+                ``canonical_job_uuid, repost_count, active_count, first_posted,
+                last_posted, reposts_365d, distinct_companies, min_salary_seen,
+                max_salary_seen``. UUIDs without a group return themselves with
+                ``repost_count = 1``.
+            company_name: with ``representative=True``, pick the latest occurrence
+                among members at this company (company tab of the checker).
         """
 
     # === Posting groups / reposts (SGSAL-024) ===
@@ -543,6 +548,18 @@ class Storage(ABC):
     @abstractmethod
     def refresh_posting_groups(self) -> None:
         """REFRESH MATERIALIZED VIEW CONCURRENTLY posting_groups. Call at crawl end."""
+
+    @abstractmethod
+    def get_posting_history(self, job_uuid: str) -> dict | None:
+        """The posting group (incl. ``occurrences`` list) that ``job_uuid`` belongs to, or None."""
+
+    @abstractmethod
+    def get_most_reposted(self, days: int = 365, limit: int = 20) -> list[dict]:
+        """Posting groups ordered by reposts in the window (``days`` is 90 or 365)."""
+
+    @abstractmethod
+    def active_canonical_uuids(self) -> set[str]:
+        """``COALESCE(canonical_job_uuid, job_uuid)`` of every active job (checker gates)."""
 
     @abstractmethod
     def get_distinct_companies(self) -> list[str]:

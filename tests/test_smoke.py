@@ -186,3 +186,45 @@ def test_find_canonicals_is_read_only_and_shaped(client):
     assert callable(getattr(Storage, "refresh_posting_groups"))
     assert store.find_canonicals(["0" * 32, "f" * 32]) == {}
     assert store.find_canonicals([]) == {}
+
+
+def test_representative_lookup_falls_back_to_self_for_ungrouped_uuid(client):
+    """SGSAL-024: a uuid with no posting group returns itself with repost_count 1."""
+    from mcf.api.deps import get_store
+
+    store = get_store()
+    # any embedded job; before the backfill none are grouped, after it the
+    # canonical returns itself or its latest occurrence — both satisfy the shape checks.
+    uuids = [u for u, _, _ in store.get_all_embedded_job_ids_ranked([0.0] * 768, limit=5)][:1]
+    if not uuids:
+        pytest.skip("no embeddings")
+    rows = store.get_jobs_with_salary_by_uuids(uuids, representative=True)
+    assert len(rows) == 1
+    r = rows[0]
+    for k in ("job_uuid", "title", "salary_min", "salary_max", "is_active", "canonical_job_uuid",
+              "repost_count", "active_count", "reposts_365d", "distinct_companies"):
+        assert k in r, k
+    assert r["canonical_job_uuid"] == uuids[0]
+    assert r["repost_count"] >= 1
+
+
+def test_posting_history_unknown_uuid_is_none(client):
+    from mcf.api.deps import get_store
+
+    assert get_store().get_posting_history("no-such-job") is None
+
+
+def test_most_reposted_shape(client):
+    from mcf.api.deps import get_store
+
+    rows = get_store().get_most_reposted(days=365, limit=5)
+    assert isinstance(rows, list)
+    for r in rows:
+        assert set(r) >= {"canonical_job_uuid", "title", "company", "repost_count",
+                          "reposts_in_window", "first_posted", "last_posted"}
+
+
+def test_legacy_delete_inactive_embeddings_is_gone(client):
+    from mcf.lib.storage.base import Storage
+
+    assert not hasattr(Storage, "delete_inactive_job_embeddings")

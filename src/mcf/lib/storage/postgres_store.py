@@ -427,6 +427,54 @@ class PostgresStore(Storage):
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY posting_groups")
 
+    def get_posting_history(self, job_uuid: str) -> dict | None:
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT pg.content_hash, pg.canonical_job_uuid, pg.latest_job_uuid, pg.repost_count,
+                       pg.active_count, pg.first_posted, pg.last_posted, pg.reposts_90d,
+                       pg.reposts_365d, pg.distinct_companies, pg.latest_salary_min,
+                       pg.latest_salary_max, pg.min_salary_seen, pg.max_salary_seen, pg.occurrences,
+                       c.title
+                  FROM jobs j
+                  JOIN posting_groups pg ON pg.content_hash = j.content_hash
+                  JOIN jobs c ON c.job_uuid = pg.latest_job_uuid
+                 WHERE j.job_uuid = %s
+                """,
+                [job_uuid],
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [d[0] for d in cur.description]
+            return dict(zip(cols, row))
+
+    def get_most_reposted(self, days: int = 365, limit: int = 20) -> list[dict]:
+        col = "reposts_90d" if int(days) == 90 else "reposts_365d"
+        with self._cur() as cur:
+            cur.execute(
+                f"""
+                SELECT pg.canonical_job_uuid, c.title,
+                       COALESCE(c.company_canonical, c.company_name) AS company,
+                       pg.distinct_companies, pg.repost_count, pg.{col} AS reposts_in_window,
+                       pg.first_posted, pg.last_posted, pg.latest_salary_min, pg.latest_salary_max
+                  FROM posting_groups pg
+                  JOIN jobs c ON c.job_uuid = pg.latest_job_uuid
+                 WHERE pg.{col} >= 2
+                 ORDER BY pg.{col} DESC, pg.repost_count DESC, pg.last_posted DESC
+                 LIMIT %s
+                """,
+                [int(limit)],
+            )
+            cols = [d[0] for d in cur.description]
+            return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    def active_canonical_uuids(self) -> set[str]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute("SELECT DISTINCT COALESCE(canonical_job_uuid, job_uuid) FROM jobs WHERE is_active = TRUE")
+            return {r[0] for r in cur.fetchall()}
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return job UUIDs where categories_json is NULL or empty."""
         with self._cur() as cur:
@@ -954,7 +1002,7 @@ class PostgresStore(Storage):
             params.append(salary_max)
         with self._cur() as cur:
             cur.execute(
-                f"SELECT job_uuid FROM jobs WHERE {' AND '.join(conditions)}",
+                f"SELECT DISTINCT COALESCE(canonical_job_uuid, job_uuid) FROM jobs WHERE {' AND '.join(conditions)}",
                 params,
             )
             return {r[0] for r in cur.fetchall()}
@@ -1211,7 +1259,7 @@ class PostgresStore(Storage):
             cur.execute(
                 "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.min_years_experience"
                 " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
-                " WHERE j.is_active = TRUE AND e.job_uuid IS NULL"
+                " WHERE j.is_active = TRUE AND e.job_uuid IS NULL AND (j.canonical_job_uuid IS NULL OR j.canonical_job_uuid = j.job_uuid)"
             )
             rows = cur.fetchall()
         return [
@@ -1863,28 +1911,6 @@ class PostgresStore(Storage):
         except psycopg2.ProgrammingError:
             pass
 
-    def delete_inactive_job_embeddings(self) -> int:
-        """Delete embeddings for inactive jobs that no user has ever interacted with."""
-        with self._transaction_cur() as cur:
-            cur.execute("SET LOCAL statement_timeout = 0")
-            cur.execute(
-                """
-                DELETE FROM job_embeddings
-                WHERE job_uuid IN (
-                    SELECT e.job_uuid
-                      FROM job_embeddings e
-                      JOIN jobs j ON j.job_uuid = e.job_uuid
-                     WHERE j.is_active = FALSE
-                       AND j.last_seen_at < NOW() - INTERVAL '24 hours'
-                       AND NOT EXISTS (
-                             SELECT 1 FROM job_interactions i
-                              WHERE i.job_uuid = e.job_uuid
-                           )
-                )
-                """
-            )
-            return cur.rowcount
-
     def get_jobs_by_category(self, limit_days: int = 90, limit: int = 30) -> list[dict]:
         with self._cur() as cur:
             cur.execute(
@@ -2351,30 +2377,77 @@ class PostgresStore(Storage):
             for r in rows
         ]
 
+    _JOB_SALARY_COLS = (
+        "job_uuid, title, company_name, location, job_url, salary_min, salary_max, "
+        "last_seen_at, is_active, description, min_years_experience, llm_fields_json"
+    )
+
     def get_jobs_with_salary_by_uuids(
         self,
         job_uuids: list[str],
         *,
         compliant_ranges_only: bool = False,
+        representative: bool = False,
+        company_name: str | None = None,
     ) -> list[dict]:
         if not job_uuids:
             return []
+        # EP compliance filter: salary_max must be <= 2 * salary_min.
+        # Rows where either bound is NULL are always kept (no salary info to disqualify).
+        compliance_clause = (
+            " AND (rep.salary_min IS NULL OR rep.salary_max IS NULL OR rep.salary_max <= 2 * rep.salary_min)"
+            if compliant_ranges_only
+            else ""
+        )
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
-            # EP compliance filter: salary_max must be <= 2 * salary_min.
-            # Rows where either bound is NULL are always kept (no salary info to disqualify).
-            compliance_clause = (
-                " AND (salary_min IS NULL OR salary_max IS NULL OR salary_max <= 2 * salary_min)"
-                if compliant_ranges_only
-                else ""
-            )
-            cur.execute(
-                "SELECT job_uuid, title, company_name, location, job_url, salary_min, salary_max, last_seen_at, is_active, description, min_years_experience, llm_fields_json "
-                f"FROM jobs WHERE job_uuid = ANY(%s){compliance_clause}",
-                (job_uuids,),
-            )
-            cols = [d[0] for d in cur.description]
-            return [dict(zip(cols, row)) for row in cur.fetchall()]
+            cols = ", ".join(f"rep.{c.strip()}" for c in self._JOB_SALARY_COLS.split(","))
+            if not representative:
+                cur.execute(
+                    f"SELECT {cols} FROM jobs rep WHERE rep.job_uuid = ANY(%s){compliance_clause}",
+                    (job_uuids,),
+                )
+            else:
+                if company_name is None:
+                    rep_pick = "COALESCE(pg.latest_job_uuid, c.job_uuid)"
+                    company_params: tuple = ()
+                    company_lateral = ""
+                else:
+                    # Latest member *at this company*; falls back to the group's latest.
+                    company_lateral = """
+                      LEFT JOIN LATERAL (
+                          SELECT m.job_uuid FROM jobs m
+                           WHERE m.content_hash = c.content_hash
+                             AND (m.company_canonical = %s
+                                  OR (m.company_canonical IS NULL AND m.company_name = %s))
+                           ORDER BY m.is_active DESC,
+                                    COALESCE(m.posted_date, (m.first_seen_at AT TIME ZONE 'UTC')::date) DESC,
+                                    m.first_seen_at DESC
+                           LIMIT 1
+                      ) cm ON TRUE
+                    """
+                    rep_pick = "COALESCE(cm.job_uuid, pg.latest_job_uuid, c.job_uuid)"
+                    company_params = (company_name, company_name)
+                cur.execute(
+                    f"""
+                    SELECT {cols},
+                           c.job_uuid AS canonical_job_uuid,
+                           COALESCE(pg.repost_count, 1) AS repost_count,
+                           COALESCE(pg.active_count, CASE WHEN c.is_active THEN 1 ELSE 0 END) AS active_count,
+                           pg.first_posted, pg.last_posted,
+                           COALESCE(pg.reposts_365d, 1) AS reposts_365d,
+                           COALESCE(pg.distinct_companies, 1) AS distinct_companies,
+                           pg.min_salary_seen, pg.max_salary_seen
+                      FROM jobs c
+                      LEFT JOIN posting_groups pg ON pg.content_hash = c.content_hash
+                      {company_lateral}
+                      JOIN jobs rep ON rep.job_uuid = {rep_pick}
+                     WHERE c.job_uuid = ANY(%s){compliance_clause}
+                    """,
+                    (*company_params, job_uuids),
+                )
+            cols_out = [d[0] for d in cur.description]
+            return [dict(zip(cols_out, row)) for row in cur.fetchall()]
 
     def get_distinct_companies(self) -> list[str]:
         with self._transaction_cur() as cur:
@@ -2426,19 +2499,20 @@ class PostgresStore(Storage):
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
-                SELECT j.job_uuid, (e.embedding <=> %s::vector) AS distance, j.last_seen_at
-                  FROM jobs j
-                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                 WHERE e.embedding IS NOT NULL
-                   AND (
-                       j.company_canonical = %s
-                       OR (j.company_canonical IS NULL AND j.company_name = %s)
-                       OR j.company_canonical = (
-                           SELECT canonical_name FROM company_aliases
-                           WHERE raw_name = %s AND canonical_name IS NOT NULL
-                           LIMIT 1
-                       )
-                   )
+                SELECT c.job_uuid, (e.embedding <=> %s::vector) AS distance, c.last_seen_at
+                  FROM (
+                      SELECT DISTINCT COALESCE(j.canonical_job_uuid, j.job_uuid) AS cu
+                        FROM jobs j
+                       WHERE j.company_canonical = %s
+                          OR (j.company_canonical IS NULL AND j.company_name = %s)
+                          OR j.company_canonical = (
+                              SELECT canonical_name FROM company_aliases
+                               WHERE raw_name = %s AND canonical_name IS NOT NULL
+                               LIMIT 1
+                          )
+                  ) m
+                  JOIN job_embeddings e ON e.job_uuid = m.cu AND e.embedding IS NOT NULL
+                  JOIN jobs c ON c.job_uuid = m.cu
                  ORDER BY distance ASC
                  LIMIT %s
                 """,
