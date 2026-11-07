@@ -115,6 +115,16 @@ export interface SimilarJob {
   min_years_experience?: number | null
   inferred_seniority?: string | null
   canonical_skills?: string[] | null
+  // SGSAL-024 posting group facts (absent on older API responses)
+  canonical_job_uuid?: string
+  repost_count?: number
+  active_count?: number
+  first_posted?: string | null
+  last_posted?: string | null
+  reposts_365d?: number
+  distinct_companies?: number
+  min_salary_seen?: number | null
+  max_salary_seen?: number | null
 }
 
 export interface HotJob {
@@ -170,6 +180,48 @@ export interface LowballResult {
   total_matched: number
   similar_jobs: SimilarJob[]
   company_similar_jobs?: SimilarJob[] | null
+  total_listings?: number | null
+}
+
+// --- Posting groups / reposts (SGSAL-024) ---
+
+export interface PostingOccurrence {
+  job_uuid: string
+  date: string | null
+  company: string | null
+  salary_min: number | null
+  salary_max: number | null
+  is_active: boolean
+}
+
+export interface PostingHistory {
+  canonical_job_uuid: string
+  title: string | null
+  repost_count: number
+  active_count: number
+  first_posted: string | null
+  last_posted: string | null
+  reposts_90d: number
+  reposts_365d: number
+  distinct_companies: number
+  latest_salary_min: number | null
+  latest_salary_max: number | null
+  min_salary_seen: number | null
+  max_salary_seen: number | null
+  occurrences: PostingOccurrence[]
+}
+
+export interface MostRepostedRow {
+  canonical_job_uuid: string
+  title: string | null
+  company: string | null
+  distinct_companies: number
+  repost_count: number
+  reposts_in_window: number
+  first_posted: string | null
+  last_posted: string | null
+  latest_salary_min: number | null
+  latest_salary_max: number | null
 }
 
 // --- Dashboard: LLM-field analytics (seniority / skills / role families) ---

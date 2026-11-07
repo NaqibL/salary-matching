@@ -1,4 +1,4 @@
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow, PostingHistory, MostRepostedRow } from './types'
 import { supabase } from './supabase'
 
 export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow }
@@ -315,6 +315,17 @@ export const dashboardApi = {
     if (!res.ok) throw new Error('Failed to fetch role families')
     return res.json() as Promise<RoleFamilyRow[]>
   },
+  getMostReposted: async (days: 90 | 365 = 365, limit = 20) => {
+    const res = await fetch(`/api/dashboard/most-reposted?days=${days}&limit=${limit}`)
+    if (!res.ok) throw new Error('Failed to fetch most reposted roles')
+    return res.json() as Promise<MostRepostedRow[]>
+  },
+}
+
+export const postingsApi = {
+  /** Repost history for any job in a posting group (public, cached 1 h server-side). */
+  getHistory: (jobUuid: string) =>
+    apiFetch<PostingHistory>(`/api/jobs/${encodeURIComponent(jobUuid)}/reposts`),
 }
 
 export const lowballApi = {
