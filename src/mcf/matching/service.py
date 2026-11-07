@@ -21,17 +21,35 @@ from mcf.api.cache.job_pool import (
     compute_ranked_from_pool,
     get_pool_or_fetch,
 )
-from mcf.matching.classifiers import role_name as _legacy_role_name, predict_candidate_tier
 from mcf.lib.embeddings.jev_classifier import ROLE_FAMILY_DISPLAY
+
+# Number of nearest active jobs whose Jev tier votes for the candidate's tier.
+_CANDIDATE_TIER_NEIGHBOURS = 30
+_TIER_ORDER = ("T1_Entry", "T2_Junior", "T3_Senior", "T4_Management")
 
 
 def _role_name(job: dict) -> str | None:
-    """Display name: Jev role family when present, else the legacy KMeans taxonomy."""
+    """Display name of the job's Jev role family (None when not yet classified)."""
     fam = job.get("role_family")
-    if fam:
-        return ROLE_FAMILY_DISPLAY.get(fam, fam)
-    rc = job.get("role_cluster")
-    return _legacy_role_name(rc) if rc is not None else None
+    return ROLE_FAMILY_DISPLAY.get(fam, fam) if fam else None
+
+
+def infer_candidate_tier(neighbour_tiers: list[str | None]) -> str | None:
+    """Candidate tier = majority Jev tier among the nearest jobs to the resume.
+
+    Replaces the legacy LR model (SGSAL-022 C7): the jobs closest to the resume
+    in embedding space are, by construction, the ones the matcher ranks first,
+    so their predicted_tier is the best data-driven read of the level the
+    resume is pitched at. Ties go to the more junior tier (a fresh-grad resume
+    that reads 50/50 Entry/Junior should not be boosted towards Junior).
+    """
+    counts: dict[str, int] = {}
+    for t in neighbour_tiers:
+        if t in _TIER_ORDER:
+            counts[t] = counts.get(t, 0) + 1
+    if not counts:
+        return None
+    return max(_TIER_ORDER, key=lambda t: (counts.get(t, 0), -_TIER_ORDER.index(t)))
 from mcf.lib.storage.base import Storage
 
 # Pure semantic matching — skills keyword overlap removed.
@@ -243,10 +261,15 @@ class MatchingService:
                 ranked_entries = session["ranked_ids"]
                 total = session["total"]
 
-        # Infer candidate's experience tier from their resume embedding (best-effort)
+        # Infer the candidate's experience tier from the Jev tiers of the jobs
+        # nearest to the resume (best-effort; one HNSW query, cached per user
+        # by the matches response cache upstream).
         candidate_tier: str | None = None
         try:
-            candidate_tier = predict_candidate_tier(candidate_emb)
+            nearest = self.store.get_active_job_ids_ranked(candidate_emb, limit=_CANDIDATE_TIER_NEIGHBOURS)
+            near_ids = [uuid for uuid, _, _ in nearest[:_CANDIDATE_TIER_NEIGHBOURS]]
+            near_jobs = self.store.get_jobs_by_uuids(near_ids) if near_ids else []
+            candidate_tier = infer_candidate_tier([j.get("predicted_tier") for j in near_jobs])
         except Exception:
             pass
 

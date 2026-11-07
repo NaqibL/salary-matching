@@ -232,15 +232,16 @@ def run_incremental_crawl(
                             print(f"Warning: Failed to generate embedding for job {normalized.job_uuid}: {e}")
 
                 # Phase 3: Classify all new jobs (role family + seniority tier).
-                # Jev (SGSAL-022) when OPENROUTER_API_KEY is set; otherwise the
-                # legacy KMeans/LR models on the embeddings.
+                # Jev role family + tier (SGSAL-022) when OPENROUTER_API_KEY is
+                # set. Without a key the jobs stay unclassified and the daily
+                # embed workflow's backfill_role_families.py step picks them up.
                 if embedded:
                     jev = None
                     try:
                         from mcf.lib.embeddings.jev_classifier import make_jev_classifier_from_env
                         jev = make_jev_classifier_from_env()
                     except Exception as e:  # noqa: BLE001
-                        print(f"Warning: Jev classifier unavailable, using legacy models: {e}")
+                        print(f"Warning: Jev classifier unavailable: {e}")
                     if jev is not None:
                         try:
                             _classify_with_jev(store, jev, jobs_to_embed, embedded)
@@ -249,25 +250,8 @@ def run_incremental_crawl(
                         finally:
                             jev.close()
                     else:
-                        try:
-                            import numpy as np
-                            from mcf.matching.classifiers import classify_jobs, classify_jobs_multilabel
-
-                            emb_matrix = np.array([e for _, e in embedded], dtype=np.float32)
-                            classifications_raw = classify_jobs(emb_matrix)
-                            classifications = [
-                                (job_uuid, role_cluster, predicted_tier)
-                                for (job_uuid, _), (role_cluster, predicted_tier)
-                                in zip(embedded, classifications_raw)
-                            ]
-                            store.batch_upsert_job_classifications(classifications)
-
-                            multi_labels = classify_jobs_multilabel(emb_matrix)
-                            store.batch_upsert_multi_label_clusters(
-                                [(job_uuid, clusters) for (job_uuid, _), clusters in zip(embedded, multi_labels)]
-                            )
-                        except Exception as e:
-                            print(f"Warning: job classification failed, skipping: {e}")
+                        print("Role-family classification skipped (no OPENROUTER_API_KEY); "
+                              "the daily embed step will classify these jobs.")
 
                     try:
                         store.assign_hot_jobs_scores([job_uuid for job_uuid, _ in embedded])
@@ -294,6 +278,16 @@ def run_incremental_crawl(
             maintained=len(maintained),
             removed=len(removed),
         )
+
+        # Retention: only the current run's job_run_status rows are ever read
+        # (update_daily_stats). Keep 90 days so the table stays ~600k rows
+        # instead of growing ~4k rows/day forever (SGSAL-022 E5). Non-fatal.
+        try:
+            pruned = store.prune_job_run_status(keep_days=90)
+            if pruned:
+                print(f"Pruned {pruned:,} job_run_status rows older than 90 days")
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: job_run_status prune failed, skipping: {e}")
 
         # Refresh dashboard materialized views (Postgres only; non-fatal)
         if hasattr(store, "refresh_dashboard_materialized_views"):

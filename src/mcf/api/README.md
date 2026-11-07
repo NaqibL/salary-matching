@@ -25,7 +25,6 @@ FastAPI application that exposes the REST API consumed by the Next.js frontend. 
 | `pydantic-settings` | Settings from env |
 | `PyJWT` | JWT verification |
 | `numpy` | Vector math in matching service |
-| `scikit-learn` | Additional ML utilities |
 
 ## Internal Dependencies
 

@@ -20,32 +20,19 @@ router = APIRouter()
 
 @router.get("/api/jobs/taxonomy")
 def get_job_taxonomy(_: str | None = Depends(get_optional_user)):
-    """Return role taxonomy: list of {id, name} sorted by id.
+    """Return role taxonomy: list of {id, name, key} sorted by id.
 
-    Served from the Jev ``role_families`` table (ids match ``jobs.role_cluster``
-    after the SGSAL-022 backfill). Set ``ROLE_TAXONOMY_SOURCE=kmeans`` to fall
-    back to the legacy KMeans taxonomy, which is also used if the table is empty.
+    Served from the Jev ``role_families`` table; ids match ``jobs.role_cluster``
+    (SGSAL-022). Empty until ``ensure_schema``/the backfill has seeded the table.
     """
-    import os
-
-    if os.getenv("ROLE_TAXONOMY_SOURCE", "jev").strip().lower() != "kmeans":
-        try:
-            families = get_store().get_role_families()
-        except Exception:  # table missing / not migrated yet
-            families = []
-        if families:
-            return {
-                "clusters": [
-                    {"id": f["id"], "name": f["display_name"], "key": f["key"]}
-                    for f in families
-                ]
-            }
-    import mcf.matching.classifiers as _cls
-    _cls._load()
+    try:
+        families = get_store().get_role_families()
+    except Exception:  # table missing / not migrated yet
+        families = []
     return {
         "clusters": [
-            {"id": k, "name": v}
-            for k, v in sorted((_cls._taxonomy or {}).items())
+            {"id": f["id"], "name": f["display_name"], "key": f["key"]}
+            for f in families
         ]
     }
 

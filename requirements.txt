@@ -143,9 +143,7 @@ rich==15.0.0
 safetensors==0.7.0
     # via transformers
 scikit-learn==1.9.0
-    # via
-    #   mcf (pyproject.toml)
-    #   sentence-transformers
+    # via sentence-transformers
 scipy==1.17.1
     # via
     #   scikit-learn
@@ -168,8 +166,10 @@ threadpoolctl==3.6.0
     # via scikit-learn
 tokenizers==0.22.2
     # via transformers
-torch==2.12.0
-    # via sentence-transformers
+torch==2.10.0+cpu
+    # via
+    #   mcf (pyproject.toml)
+    #   sentence-transformers
 tqdm==4.68.1
     # via
     #   huggingface-hub

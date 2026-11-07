@@ -169,20 +169,7 @@ class Storage(ABC):
         x seniority) median salary, ordered by above_market_pct desc."""
         raise NotImplementedError
 
-    # === Job classifications ===
-
-    @abstractmethod
-    def batch_upsert_job_classifications(
-        self, classifications: list[tuple[str, int, str]]
-    ) -> None:
-        """Persist role_cluster and predicted_tier for a batch of jobs.
-
-        Args:
-            classifications: list of (job_uuid, role_cluster, predicted_tier)
-        """
-        ...
-
-    # --- Jev role families (SGSAL-022 C3/C4) ---
+    # === Job classifications (Jev role families, SGSAL-022) ===
 
     def upsert_role_families(self, rows: list[tuple[int, str, str, str]]) -> None:
         """Seed/refresh the role_families lookup: (id, key, display_name, description)."""
@@ -210,14 +197,13 @@ class Storage(ABC):
     def count_active_jobs_missing_role_family(self) -> int:
         raise NotImplementedError
 
-    def batch_upsert_multi_label_clusters(
-        self, data: list[tuple[str, list[int]]]
-    ) -> None:
-        """Persist role_clusters_json (multi-label) for a batch of jobs.
+    # --- Retention ---
 
-        Args:
-            data: list of (job_uuid, cluster_ids) where cluster_ids is
-                  all cluster IDs at cosine >= 0.85 threshold.
+    def prune_job_run_status(self, keep_days: int = 90) -> int:
+        """Delete job_run_status rows of crawl runs started more than keep_days ago.
+
+        Only the current run's rows are ever read (daily stats), so this is pure
+        housekeeping. Returns the number of rows deleted.
         """
         raise NotImplementedError
 

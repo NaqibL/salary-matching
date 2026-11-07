@@ -584,25 +584,6 @@ class PostgresStore(Storage):
         except psycopg2.ProgrammingError:
             pass  # table may not exist
 
-    # === Job classifications ===
-
-    def batch_upsert_job_classifications(
-        self, classifications: list[tuple[str, int, str]]
-    ) -> None:
-        if not classifications:
-            return
-        with self._cur() as cur:
-            psycopg2.extras.execute_batch(
-                cur,
-                """
-                UPDATE jobs
-                SET role_cluster = %s, predicted_tier = %s
-                WHERE job_uuid = %s
-                """,
-                [(rc, tier, uuid) for uuid, rc, tier in classifications],
-                page_size=500,
-            )
-
     # === Job embeddings ===
 
     def upsert_embedding(
@@ -950,18 +931,29 @@ class PostgresStore(Storage):
             )
             return int(cur.fetchone()[0])
 
-    def batch_upsert_multi_label_clusters(
-        self, data: list[tuple[str, list[int]]]
-    ) -> None:
-        if not data:
-            return
-        with self._cur() as cur:
-            psycopg2.extras.execute_batch(
-                cur,
-                "UPDATE jobs SET role_clusters_json = %s WHERE job_uuid = %s",
-                [(clusters, uuid) for uuid, clusters in data],
-                page_size=500,
-            )
+    def prune_job_run_status(self, keep_days: int = 90) -> int:
+        # Batched per run so no single statement holds ~1M row locks or a
+        # long transaction while a crawl is inserting the current run's rows.
+        deleted = 0
+        while True:
+            with self._cur() as cur:
+                cur.execute(
+                    """
+                    DELETE FROM job_run_status
+                     WHERE run_id IN (
+                        SELECT run_id FROM crawl_runs
+                         WHERE started_at < now() - make_interval(days => %s)
+                           AND EXISTS (SELECT 1 FROM job_run_status s WHERE s.run_id = crawl_runs.run_id)
+                         ORDER BY started_at
+                         LIMIT 10
+                     )
+                    """,
+                    [int(keep_days)],
+                )
+                n = cur.rowcount or 0
+            deleted += n
+            if n == 0:
+                return deleted
 
     def assign_hot_jobs_scores(self, job_uuids: list[str]) -> None:
         if not job_uuids:
