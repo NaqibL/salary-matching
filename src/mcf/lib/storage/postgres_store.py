@@ -956,7 +956,7 @@ class PostgresStore(Storage):
                       JOIN jobs j ON j.job_uuid = e.job_uuid
                      WHERE e.embedding IS NOT NULL
                        AND {_ACTIVE_VECTOR_GATE.format(e='e')}
-                     ORDER BY e.embedding <=> %s::vector ASC
+                     ORDER BY e.embedding::halfvec(768) <=> %s::halfvec(768) ASC
                      LIMIT %s
                     """,
                     [emb_str, limit],
@@ -1040,7 +1040,7 @@ class PostgresStore(Storage):
                 f"""
                 SELECT ranked.job_uuid, ranked.distance, act.last_seen_at
                   FROM (
-                      SELECT e.job_uuid, (e.embedding <=> %s::vector) AS distance
+                      SELECT e.job_uuid, (e.embedding::halfvec(768) <=> %s::halfvec(768)) AS distance
                         FROM job_embeddings e
                        WHERE e.embedding IS NOT NULL
                        ORDER BY distance ASC
@@ -1067,7 +1067,7 @@ class PostgresStore(Storage):
                 """
                 SELECT j.job_uuid, ranked.distance, j.last_seen_at
                   FROM (
-                      SELECT e.job_uuid, (e.embedding <=> %s::vector) AS distance
+                      SELECT e.job_uuid, (e.embedding::halfvec(768) <=> %s::halfvec(768)) AS distance
                         FROM job_embeddings e
                        WHERE e.embedding IS NOT NULL
                        ORDER BY distance ASC
@@ -2692,7 +2692,7 @@ class PostgresStore(Storage):
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
                 """
-                SELECT c.job_uuid, (e.embedding <=> %s::vector) AS distance, c.last_seen_at
+                SELECT c.job_uuid, (e.embedding::halfvec(768) <=> %s::halfvec(768)) AS distance, c.last_seen_at
                   FROM (
                       SELECT DISTINCT COALESCE(j.canonical_job_uuid, j.job_uuid) AS cu
                         FROM jobs j

@@ -2,12 +2,12 @@
 id: SGSAL-025
 project: salary-matching
 title: Vector storage roadmap — halfvec now, role-family routed partitions, cold-tier quantisation (keep all history)
-status: todo
+status: in-progress
 priority: medium
 type: chore
 labels: [storage, embeddings, performance, infra, design]
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-08
 depends_on: [SGSAL-024]
 blocks: []
 ---
