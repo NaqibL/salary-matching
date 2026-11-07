@@ -17,6 +17,7 @@ import { DashboardSummary } from './DashboardSummary'
 import { JobsOverTimeChart } from './JobsOverTimeChart'
 import { DashboardCharts } from './DashboardCharts'
 import { toast } from 'sonner'
+import { MostRepostedTable } from './MostRepostedTable'
 import type { Summary } from './DashboardSummary'
 import type { JobsPostedRemovedPoint } from './JobsOverTimeChart'
 
@@ -259,6 +260,7 @@ export function DashboardContent({ initialSummary, initialJobsOverTime }: Dashbo
             </section>
 
             <LazyMarketInsightsCharts />
+            <MostRepostedTable />
           </div>
         )}
       </DashboardErrorBoundary>
