@@ -70,6 +70,26 @@ def _utcnow() -> datetime:
 HOT_JOBS_PCT_CAP = 150.0
 
 
+# SGSAL-024: a vector is "active" when SOME active job owns it or points at it
+# (reposts share their canonical's vector, and the canonical is usually the
+# oldest, often expired, occurrence). The OR form keeps idx_jobs_canonical and
+# the jobs PK usable. Format with the job_embeddings alias.
+_ACTIVE_VECTOR_GATE = (
+    "EXISTS (SELECT 1 FROM jobs a WHERE a.is_active = TRUE"
+    " AND (a.canonical_job_uuid = {e}.job_uuid"
+    " OR (a.canonical_job_uuid IS NULL AND a.job_uuid = {e}.job_uuid)))"
+)
+
+# Latest last_seen_at over the active members of a vector; zero rows when no
+# active member exists, so a JOIN LATERAL on it doubles as the active gate.
+_ACTIVE_MEMBERS_LATERAL = (
+    "JOIN LATERAL (SELECT max(a.last_seen_at) AS last_seen_at FROM jobs a"
+    " WHERE a.is_active = TRUE"
+    " AND (a.canonical_job_uuid = {e}.job_uuid"
+    " OR (a.canonical_job_uuid IS NULL AND a.job_uuid = {e}.job_uuid))"
+    " HAVING count(*) > 0) act ON TRUE"
+)
+
 # IS TRUE: NULL pointer AND vector would otherwise be NULL and sort last
 _CANON_RANK_EXISTING = "((j.canonical_job_uuid = j.job_uuid AND e.job_uuid IS NOT NULL) IS TRUE) DESC"
 
@@ -434,7 +454,9 @@ class PostgresStore(Storage):
                            role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
                            predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
                            role_conf            = COALESCE(j.role_conf, c.role_conf),
-                           tier_conf            = COALESCE(j.tier_conf, c.tier_conf)
+                           tier_conf            = COALESCE(j.tier_conf, c.tier_conf),
+                           hot_jobs_cluster     = COALESCE(j.hot_jobs_cluster, c.hot_jobs_cluster),
+                           above_market_pct     = COALESCE(j.above_market_pct, c.above_market_pct)
                       FROM (VALUES %s) AS v(job_uuid, canonical)
                       JOIN jobs c ON c.job_uuid = v.canonical
                      WHERE j.job_uuid = v.job_uuid
@@ -537,12 +559,16 @@ class PostgresStore(Storage):
                        role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
                        predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
                        role_conf            = COALESCE(j.role_conf, c.role_conf),
-                       tier_conf            = COALESCE(j.tier_conf, c.tier_conf)
+                       tier_conf            = COALESCE(j.tier_conf, c.tier_conf),
+                       hot_jobs_cluster     = COALESCE(j.hot_jobs_cluster, c.hot_jobs_cluster),
+                       above_market_pct     = COALESCE(j.above_market_pct, c.above_market_pct)
                   FROM jobs c
                  WHERE c.job_uuid = j.canonical_job_uuid
                    AND j.canonical_job_uuid <> j.job_uuid
                    AND ((j.llm_fields_json IS NULL AND c.llm_fields_json IS NOT NULL)
-                        OR (j.role_family IS NULL AND c.role_family IS NOT NULL))
+                        OR (j.role_family IS NULL AND c.role_family IS NOT NULL)
+                        OR (j.hot_jobs_cluster IS NULL AND c.hot_jobs_cluster IS NOT NULL)
+                        OR (j.above_market_pct IS NULL AND c.above_market_pct IS NOT NULL))
                 """
             )
             return cur.rowcount or 0
@@ -920,14 +946,14 @@ class PostgresStore(Storage):
             emb_str = json.dumps([float(x) for x in query_embedding])
             with self._cur() as cur:
                 cur.execute(
-                    """
+                    f"""
                     SELECT j.job_uuid, j.title, e.embedding::text,
                            j.company_name, j.location, j.job_url,
                            j.first_seen_at, j.last_seen_at, j.skills_json
-                      FROM jobs j
-                      JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                     WHERE j.is_active = TRUE
-                       AND e.embedding IS NOT NULL
+                      FROM job_embeddings e
+                      JOIN jobs j ON j.job_uuid = e.job_uuid
+                     WHERE e.embedding IS NOT NULL
+                       AND {_ACTIVE_VECTOR_GATE.format(e='e')}
                      ORDER BY e.embedding <=> %s::vector ASC
                      LIMIT %s
                     """,
@@ -936,15 +962,20 @@ class PostgresStore(Storage):
                 rows = cur.fetchall()
         else:
             with self._cur() as cur:
+                # Full scan: hashed semi-join on the active rows' vector owners
+                # (same predicate as _ACTIVE_VECTOR_GATE).
                 cur.execute(
                     """
                     SELECT j.job_uuid, j.title, e.embedding::text,
                            j.company_name, j.location, j.job_url,
                            j.first_seen_at, j.last_seen_at, j.skills_json
-                      FROM jobs j
-                      JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                     WHERE j.is_active = TRUE
-                       AND e.embedding IS NOT NULL
+                      FROM job_embeddings e
+                      JOIN jobs j ON j.job_uuid = e.job_uuid
+                     WHERE e.embedding IS NOT NULL
+                       AND e.job_uuid IN (
+                           SELECT COALESCE(a.canonical_job_uuid, a.job_uuid)
+                             FROM jobs a WHERE a.is_active = TRUE
+                       )
                     """
                 )
                 rows = cur.fetchall()
@@ -964,16 +995,28 @@ class PostgresStore(Storage):
     def get_active_jobs_pool(
         self,
     ) -> list[tuple[str, Any, datetime | None]]:
-        """Return (job_uuid, embedding, last_seen_at) for all active jobs with embeddings."""
+        """Return (vector owner job_uuid, embedding, last_seen_at) for every vector that
+        some active job owns or points at (SGSAL-024: an active repost shares its
+        canonical's vector even when the canonical row itself has expired).
+        last_seen_at is the latest among the vector's active members."""
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
+                # Full scan: aggregate the ~70k active rows by vector owner and join
+                # the PK, rather than probing jobs once per vector (618k probes).
+                # COALESCE(canonical, self) = owner is the same predicate as
+                # _ACTIVE_VECTOR_GATE.
                 """
-                SELECT j.job_uuid, e.embedding, j.last_seen_at
-                  FROM jobs j
-                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                 WHERE j.is_active = TRUE
-                   AND e.embedding IS NOT NULL
+                SELECT e.job_uuid, e.embedding, act.last_seen_at
+                  FROM (
+                      SELECT COALESCE(canonical_job_uuid, job_uuid) AS owner_uuid,
+                             max(last_seen_at) AS last_seen_at
+                        FROM jobs
+                       WHERE is_active = TRUE
+                       GROUP BY 1
+                  ) act
+                  JOIN job_embeddings e ON e.job_uuid = act.owner_uuid
+                 WHERE e.embedding IS NOT NULL
                 """,
             )
             rows = cur.fetchall()
@@ -988,9 +1031,12 @@ class PostgresStore(Storage):
         ef = min(max(limit, 100), 500)
         with self._transaction_cur() as cur:
             cur.execute(f"SET LOCAL hnsw.ef_search = {ef}")
+            # SGSAL-024: gate on "some active member owns or points at the vector",
+            # not on the owner's is_active; returns the vector owner's uuid and the
+            # latest last_seen_at among the active members.
             cur.execute(
-                """
-                SELECT j.job_uuid, ranked.distance, j.last_seen_at
+                f"""
+                SELECT ranked.job_uuid, ranked.distance, act.last_seen_at
                   FROM (
                       SELECT e.job_uuid, (e.embedding <=> %s::vector) AS distance
                         FROM job_embeddings e
@@ -998,8 +1044,7 @@ class PostgresStore(Storage):
                        ORDER BY distance ASC
                        LIMIT %s
                   ) ranked
-                  JOIN jobs j ON j.job_uuid = ranked.job_uuid
-                 WHERE j.is_active = TRUE
+                  {_ACTIVE_MEMBERS_LATERAL.format(e='ranked')}
                  ORDER BY ranked.distance ASC
                 """,
                 [emb_str, ef],
@@ -1258,7 +1303,8 @@ class PostgresStore(Storage):
                   LIMIT 1
                 )
                 FROM job_embeddings je
-                WHERE je.job_uuid = j.job_uuid
+                -- SGSAL-024: a repost is scored with its canonical's vector.
+                WHERE je.job_uuid = COALESCE(j.canonical_job_uuid, j.job_uuid)
                   AND j.job_uuid = ANY(%s)
                 """,
                 [job_uuids],
@@ -1290,7 +1336,8 @@ class PostgresStore(Storage):
                 WHERE j.is_active = TRUE
                   AND j.above_market_pct IS NULL
                   AND EXISTS (
-                    SELECT 1 FROM job_embeddings je WHERE je.job_uuid = j.job_uuid
+                    SELECT 1 FROM job_embeddings je
+                     WHERE je.job_uuid = COALESCE(j.canonical_job_uuid, j.job_uuid)
                   )
                 ORDER BY j.posted_date DESC NULLS LAST
                 LIMIT %(limit)s
@@ -1387,8 +1434,8 @@ class PostgresStore(Storage):
         cutoff = _utcnow() - timedelta(days=days)
         sql = (
             "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.employment_types_json"
-            " FROM jobs j JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
-            " WHERE j.is_active = TRUE AND e.embedded_at >= %s"
+            " FROM job_embeddings e JOIN jobs j ON j.job_uuid = e.job_uuid"
+            " WHERE e.embedded_at >= %s AND " + _ACTIVE_VECTOR_GATE.format(e="e")
         )
         if missing_llm_only:
             # llm_fields_json is written even when the cleaner fails (all-null payload),
@@ -1748,7 +1795,7 @@ class PostgresStore(Storage):
                 """
                 SELECT COUNT(*)
                   FROM jobs j
-                  JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                  JOIN job_embeddings e ON e.job_uuid = COALESCE(j.canonical_job_uuid, j.job_uuid)
                  WHERE j.is_active = TRUE
                    AND NOT EXISTS (
                          SELECT 1 FROM job_interactions i

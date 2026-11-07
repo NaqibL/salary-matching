@@ -280,3 +280,45 @@ def test_lowball_cards_carry_group_fields(client):
     assert len(cu) == len(set(cu))
     ju = [j["job_uuid"] for j in data["similar_jobs"]]
     assert len(ju) == len(set(ju))
+
+
+def test_active_vector_gate_includes_reposts_of_inactive_canonicals(client):
+    """SGSAL-024 C1: a vector is active when SOME active job points at it, so an
+    expired canonical that serves an active repost stays in the ranked active pool
+    (the path the matcher uses when the pool cache is off, and infer_candidate_tier)."""
+    import psycopg2
+
+    from mcf.api.deps import get_store
+
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    try:
+        conn.set_session(readonly=True)
+        with conn.cursor() as cur:
+            cur.execute("SET statement_timeout = '60s'")
+            cur.execute(
+                """
+                SELECT a.canonical_job_uuid
+                  FROM jobs a
+                  JOIN jobs c ON c.job_uuid = a.canonical_job_uuid
+                 WHERE a.is_active = TRUE
+                   AND a.canonical_job_uuid <> a.job_uuid
+                   AND c.is_active = FALSE
+                   AND EXISTS (SELECT 1 FROM job_embeddings e WHERE e.job_uuid = c.job_uuid)
+                 LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        pytest.skip("no active repost of an inactive embedded canonical")
+    canonical = row[0]
+
+    store = get_store()
+    embs = store.get_job_embeddings_for_uuids([canonical])
+    assert embs, "canonical has a vector"
+    ranked = store.get_active_job_ids_ranked(list(embs[0][1]), limit=50)
+    by_uuid = {u: seen for u, _, seen in ranked}
+    assert canonical in by_uuid
+    # last_seen_at comes from the active member, not the expired owner
+    assert by_uuid[canonical] is not None

@@ -275,7 +275,10 @@ class Storage(ABC):
     def get_active_jobs_pool(
         self,
     ) -> list[tuple[str, Any, datetime | None]]:
-        """Return (job_uuid, embedding, last_seen_at) for all active jobs with embeddings.
+        """Return (job_uuid, embedding, last_seen_at) for every vector that some active
+        job owns or points at (SGSAL-024: reposts share their canonical's vector, so
+        the owner itself may be inactive). job_uuid is the vector owner; last_seen_at
+        is the latest among the active members.
         Used by active_jobs_pool_cache for in-memory similarity computation."""
         raise NotImplementedError
 
@@ -285,7 +288,11 @@ class Storage(ABC):
         query_embedding: Sequence[float],
         limit: int = 5000,
     ) -> list[tuple[str, float, datetime | None]]:
-        """Return (job_uuid, cosine_distance, last_seen_at) sorted by distance ASC."""
+        """Return (job_uuid, cosine_distance, last_seen_at) sorted by distance ASC.
+
+        Active gate (SGSAL-024): a vector is included when some active job owns it
+        or points at it; job_uuid is the vector owner and last_seen_at the latest
+        among its active members."""
         ...
 
     def get_all_embedded_job_ids_ranked(
