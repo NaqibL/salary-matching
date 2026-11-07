@@ -500,7 +500,7 @@ class PostgresStore(Storage):
                     SELECT j.job_uuid, j.content_hash,
                            row_number() OVER (
                                PARTITION BY j.content_hash
-                               ORDER BY (j.canonical_job_uuid = j.job_uuid) DESC NULLS LAST,
+                               ORDER BY (j.canonical_job_uuid = j.job_uuid AND e.job_uuid IS NOT NULL) DESC NULLS LAST,
                                         (e.model_name = 'NaqibL/bge-base-sgmarket-v2') DESC NULLS LAST,
                                         (e.job_uuid IS NOT NULL) DESC,
                                         j.first_seen_at ASC, j.job_uuid ASC) AS rn
@@ -551,6 +551,8 @@ class PostgresStore(Storage):
                 SELECT e.job_uuid FROM job_embeddings e
                   JOIN jobs j ON j.job_uuid = e.job_uuid
                  WHERE j.canonical_job_uuid IS NOT NULL AND j.canonical_job_uuid <> j.job_uuid
+                   -- Require the canonical to hold a vector, so deleting never drops a group's only one.
+                   AND EXISTS (SELECT 1 FROM job_embeddings ce WHERE ce.job_uuid = j.canonical_job_uuid)
                 """
             )
             return [r[0] for r in cur.fetchall()]

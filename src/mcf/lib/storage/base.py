@@ -570,7 +570,7 @@ class Storage(ABC):
 
     @abstractmethod
     def assign_canonicals(self) -> int:
-        """Set canonical_job_uuid where NULL: per hash prefer an existing canonical, then a
+        """Set canonical_job_uuid where NULL: per hash prefer an existing canonical that has an embedding, then a
         v2-embedded row, then any embedded row, then the earliest seen. Text-less rows
         point at themselves. Returns rows updated."""
 
@@ -580,7 +580,7 @@ class Storage(ABC):
 
     @abstractmethod
     def noncanonical_embedded_uuids(self) -> list[str]:
-        """job_uuids that have an embedding but are not their group's canonical."""
+        """job_uuids that have an embedding but are not their group's canonical, and whose canonical already holds an embedding."""
 
     @abstractmethod
     def delete_embeddings_by_uuids(self, uuids: list[str]) -> int:
