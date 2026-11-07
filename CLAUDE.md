@@ -114,7 +114,7 @@ External APIs (MCF REST / CAG Algolia)
 5. **CAG Algolia key** in `cag_source.py` falls back to a hardcoded public key. If CAG crawl breaks, check if the key rotated.
 6. **First request after deploy:** 30–60 s — BGE model downloads at runtime, not at build time.
 7. **LLM cleaning:** `OpenRouterCleaner` (default model `google/gemma-4-26b-a4b-it`, set via `OPENROUTER_MODEL`; `GeminiFlashCleaner` is a kept alias) runs during embed when `OPENROUTER_API_KEY` is set, on a thread pool (`LLM_CLEAN_WORKERS`). Note `OPENROUTER_MODEL` is also read by the owner-only resume cleaner. Extracts `min_years_experience` and `llm_fields_json` (canonical skills, inferred seniority). These are **hints only** — never override scraper-provided `position_levels`, `salary_min/max`, or `employment_types`.
-8. **Role family + seniority tier:** `JevClassifier` (`src/mcf/lib/embeddings/jev_classifier.py`, TypeSafe Jev via the OpenRouter decisions API) assigns one of 24 role families and a tier (`T1_Entry..T4_Management`) per job during the crawl. Written to `jobs.role_family` / `role_conf` / `tier_conf`; `role_cluster` now holds `role_families.id` and `predicted_tier` the Jev tier so the matches filters keep working. Role < 0.5 confidence → `other` (id 0). Backfill: `scripts/backfill_role_families.py` (resumable). Legacy KMeans/LR models in `mcf.matching.classifiers` only run when no `OPENROUTER_API_KEY` is set; `predict_candidate_tier` still uses the LR model.
+8. **Role family + seniority tier:** `JevClassifier` (`src/mcf/lib/embeddings/jev_classifier.py`, TypeSafe Jev via the OpenRouter decisions API) assigns one of 24 role families and a tier (`T1_Entry..T4_Management`) per job during the crawl. Written to `jobs.role_family` / `role_conf` / `tier_conf`; `role_cluster` now holds `role_families.id` and `predicted_tier` the Jev tier so the matches filters keep working. Role < 0.5 confidence → `other` (id 0). Backfill: `scripts/backfill_role_families.py` (resumable; also runs in `daily-embed.yml` after the embed step, so every new job is classified). Without an `OPENROUTER_API_KEY` the crawl leaves jobs unclassified for that step. The legacy KMeans/LR models were removed (SGSAL-022 C7); the candidate's tier on the matches page is the majority Jev tier of the 30 nearest active jobs (`infer_candidate_tier` in `mcf.matching.service`). `job_run_status` is pruned to 90 days at the end of each crawl.
 
 ---
 
@@ -149,7 +149,7 @@ Remaining known gap: the active-jobs pool cache (`src/mcf/api/cache/job_pool.py`
 
 ### Pipeline — Jev role families (SGSAL-022, in progress)
 
-The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Left to do: C7 (delete the legacy KMeans/LR classifiers — `predict_candidate_tier` in the matches service still uses the LR model, so it needs a replacement first), E6 (embedding retention), E7 (near-duplicate postings).
+The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Legacy KMeans/LR classifiers removed (C7). Left: E6 (expired-embedding retention, needs Luqman's decision) and SGSAL-023 (near-duplicate postings).
 
 ### Client-facing (salary checker + dashboard)
 

@@ -156,10 +156,18 @@ the 2026-11-01 spikes are at the bottom.
 - [x] C6. Done 2026-11-01 backend-side: `/api/jobs/taxonomy` serves
       `role_families` (ids = `jobs.role_cluster`), so `RoleClusterSelect` needs
       no change. `ROLE_TAXONOMY_SOURCE=kmeans` reverts.
-- [ ] C7. Delete `src/mcf/matching/classifiers.py`, `src/mcf/models/*.pkl`,
-      `role_taxonomy_v2.json`, `scripts/train_classifiers.py`; `uv remove scikit-learn`.
-      Rebuild Railway image, check startup.
-      Scoped 2026-11-07 — live callers that must be replaced first:
+- [x] C7. DONE 2026-11-07: deleted `classifiers.py`, `models/*.pkl` +
+      `role_taxonomy_v2.json`, `scripts/train_classifiers.py`,
+      `scripts/cluster_analysis.py`; `uv remove scikit-learn` (it stays only as a
+      transitive dep of sentence-transformers); `requirements.txt` regenerated.
+      Candidate tier on the matches page is now the majority Jev tier of the 30
+      nearest active jobs (`infer_candidate_tier`, ties → more junior;
+      `tests/test_candidate_tier.py`). Taxonomy route serves `role_families` only
+      (`ROLE_TAXONOMY_SOURCE` removed); crawl without a key leaves jobs for the
+      daily step. Storage ABC lost `batch_upsert_job_classifications` and
+      `batch_upsert_multi_label_clusters` (columns kept). Railway rebuilt from
+      the push and health-checked (see session notes).
+      Scoping notes from earlier that day — callers that were replaced:
       `matching/service.py` (`predict_candidate_tier` for the candidate's tier,
       `_legacy_role_name`), `api/routes/jobs.py` taxonomy KMeans fallback,
       `pipeline/incremental_crawl.py` legacy branch. `scripts/cluster_analysis.py`
@@ -193,21 +201,32 @@ need Luqman (Claude is blocked from Railway/secret writes).
       skills-trend query (session TZ is UTC, so semantics unchanged). Planner uses
       the index for short windows; at 8 weeks (23% of rows) it still seq-scans by
       cost, which is correct.
-- [ ] E5. Disk hygiene (no feature impact): duplicate index
+- [x] E5. Disk hygiene (no feature impact), both parts done 2026-11-07: duplicate index
       `idx_job_embeddings_job_uuid` DROPPED 2026-11-07 (`DROP INDEX CONCURRENTLY`,
       verified identical to the PK definition first). Still open: `job_run_status`
       retention. Original: drop at a quiet
       moment — NOT while a VACUUM or backfill holds `job_embeddings`, it queues
       behind them and blocks the live checker (happened today, terminated);
-      add a crawl step that keeps only 90 days of `job_run_status`
+      DONE 2026-11-07: `Storage.prune_job_run_status(keep_days=90)` (batched
+      per run) runs at the end of every crawl; one-off prune deleted 965,607 of
+      1,580,033 rows in 18 s (614k remain). Original: add a crawl step that keeps only 90 days of `job_run_status`
       (920k of 1.5M rows are older; only the current run's rows are ever read).
-- [ ] E6. Decide a retention rule for expired jobs' embeddings (538k of 606k
+- [ ] E6. NEEDS LUQMAN'S DECISION (numbers refreshed 2026-11-07): `job_embeddings`
+      is 4.5 GB incl. the HNSW index; 556,576 of 625,762 vectors belong to
+      expired jobs, 265,160 of those expired > 90 days ago, 9,247 > 180 days.
+      Deleting the > 90-day expired vectors (~40%) would free roughly 1.8 GB and
+      cap growth, at the cost of the checker's historical matches reaching back
+      ~3 months. Irreversible without re-embedding (~$ and hours), so Claude did
+      not do it. If approved: `DELETE FROM job_embeddings e USING jobs j WHERE
+      j.job_uuid = e.job_uuid AND NOT j.is_active AND j.last_seen_at < now() -
+      interval '90 days'` in batches, then `VACUUM`, then add it to the crawl
+      next to the job_run_status prune. Original: Decide a retention rule for expired jobs' embeddings (538k of 606k
       vectors belong to expired postings; 246k are 90-180 days old). Deleting
       embeddings (not job rows) older than 90 days would free ~1 GB and cap
       growth; the checker's "historical" matches would reach back 3 months.
       Luqman has not decided; not needed now that the spend cap is off.
-- [ ] E7. Dedup near-identical postings (recruiter reposts, same company).
-      Product change (affects dashboard counts + benchmarks) → own ticket.
+- [x] E7. Scoped into SGSAL-023 (2026-11-07): 2,555 duplicate (company, title)
+      groups, 3,751 excess active rows (≈ 5%); options + recommendation there.
 - [x] E8. Jobs pool never warmed in production (pgvector 0.4 `Vector` TypeError
       on every startup). Fixed + pool TTL 15 min → 24 h (each load is ~650 MB of
       Supabase egress; commit 2b048db).
@@ -222,11 +241,14 @@ need Luqman (Claude is blocked from Railway/secret writes).
       pinning `torch==2.10.0` in `Dockerfile.api` so the pip pre-install matches
       uv.lock. Any future Railway rebuild would have hit this; now deterministic.
 
-- [ ] D1. Stray personal files parked (not deleted) in Claude's scratchpad
-      `removed-files` folder on the desktop PC: take-home PDF, article.txt,
-      section1 notes, errors.txt, jobdescription.txt, railway-config-pull. Delete
-      or move them elsewhere.
-- [ ] D2. Untracked `.claude/` marketing drafts: commit or delete.
+- [x] D1. Moved 2026-11-07 (not deleted) to
+      `Desktop/projects/_parked/salary-matching-removed-files/`
+      (take-home PDF, article.txt, section1 notes, errors.txt, jobdescription.txt,
+      railway-config-pull, scripts/, plus the stale repo-root `prompt.txt` as
+      `session-handoff-prompt.txt`). Temp scratchpad copy removed.
+- [x] D2. Committed 2026-11-07 after a secret scan (none found): the five
+      `.claude/commands/*.md` slash commands, `.claude/plans/`, and the
+      marketing / scaling / fine-tuning / pre-release / donation / kofi docs.
 - [x] D3. CLAUDE.md roadmap rewritten 2026-11-07 (latency section marked done,
       Jev pipeline status, dashboard + filters marked shipped).
 

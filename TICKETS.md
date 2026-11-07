@@ -26,3 +26,4 @@ Project prefix: `SGSAL`
 | [SGSAL-020](tickets/SGSAL-020.md) | Donation page — help keep the site alive | in-progress | low |
 | [SGSAL-021](tickets/SGSAL-021.md) | Hot Jobs scoring never runs post-crawl — new jobs invisible to /hot-jobs | done | high |
 | [SGSAL-022](tickets/SGSAL-022.md) | Replace ML classifiers with Jev, switch cleaner model, repair LLM-field gap | in-progress | high |
+| [SGSAL-023](tickets/SGSAL-023.md) | Dedup near-identical active postings (recruiter reposts) in dashboard counts and benchmarks | todo | medium |

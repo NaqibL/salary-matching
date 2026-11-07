@@ -8,7 +8,7 @@ You are a specialist in the salary-matching project's ranking and scoring pipeli
 ## Key files
 
 - `src/mcf/matching/service.py` — `MatchingService`: cosine ranking, Rocchio expansion, recency decay, tier boost, session-based pool lookup
-- `src/mcf/matching/classifiers.py` — `predict_candidate_tier()`, `role_name()`: tier classification (SME/MNC/GOV) and role cluster labeling
+- `src/mcf/lib/embeddings/jev_classifier.py` — Jev role family + seniority tier per job (written by the crawl / daily embed step); `ROLE_FAMILY_DISPLAY` gives the display names used in match results
 - `src/mcf/api/cache/job_pool.py` — active job embeddings pool cache (15-min TTL, loads all jobs into memory for fast cosine)
 - `src/mcf/api/cache/matches.py` — per-user ranked-results session cache (10-min TTL)
 - `src/mcf/api/cache/response.py` — HTTP response-level cache decorator (per-user, per-endpoint)
@@ -69,14 +69,14 @@ The admin `POST /api/admin/clear-cache` does this in the correct order.
 
 ## Tier classification
 
-`predict_candidate_tier()` in `classifiers.py` predicts SME/MNC/GOV based on:
-- Company name signals (known MNC/GOV names, keyword patterns)
-- Job title seniority signals
-
-This is used to:
-1. Compute candidate's expected tier from their resume
-2. Tag jobs with their company tier
-3. Apply tier boost during ranking
+Jobs carry a Jev seniority tier (`jobs.predicted_tier`: `T1_Entry..T4_Management`,
+see CLAUDE.md design fact 8). The candidate's tier is not predicted from the resume
+directly: `infer_candidate_tier()` in `service.py` takes the majority tier of the
+30 active jobs nearest to the resume embedding (one HNSW query via
+`get_active_job_ids_ranked`), ties going to the more junior tier. That tier
+drives the `_TIER_BOOST` applied during ranking and is returned to the UI as
+`candidate_tier`. The legacy KMeans/LR models (`classifiers.py`, `*.pkl`) were
+removed in SGSAL-022 C7.
 
 ## Adding a new scoring signal
 
