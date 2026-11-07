@@ -70,6 +70,30 @@ def _utcnow() -> datetime:
 HOT_JOBS_PCT_CAP = 150.0
 
 
+# IS TRUE: NULL pointer AND vector would otherwise be NULL and sort last
+_CANON_RANK_EXISTING = "((j.canonical_job_uuid = j.job_uuid AND e.job_uuid IS NOT NULL) IS TRUE) DESC"
+
+_ASSIGN_CANONICALS_SQL = f"""
+WITH ranked AS (
+    SELECT j.job_uuid, j.content_hash,
+           row_number() OVER (
+               PARTITION BY j.content_hash
+               ORDER BY {_CANON_RANK_EXISTING},
+                        (e.model_name = 'NaqibL/bge-base-sgmarket-v2') DESC NULLS LAST,
+                        (e.job_uuid IS NOT NULL) DESC,
+                        j.first_seen_at ASC, j.job_uuid ASC) AS rn
+      FROM jobs j
+      LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+     WHERE j.content_hash IS NOT NULL
+), canon AS (
+    SELECT content_hash, job_uuid AS canonical FROM ranked WHERE rn = 1
+)
+UPDATE jobs j SET canonical_job_uuid = canon.canonical
+  FROM canon
+ WHERE j.content_hash = canon.content_hash AND j.canonical_job_uuid IS NULL
+"""
+
+
 class PostgresStore(Storage):
     """PostgreSQL-backed persistence layer (Supabase)."""
 
@@ -494,27 +518,7 @@ class PostgresStore(Storage):
     def assign_canonicals(self) -> int:
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
-            cur.execute(
-                """
-                WITH ranked AS (
-                    SELECT j.job_uuid, j.content_hash,
-                           row_number() OVER (
-                               PARTITION BY j.content_hash
-                               ORDER BY (j.canonical_job_uuid = j.job_uuid AND e.job_uuid IS NOT NULL) DESC NULLS LAST,
-                                        (e.model_name = 'NaqibL/bge-base-sgmarket-v2') DESC NULLS LAST,
-                                        (e.job_uuid IS NOT NULL) DESC,
-                                        j.first_seen_at ASC, j.job_uuid ASC) AS rn
-                      FROM jobs j
-                      LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid
-                     WHERE j.content_hash IS NOT NULL
-                ), canon AS (
-                    SELECT content_hash, job_uuid AS canonical FROM ranked WHERE rn = 1
-                )
-                UPDATE jobs j SET canonical_job_uuid = canon.canonical
-                  FROM canon
-                 WHERE j.content_hash = canon.content_hash AND j.canonical_job_uuid IS NULL
-                """
-            )
+            cur.execute(_ASSIGN_CANONICALS_SQL)
             n = cur.rowcount or 0
             cur.execute(
                 "UPDATE jobs SET canonical_job_uuid = job_uuid WHERE content_hash IS NULL AND canonical_job_uuid IS NULL"
