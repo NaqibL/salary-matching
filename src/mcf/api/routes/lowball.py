@@ -84,6 +84,37 @@ class SalarySearchResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _int_or(value, default: int) -> int:
+    """int(value), or ``default`` only when value is None — a legitimate 0 passes through."""
+    return int(value) if value is not None else default
+
+
+def _dedup_by_job_uuid(rows: list[dict]) -> list[dict]:
+    """Drop rows whose job_uuid was already seen (keep first occurrence).
+
+    Several vector hits from one posting group resolve to the same representative
+    row (before the backfill --apply, or with a hash's second self-canonical), so
+    the benchmark pool must count each posting's salary once.
+    """
+    seen: set[str] = set()
+    out = []
+    for r in rows:
+        if r["job_uuid"] in seen:
+            continue
+        seen.add(r["job_uuid"])
+        out.append(r)
+    return out
+
+
+def _by_score(rows: list[dict], uuid_to_score: dict[str, float]) -> list[dict]:
+    """Sort representative rows by their vector hit's score, best first."""
+    return sorted(
+        rows,
+        key=lambda j: uuid_to_score.get(j.get("canonical_job_uuid") or j["job_uuid"], 0.0),
+        reverse=True,
+    )
+
+
 def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k: int) -> list[dict]:
     result = []
     for j in jobs:
@@ -106,12 +137,12 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
             "min_years_experience": j.get("min_years_experience"),
             "inferred_seniority": llm.get("inferred_seniority"),
             "canonical_skills": llm.get("canonical_skills"),
-            "repost_count": int(j.get("repost_count") or 1),
-            "active_count": int(j.get("active_count") or (1 if j.get("is_active", True) else 0)),
+            "repost_count": _int_or(j.get("repost_count"), 1),
+            "active_count": _int_or(j.get("active_count"), 1 if j.get("is_active", True) else 0),
             "first_posted": _iso(j.get("first_posted")),
             "last_posted": _iso(j.get("last_posted")),
-            "reposts_365d": int(j.get("reposts_365d") or 1),
-            "distinct_companies": int(j.get("distinct_companies") or 1),
+            "reposts_365d": _int_or(j.get("reposts_365d"), 1),
+            "distinct_companies": _int_or(j.get("distinct_companies"), 1),
             "min_salary_seen": j.get("min_salary_seen"),
             "max_salary_seen": j.get("max_salary_seen"),
         })
@@ -232,20 +263,24 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
             c_uuids = [uuid for uuid, _, _ in company_ranked]
             c_scores = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in company_ranked}
             c_jobs = store.get_jobs_with_salary_by_uuids(c_uuids, representative=True, company_name=body.company_name)
+            c_jobs = _dedup_by_job_uuid(_by_score(c_jobs, c_scores))
             company_similar_jobs = _build_similar_jobs(c_jobs, c_scores, body.top_k)
 
     top_slice = ranked[: body.top_k * 5]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
 
     jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()), representative=True)
-    jobs = [j for j in jobs if _has_valid_salary(j)]
+    # One row per posting (I3): best-scoring hit wins, before coverage/percentiles.
+    jobs = _dedup_by_job_uuid(_by_score([j for j in jobs if _has_valid_salary(j)], uuid_to_score))
     # Salary benchmark pool uses compliant ranges only (EP rule: salary_max <= 2 * salary_min).
     salary_jobs = store.get_jobs_with_salary_by_uuids(
         list(uuid_to_score.keys()), compliant_ranges_only=True, representative=True
     )
-    salary_jobs = [j for j in salary_jobs if j.get("salary_min") is not None and _has_valid_salary(j)]
+    salary_jobs = _dedup_by_job_uuid(
+        [j for j in salary_jobs if j.get("salary_min") is not None and _has_valid_salary(j)]
+    )
     similar = _build_similar_jobs(jobs, uuid_to_score, body.top_k)
-    total_listings = sum(int(j.get("repost_count") or 1) for j in similar)
+    total_listings = sum(_int_or(j.get("repost_count"), 1) for j in similar)
 
     # Compute market percentiles regardless of whether salary was provided
     if len(salary_jobs) < 5:
@@ -346,11 +381,14 @@ def _compute_salary_search(
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in page_slice}
 
     jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()), representative=True)
+    jobs = _dedup_by_job_uuid(_by_score(jobs, uuid_to_score))
 
     # Percentile pool: top-500 from ALL embedded, regardless of active/salary range.
     # Compliant ranges only (EP rule: salary_max <= 2 * salary_min) to avoid skewed benchmarks.
     top_500_uuids = [uuid for uuid, _, _ in ranked_all[:500]]
-    salary_pool = store.get_jobs_with_salary_by_uuids(top_500_uuids, compliant_ranges_only=True, representative=True)
+    salary_pool = _dedup_by_job_uuid(
+        store.get_jobs_with_salary_by_uuids(top_500_uuids, compliant_ranges_only=True, representative=True)
+    )
     salary_values = sorted(
         s for j in salary_pool
         if _has_valid_salary(j) and (s := _effective_salary(j)) is not None
