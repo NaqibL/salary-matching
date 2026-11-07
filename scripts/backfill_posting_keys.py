@@ -8,6 +8,9 @@ assignment only touches NULL pointers; deletion recomputes its list each run.
 Usage (repo root, DATABASE_URL in .env):
   uv run python scripts/backfill_posting_keys.py --dry-run      # hashes + canonicals + stats, NO deletes
   uv run python scripts/backfill_posting_keys.py --apply        # also copies fields and deletes dup vectors
+  uv run python scripts/backfill_posting_keys.py --apply --expect-max 260000
+                                                                # abort (exit 2) before any copy/delete if more
+                                                                # than N non-canonical vectors would be deleted
   uv run python scripts/backfill_posting_keys.py --hash-only    # just step 1 (safe to run anytime)
 """
 from __future__ import annotations
@@ -45,6 +48,14 @@ def step_hash(store: PostgresStore, batch: int) -> int:
     return done
 
 
+def check_expect_max(n_dups: int, expect_max: int | None) -> None:
+    """Brake for --apply: exit 2 when more vectors would be deleted than expected."""
+    if expect_max is not None and n_dups > expect_max:
+        print(f"ABORT: {n_dups:,} non-canonical vectors to delete exceeds --expect-max {expect_max:,}; "
+              "nothing copied or deleted.")
+        sys.exit(2)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--batch", type=int, default=5000)
@@ -52,6 +63,8 @@ def main() -> None:
     g.add_argument("--dry-run", action="store_true", help="hash + assign canonicals + print stats; no field copy, no deletes")
     g.add_argument("--apply", action="store_true", help="everything incl. deleting non-canonical vectors")
     g.add_argument("--hash-only", action="store_true")
+    ap.add_argument("--expect-max", type=int, default=None,
+                    help="with --apply: abort before copying/deleting if more than N vectors would be deleted")
     a = ap.parse_args()
 
     store = PostgresStore(os.environ["DATABASE_URL"])
@@ -75,6 +88,8 @@ def main() -> None:
         print("stats:", store.posting_group_stats())
         print("DRY RUN: no fields copied, no vectors deleted. Re-run with --apply.")
         return
+
+    check_expect_max(len(dups), a.expect_max)
 
     t = time.perf_counter()
     n = store.copy_fields_from_canonicals()
