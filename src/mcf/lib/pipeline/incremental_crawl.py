@@ -46,6 +46,7 @@ from mcf.lib.embeddings.embedder import Embedder, EmbedderConfig
 from mcf.lib.embeddings.embeddings_cache import EmbeddingsCache
 from mcf.lib.embeddings.job_description_extractor import LLMCleanResult
 from mcf.lib.embeddings.job_text import build_job_text_from_normalized, build_texts_parallel
+from mcf.lib.pipeline.reposts import link_reposts_for_batch
 from mcf.lib.sources.base import NormalizedJob
 from mcf.lib.sources.mcf_source import MCFJobSource
 from mcf.lib.storage.base import RunStats, Storage
@@ -61,6 +62,7 @@ class IncrementalCrawlResult:
     added: list[str]
     maintained: list[str]
     removed: list[str]
+    reposts_linked: int = 0
 
 
 def _classify_with_jev(store: Storage, jev, jobs_to_embed, embedded) -> None:
@@ -143,6 +145,7 @@ def run_incremental_crawl(
         if removed:
             store.deactivate_jobs(run_id=run.run_id, job_uuids=removed)
 
+        repost_uuids: set[str] = set()
         if added:
             if embed:
                 _embeddings_cache = (
@@ -188,6 +191,11 @@ def run_incremental_crawl(
                     expiry_date=normalized.expiry_date,
                     description=normalized.description,
                 )
+
+            # Phase 1a: reposts (same title + description as a posting we already
+            # hold) link to the existing canonical and skip the expensive steps.
+            repost_uuids = link_reposts_for_batch(store, fetched)
+            fetched = [n for n in fetched if n.job_uuid not in repost_uuids]
 
             # Phase 1b: Build embedding text. The optional LLM cleaning call is
             # network-bound, so it runs on a thread pool (LLM_CLEAN_WORKERS).
@@ -289,6 +297,12 @@ def run_incremental_crawl(
         except Exception as e:  # noqa: BLE001
             print(f"Warning: job_run_status prune failed, skipping: {e}")
 
+        # posting_groups feeds the repost badges / dashboard (SGSAL-024). Non-fatal.
+        try:
+            store.refresh_posting_groups()
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: posting_groups refresh failed, skipping: {e}")
+
         # Refresh dashboard materialized views (Postgres only; non-fatal)
         if hasattr(store, "refresh_dashboard_materialized_views"):
             try:
@@ -329,6 +343,7 @@ def run_incremental_crawl(
             added=added,
             maintained=maintained,
             removed=removed,
+            reposts_linked=len(repost_uuids),
         )
     finally:
         pass  # Store cleanup handled by caller
