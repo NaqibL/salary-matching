@@ -13,6 +13,9 @@ import {
 import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
 import SimilarRoleFilterBar from './SimilarRoleFilterBar'
+import { RepostBadge } from './RepostBadge'
+import { PostingHistoryPanel } from './PostingHistoryPanel'
+import { monthYear } from '@/lib/repost'
 import { Card, CardBody } from '@/components/design'
 import { Input } from '@/components/ui/input'
 import CompanyCombobox from '@/components/ui/CompanyCombobox'
@@ -119,6 +122,7 @@ function SalaryBar({
 
 function SimilarJobCard({ job }: { job: SimilarJob }) {
   const [descExpanded, setDescExpanded] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const fmt = (v: number) => `$${v.toLocaleString()}`
   const score = job.similarity_score
   const scorePct = (score * 100).toFixed(0)
@@ -202,7 +206,9 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
                   Position closed
                 </span>
               )}
+              <RepostBadge job={job} expanded={historyOpen} onToggle={() => setHistoryOpen(v => !v)} />
             </div>
+            {historyOpen && <PostingHistoryPanel jobUuid={job.canonical_job_uuid ?? job.job_uuid} />}
 
             {job.canonical_skills && job.canonical_skills.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2.5">
@@ -260,7 +266,7 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
       ) : !isActive ? (
         <div className="border-t border-slate-100 dark:border-slate-700 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50">
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            Historical listing · salary data still valid for benchmarking
+            Historical listing{job.last_posted ? ` · last posted ${monthYear(job.last_posted)}` : ''} · salary data still valid for benchmarking
           </p>
         </div>
       ) : null}
@@ -744,6 +750,10 @@ export function LowballContent() {
                 : result.similar_jobs
               const activeCount = displayJobs.filter(j => j.is_active !== false).length
               const totalCount = displayJobs.length
+              const listingsTotal = displayJobs.reduce((s, j) => s + (j.repost_count ?? 1), 0)
+              const summaryText =
+                `${totalCount} postings · ${activeCount} still open` +
+                (listingsTotal > totalCount ? ` · ${listingsTotal} listings including reposts` : '')
               // Filters apply to the cards only — the benchmark above always uses the full set
               const filteredJobs = applySimilarRoleFilters(displayJobs, filters)
               const filtersActive = hasActiveFilters(filters)
@@ -782,13 +792,13 @@ export function LowballContent() {
                       </div>
                     ) : (
                       <span className="text-sm text-slate-400 dark:text-slate-500">
-                        {activeCount} active · {totalCount - activeCount} historical
+                        {summaryText}
                       </span>
                     )}
                   </div>
                   {hasCompanyTab && (
                     <p className="mb-3 text-sm text-slate-400 dark:text-slate-500">
-                      {activeCount} active · {totalCount - activeCount} historical
+                      {summaryText}
                     </p>
                   )}
                   {displayJobs.length > 0 && (
