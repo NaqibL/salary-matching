@@ -22,18 +22,7 @@ from mcf.lib.storage.base import RunStats, Storage
 
 # SGSAL-024: must stay identical to the view statement in
 # scripts/migrations/022_posting_groups.sql.
-_POSTING_GROUPS_VIEW_SQL = """CREATE MATERIALIZED VIEW (populates: ~30 s) and its indexes
--- ensure_schema() carries IF NOT EXISTS / non-concurrent copies for fresh DBs only.
-
-ALTER TABLE jobs ADD COLUMN IF NOT EXISTS content_hash TEXT;
-ALTER TABLE jobs ADD COLUMN IF NOT EXISTS canonical_job_uuid TEXT;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_content_hash
-  ON jobs (content_hash) WHERE content_hash IS NOT NULL;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_canonical
-  ON jobs (canonical_job_uuid) WHERE canonical_job_uuid IS NOT NULL;
-
-CREATE MATERIALIZED VIEW IF NOT EXISTS posting_groups AS
+_POSTING_GROUPS_VIEW_SQL = """CREATE MATERIALIZED VIEW IF NOT EXISTS posting_groups AS
 WITH occ AS (
     SELECT job_uuid, content_hash, canonical_job_uuid, is_active, first_seen_at,
            COALESCE(posted_date, (first_seen_at AT TIME ZONE 'UTC')::date) AS occurrence_date,
