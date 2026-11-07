@@ -149,7 +149,7 @@ Remaining known gap: the active-jobs pool cache (`src/mcf/api/cache/job_pool.py`
 
 ### Pipeline — Jev role families (SGSAL-022, in progress)
 
-The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Legacy KMeans/LR classifiers removed (C7). Left: E6 (expired-embedding retention, needs Luqman's decision) and SGSAL-023 (near-duplicate postings).
+The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Legacy KMeans/LR classifiers removed (C7). Left for Luqman: E1/E2 (prod auth var, stale secret). Decided 2026-11-07: **never prune job rows or expired postings**; vectors are deduplicated/compressed instead — SGSAL-024 (content-addressed embeddings: 45% of vectors are exact reposts; repost history on cards) then SGSAL-025 (halfvec, role-family routed partitions, cold-tier quantisation). SGSAL-023 covers near-duplicate postings with changed titles.
 
 ### Client-facing (salary checker + dashboard)
 

@@ -1,0 +1,191 @@
+---
+id: SGSAL-024
+project: salary-matching
+title: Content-addressed embeddings (one vector per posting text) + repost history per job
+status: todo
+priority: high
+type: feature
+labels: [storage, embeddings, data-quality, salary-checker, product, cost]
+created: 2026-11-07
+updated: 2026-11-07
+depends_on: []
+blocks: [SGSAL-025]
+---
+
+## Decision this ticket records
+
+Luqman, 2026-11-07: **keep every job row and every expired posting forever.**
+The historical view (expired jobs in the salary checker, dashboard trends) is a
+core part of the product. Never prune `jobs`. Embeddings are a *derived*
+artifact: they may be deduplicated, re-encoded or re-generated from
+`jobs.description`, but the policy is "compress, don't forget". This supersedes
+SGSAL-022 E6 (the 90-day deletion proposal is rejected).
+
+## Problem
+
+Measured 2026-11-07 (full history, 716k jobs since 2026-01-15):
+
+| metric | value |
+|---|---|
+| jobs with an embedding | 616,208 |
+| distinct `(company, description)` texts among them | 339,129 |
+| vectors that are exact reposts of an already-embedded text | **277,079 (45%)** |
+| `(company, normalised title)` repeats across all jobs | 343,562 (48%) |
+| `job_embeddings` size (TOAST 2.5 GB + HNSW 1.9 GB) | 4.5 GB of a 7.1 GB DB |
+| HNSW index vs Small-instance `shared_buffers` | 1.9 GB vs 512 MB — the index no longer fits in memory |
+| new jobs per week | ≈ 21,000 |
+
+MCF employers and agencies repost the same ad; the pipeline re-cleans it with
+the LLM, re-embeds it, re-classifies it with Jev and stores another 3 KB vector
+plus ~3 KB of HNSW graph every time. Nearly half of the index, the cleaner
+spend, the embed time and the Jev calls go on text already processed.
+
+Sampling (300 random duplicate-text groups, 26k random vectors) showed:
+
+- Identical vector ⇒ identical posting in 939/952 groups; the 13 exceptions were
+  the same ad with a trivial whitespace/character difference. Identical vectors
+  are a safe "same posting" signal.
+- Identical raw text ⇏ identical vector: the embedded text includes the title,
+  LLM canonical skills, seniority and the *LLM-cleaned* description, and the
+  cleaner is non-deterministic. Same-model reposts land at median cosine 0.9865
+  from each other, so today the checker's top-500 is padded with near-copies
+  ranked slightly apart. Deduplicating at ingest therefore *improves*
+  consistency as well as saving space.
+- ~1 in 4 duplicate-description groups has a different title between reposts.
+  Those are legitimately different embeddings (title is in the text) and are
+  left to SGSAL-023 (similarity-based near-dup handling).
+
+## Design
+
+### 1. Content hash on every job
+
+`jobs.content_hash TEXT` = `sha256(lower(trim(company_name)) || '|' ||
+lower(trim(title)) || '|' || regexp_replace(trim(description), '\s+', ' ', 'g'))`.
+`NULL` when `description` is empty (never dedup text-less rows; see the CAG
+NULL-title incident in SGSAL-022). Partial index
+`idx_jobs_content_hash ON jobs (content_hash) WHERE content_hash IS NOT NULL`.
+
+### 2. One canonical job per hash owns the vector and the LLM fields
+
+`jobs.canonical_job_uuid TEXT` — the job whose `job_embeddings` row / LLM
+fields / Jev labels are shared by the group. Equal to its own `job_uuid` for
+the canonical row. `job_embeddings` keeps its `job_uuid` PK (no change to the
+five ANN queries' shape); it simply only contains canonical rows.
+
+Backfill (resumable script, batches of 5k, `statement_timeout = 0`):
+
+1. compute `content_hash` for all jobs;
+2. per hash, canonical = earliest `first_seen_at` **that already has an
+   embedding**, else earliest job;
+3. for non-canonical jobs with `min_years_experience IS NULL` /
+   `role_family IS NULL`, copy the canonical's LLM fields and Jev labels (fills
+   part of the 1,012 empty-LLM gap and some of the 641k unlabelled expired
+   jobs for free);
+4. `DELETE FROM job_embeddings` for non-canonical jobs (≈ 230–280k rows);
+5. the HNSW index does **not** shrink on delete — do not `REINDEX` here;
+   SGSAL-025 step 1 builds the replacement halfvec index after this backfill
+   and drops the old one, which reclaims the space in one pass. `VACUUM
+   (ANALYZE) job_embeddings` afterwards reclaims TOAST.
+
+### 3. Crawl: skip the expensive work for a repost
+
+In `incremental_crawl.py` Phase 1 (after `upsert_new_job_detail`): compute the
+hash; `store.find_canonical_for_hash(hash)` → if a canonical job with an
+embedding exists, set `canonical_job_uuid`, copy `min_years_experience`,
+`llm_fields_json`, `role_family/role_conf/tier_conf/predicted_tier/role_cluster`
+from it, and **drop the job from `jobs_to_embed`** (no cleaner call, no embed,
+no Jev call). Otherwise proceed as today and the new job becomes canonical.
+`re-embed --only-unembedded` and `backfill_role_families.py` must select only
+canonical jobs (`canonical_job_uuid = job_uuid OR canonical_job_uuid IS NULL`).
+
+Expected: ≈ 35–40% fewer cleaner calls, embeds and Jev calls per crawl
+(45% minus the changed-title reposts), and vector growth drops from ~21k to
+~12–13k rows/week.
+
+### 4. Repost history (product feature)
+
+Postings are a *group* now, so keep the information the dedup would otherwise
+hide — Luqman's request: "a reposted counter for a job description, and when it
+was reposted … to indicate high turnover or a possible scam listing".
+
+Materialised view `posting_groups` (refreshed at the end of each crawl, or by
+`pg_cron` nightly — the extension is available on this Supabase instance):
+
+| column | definition |
+|---|---|
+| `content_hash`, `canonical_job_uuid` | group key |
+| `repost_count` | `count(*)` jobs in the group |
+| `active_count` | `count(*) FILTER (WHERE is_active)` |
+| `first_posted`, `last_posted` | `min/max(COALESCE(posted_date, first_seen_at::date))` |
+| `reposts_90d`, `reposts_365d` | count of postings whose date is within the window |
+| `distinct_companies` | `count(DISTINCT company_canonical/company_name)` — the same text under several company names is the agency pattern (70/869 sampled identical-vector groups) |
+| `salary_history` | `jsonb_agg(json_build_object('date', …, 'min', salary_min, 'max', salary_max) ORDER BY date)` — reposts sometimes change the range; this is real information |
+| `posting_dates` | `array_agg(date ORDER BY date)` for a sparkline |
+
+API: `GET /api/jobs/{uuid}/reposts` (public, cached) plus `repost_count`,
+`first_posted`, `last_posted`, `reposts_365d`, `distinct_companies` inlined on
+similar-roles cards (`_build_similar_jobs`) and Hot Jobs cards.
+
+UI (salary checker cards, `LowballContent.tsx`):
+
+- badge **"Reposted N× since Mon YYYY"** when `repost_count ≥ 2`; tooltip with
+  the posting-date sparkline and salary history.
+- amber marker **"Frequently reposted"** when `reposts_365d ≥ 6` or
+  `distinct_companies ≥ 3`. Copy must be neutral and factual ("posted 9 times
+  in the last 12 months under 3 company names") — *not* the word "scam"; high
+  repost rates also mean genuine high-volume or high-turnover hiring, and the
+  site should not make a defamatory claim about a named company.
+- dashboard: "Most reposted roles (12 months)" table, methodology note that
+  counts are per posting group.
+
+Thresholds are a first guess; tune after looking at the distribution of
+`reposts_365d` once the view exists (history only starts 2026-01-15, so
+"over the years" accrues from now).
+
+### 5. Salary checker semantics (ties into SGSAL-023)
+
+- ANN queries now return one hit per posting group (canonical uuid). Display
+  the group's **most recent active** posting (else most recent), with the
+  repost badge; `get_jobs_with_salary_by_uuids` gains a
+  `representative=True` mode that resolves canonical → representative.
+- Benchmark pool: one salary per group, taken from the most recent posting.
+  Rationale: 20 identical reposts carry one data point, not twenty (SGSAL-023's
+  over-weighting problem). The historical ranges stay visible in
+  `salary_history`. State this in the dashboard methodology copy.
+
+## Rollout
+
+1. Migration `022_content_hash.sql` (columns + partial index, `IF NOT EXISTS`,
+   also in `ensure_schema()`), Storage ABC methods: `find_canonical_for_hash`,
+   `set_canonical`, `get_posting_group(s)`, `refresh_posting_groups`.
+2. `scripts/backfill_content_hash.py` (resumable; prints group stats; `--dry-run`
+   first, then `--apply` which also deletes non-canonical embeddings).
+3. Crawl change + re-embed/Jev selection change; smoke test: a crawl over a
+   known repost produces no new `job_embeddings` row and copies the fields.
+4. `posting_groups` view + refresh hook at crawl end; API + cards + dashboard.
+5. Then SGSAL-025 step 1 (halfvec index rebuild) to reclaim the index space.
+
+## Acceptance
+
+- `SELECT count(*) FROM job_embeddings e JOIN jobs j USING (job_uuid) WHERE
+  j.canonical_job_uuid <> j.job_uuid` = 0.
+- Every job with a non-NULL `content_hash` has `canonical_job_uuid` set and
+  the canonical has an embedding (`tests/test_smoke.py`).
+- Daily crawl log shows "N reposts linked, skipped cleaner/embed/Jev".
+- Checker cards show the repost badge; `/api/jobs/{uuid}/reposts` returns the
+  date and salary history; no company is labelled "scam" anywhere in copy.
+- `job_embeddings` row count ≈ 340–400k; DB size reported in the ticket after
+  the halfvec rebuild in SGSAL-025.
+
+## Risks / notes
+
+- Hash normalisation must be identical in Python (crawl) and SQL (backfill);
+  put it in one helper and test both paths agree on a fixture.
+- Reposts under a *different* title keep their own vector (correct, title is
+  in the embedded text). SGSAL-023 handles near-dups.
+- Deleting embeddings of non-canonical rows is lossless only if the canonical
+  has an embedding of the current model; mixed-model vectors (104k
+  `BAAI/bge-base`, 74k `v1`) are re-embedded in SGSAL-025 step 2, so prefer a
+  `v2` row as canonical when the group has one.
+- `delete_inactive_job_embeddings()` in `PostgresStore` has no callers and
+  contradicts the policy above — remove it in this ticket.

@@ -211,20 +211,17 @@ need Luqman (Claude is blocked from Railway/secret writes).
       per run) runs at the end of every crawl; one-off prune deleted 965,607 of
       1,580,033 rows in 18 s (614k remain). Original: add a crawl step that keeps only 90 days of `job_run_status`
       (920k of 1.5M rows are older; only the current run's rows are ever read).
-- [ ] E6. NEEDS LUQMAN'S DECISION (numbers refreshed 2026-11-07): `job_embeddings`
-      is 4.5 GB incl. the HNSW index; 556,576 of 625,762 vectors belong to
-      expired jobs, 265,160 of those expired > 90 days ago, 9,247 > 180 days.
-      Deleting the > 90-day expired vectors (~40%) would free roughly 1.8 GB and
-      cap growth, at the cost of the checker's historical matches reaching back
-      ~3 months. Irreversible without re-embedding (~$ and hours), so Claude did
-      not do it. If approved: `DELETE FROM job_embeddings e USING jobs j WHERE
-      j.job_uuid = e.job_uuid AND NOT j.is_active AND j.last_seen_at < now() -
-      interval '90 days'` in batches, then `VACUUM`, then add it to the crawl
-      next to the job_run_status prune. Original: Decide a retention rule for expired jobs' embeddings (538k of 606k
-      vectors belong to expired postings; 246k are 90-180 days old). Deleting
-      embeddings (not job rows) older than 90 days would free ~1 GB and cap
-      growth; the checker's "historical" matches would reach back 3 months.
-      Luqman has not decided; not needed now that the spend cap is off.
+- [x] E6. DECIDED 2026-11-07 (Luqman): keep all history, no retention rule.
+      Expired postings in the checker and dashboard are a core feature; the
+      checker's main ANN query ranks against all 616k vectors, so deleting
+      expired vectors would shrink the benchmark pool for ~$1/month of disk.
+      Research found 45% of vectors are exact reposts of already-embedded text
+      and the 1.9 GB HNSW index no longer fits the Small instance's 512 MB
+      shared_buffers — the real constraint is memory, not disk. Superseded by
+      SGSAL-024 (content-addressed embeddings + repost history) and SGSAL-025
+      (halfvec → role-family routed partitions → cold-tier quantisation).
+      Original numbers: `job_embeddings` 4.5 GB incl. index; 556,576 of 625,762
+      vectors belong to expired jobs, 265,160 expired > 90 days, 9,247 > 180.
 - [x] E7. Scoped into SGSAL-023 (2026-11-07): 2,555 duplicate (company, title)
       groups, 3,751 excess active rows (≈ 5%); options + recommendation there.
 - [x] E8. Jobs pool never warmed in production (pgvector 0.4 `Vector` TypeError
