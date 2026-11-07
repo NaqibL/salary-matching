@@ -157,3 +157,18 @@ def test_role_family_taxonomy_and_coverage(client):
     assert all(row["role_family"] in keys for row in breakdown)
     coverage = classified / total
     assert coverage >= 0.95, f"only {coverage:.1%} of {total:,} active jobs have a role_family"
+
+
+def test_posting_groups_schema_exists(client):
+    """SGSAL-024: pointer columns + posting_groups view exist (migration 022)."""
+    from mcf.api.deps import get_store
+
+    store = get_store()
+    cols = store.describe_columns("jobs")
+    assert "content_hash" in cols and "canonical_job_uuid" in cols
+    vcols = store.describe_columns("posting_groups")
+    for c in ("content_hash", "canonical_job_uuid", "latest_job_uuid", "repost_count",
+              "active_count", "first_posted", "last_posted", "reposts_90d", "reposts_365d",
+              "distinct_companies", "latest_salary_min", "latest_salary_max",
+              "min_salary_seen", "max_salary_seen", "occurrences"):
+        assert c in vcols, c

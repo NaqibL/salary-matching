@@ -20,6 +20,56 @@ from psycopg2.extras import execute_values
 from mcf.lib.storage.base import RunStats, Storage
 
 
+# SGSAL-024: must stay identical to the view statement in
+# scripts/migrations/022_posting_groups.sql.
+_POSTING_GROUPS_VIEW_SQL = """CREATE MATERIALIZED VIEW (populates: ~30 s) and its indexes
+-- ensure_schema() carries IF NOT EXISTS / non-concurrent copies for fresh DBs only.
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS content_hash TEXT;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS canonical_job_uuid TEXT;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_content_hash
+  ON jobs (content_hash) WHERE content_hash IS NOT NULL;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_canonical
+  ON jobs (canonical_job_uuid) WHERE canonical_job_uuid IS NOT NULL;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS posting_groups AS
+WITH occ AS (
+    SELECT job_uuid, content_hash, canonical_job_uuid, is_active, first_seen_at,
+           COALESCE(posted_date, (first_seen_at AT TIME ZONE 'UTC')::date) AS occurrence_date,
+           lower(COALESCE(company_canonical, company_name)) AS company_key,
+           COALESCE(company_canonical, company_name) AS company,
+           salary_min, salary_max
+      FROM jobs
+     WHERE content_hash IS NOT NULL
+), ranked AS (
+    SELECT occ.*,
+           row_number() OVER (PARTITION BY content_hash
+                              ORDER BY is_active DESC, occurrence_date DESC, first_seen_at DESC) AS rn
+      FROM occ
+)
+SELECT content_hash,
+       min(canonical_job_uuid)                                           AS canonical_job_uuid,
+       max(job_uuid)    FILTER (WHERE rn = 1)                            AS latest_job_uuid,
+       count(*)::int                                                     AS repost_count,
+       (count(*) FILTER (WHERE is_active))::int                          AS active_count,
+       min(occurrence_date)                                              AS first_posted,
+       max(occurrence_date)                                              AS last_posted,
+       (count(*) FILTER (WHERE occurrence_date >= current_date - 90))::int  AS reposts_90d,
+       (count(*) FILTER (WHERE occurrence_date >= current_date - 365))::int AS reposts_365d,
+       count(DISTINCT company_key)::int                                  AS distinct_companies,
+       max(salary_min)  FILTER (WHERE rn = 1)                            AS latest_salary_min,
+       max(salary_max)  FILTER (WHERE rn = 1)                            AS latest_salary_max,
+       min(salary_min)                                                   AS min_salary_seen,
+       max(salary_max)                                                   AS max_salary_seen,
+       jsonb_agg(jsonb_build_object(
+           'job_uuid', job_uuid, 'date', occurrence_date, 'company', company,
+           'salary_min', salary_min, 'salary_max', salary_max, 'is_active', is_active)
+           ORDER BY occurrence_date DESC, first_seen_at DESC)            AS occurrences
+  FROM ranked
+ GROUP BY content_hash"""
+
+
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -74,6 +124,16 @@ class PostgresStore(Storage):
             # Backfill / daily classify work queue: ORDER BY job_uuid LIMIT n over the
             # unclassified rows without walking classified ones (migration 021).
             "CREATE INDEX IF NOT EXISTS idx_jobs_role_family_todo ON jobs (job_uuid) WHERE is_active = TRUE AND role_family IS NULL",
+            # SGSAL-024 content-addressed embeddings (migration 022). Non-concurrent
+            # IF NOT EXISTS copies for fresh DBs; production was migrated by hand.
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS content_hash TEXT",
+            "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS canonical_job_uuid TEXT",
+            "CREATE INDEX IF NOT EXISTS idx_jobs_content_hash ON jobs (content_hash) WHERE content_hash IS NOT NULL",
+            "CREATE INDEX IF NOT EXISTS idx_jobs_canonical ON jobs (canonical_job_uuid) WHERE canonical_job_uuid IS NOT NULL",
+            _POSTING_GROUPS_VIEW_SQL,
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_posting_groups_hash ON posting_groups (content_hash)",
+            "CREATE INDEX IF NOT EXISTS idx_posting_groups_canonical ON posting_groups (canonical_job_uuid)",
+            "CREATE INDEX IF NOT EXISTS idx_posting_groups_reposts_365d ON posting_groups (reposts_365d DESC)",
         ]
         try:
             with self._transaction_cur() as cur:
@@ -859,6 +919,21 @@ class PostgresStore(Storage):
                 """,
                 rows,
             )
+
+    def describe_columns(self, relation: str) -> set[str]:
+        """Column names of a table or materialised view (read-only helper for tests/schema-diff)."""
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT a.attname FROM pg_attribute a
+                  JOIN pg_class c ON c.oid = a.attrelid
+                  JOIN pg_namespace n ON n.oid = c.relnamespace
+                 WHERE n.nspname = 'public' AND c.relname = %s
+                   AND a.attnum > 0 AND NOT a.attisdropped
+                """,
+                [relation],
+            )
+            return {r[0] for r in cur.fetchall()}
 
     def get_role_families(self) -> list[dict]:
         with self._cur() as cur:

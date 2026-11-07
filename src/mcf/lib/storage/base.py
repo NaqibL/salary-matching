@@ -207,6 +207,10 @@ class Storage(ABC):
         """
         raise NotImplementedError
 
+    def describe_columns(self, relation: str) -> set[str]:
+        """Column names of a table/view. Used by tests and /schema-diff."""
+        raise NotImplementedError
+
     def assign_hot_jobs_scores(self, job_uuids: list[str]) -> None:
         """Assign hot_jobs_cluster (nearest centroid) and above_market_pct for a
         batch of jobs, entirely server-side against hot_jobs_cluster_centroids /
