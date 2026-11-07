@@ -915,6 +915,7 @@ class PostgresStore(Storage):
                 SELECT job_uuid, title, description, position_levels_json
                   FROM jobs
                  WHERE is_active = TRUE AND role_family IS NULL
+                   AND (COALESCE(title, '') <> '' OR description IS NOT NULL)
                  ORDER BY job_uuid
                  LIMIT %s
                 """,
@@ -933,7 +934,17 @@ class PostgresStore(Storage):
 
     def count_active_jobs_missing_role_family(self) -> int:
         with self._cur() as cur:
-            cur.execute("SELECT count(*) FROM jobs WHERE is_active = TRUE AND role_family IS NULL")
+            # Rows with neither title nor description cannot be classified (Jev
+            # returns None without a call); 1,962 such CAG ghost rows from the
+            # 2026-03-09 crawl stalled the backfill on 2026-11-07. Both this count
+            # and the selection above skip them so the two stay consistent.
+            cur.execute(
+                """
+                SELECT count(*) FROM jobs
+                 WHERE is_active = TRUE AND role_family IS NULL
+                   AND (COALESCE(title, '') <> '' OR description IS NOT NULL)
+                """
+            )
             return int(cur.fetchone()[0])
 
     def batch_upsert_multi_label_clusters(
