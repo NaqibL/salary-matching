@@ -358,6 +358,75 @@ class PostgresStore(Storage):
                 page_size=200,
             )
 
+    # === Posting groups / reposts (SGSAL-024) ===
+
+    def set_content_hashes(self, rows: list[tuple[str, str | None]]) -> None:
+        if not rows:
+            return
+        with self._cur() as cur:
+            execute_values(
+                cur,
+                """
+                UPDATE jobs AS j SET content_hash = v.content_hash
+                FROM (VALUES %s) AS v(job_uuid, content_hash)
+                WHERE j.job_uuid = v.job_uuid
+                """,
+                rows,
+                template="(%s, %s::text)",
+                page_size=500,
+            )
+
+    def find_canonicals(self, hashes: list[str]) -> dict[str, str]:
+        if not hashes:
+            return {}
+        with self._cur() as cur:
+            # Require an existing embedding: a repost linked to a canonical that was never
+            # embedded would skip embedding and leave the whole group without a vector;
+            # instead such a repost starts a fresh canonical.
+            cur.execute(
+                """
+                SELECT j.content_hash, j.job_uuid FROM jobs j
+                 WHERE j.content_hash = ANY(%s) AND j.canonical_job_uuid = j.job_uuid
+                   AND EXISTS (SELECT 1 FROM job_embeddings e WHERE e.job_uuid = j.job_uuid)
+                """,
+                [list(hashes)],
+            )
+            return {r[0]: r[1] for r in cur.fetchall()}
+
+    def link_reposts(self, pairs: list[tuple[str, str]]) -> int:
+        if not pairs:
+            return 0
+        updated = 0
+        with self._cur() as cur:
+            for i in range(0, len(pairs), 500):
+                execute_values(
+                    cur,
+                    """
+                    UPDATE jobs AS j
+                       SET canonical_job_uuid   = v.canonical,
+                           min_years_experience = COALESCE(j.min_years_experience, c.min_years_experience),
+                           llm_fields_json      = COALESCE(j.llm_fields_json, c.llm_fields_json),
+                           role_family          = COALESCE(j.role_family, c.role_family),
+                           role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
+                           predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
+                           role_conf            = COALESCE(j.role_conf, c.role_conf),
+                           tier_conf            = COALESCE(j.tier_conf, c.tier_conf)
+                      FROM (VALUES %s) AS v(job_uuid, canonical)
+                      JOIN jobs c ON c.job_uuid = v.canonical
+                     WHERE j.job_uuid = v.job_uuid
+                    """,
+                    pairs[i : i + 500],
+                    template="(%s, %s)",
+                    page_size=500,
+                )
+                updated += cur.rowcount or 0
+        return updated
+
+    def refresh_posting_groups(self) -> None:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY posting_groups")
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return job UUIDs where categories_json is NULL or empty."""
         with self._cur() as cur:

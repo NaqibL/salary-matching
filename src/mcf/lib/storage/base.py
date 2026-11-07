@@ -522,6 +522,28 @@ class Storage(ABC):
                 Rows with a NULL salary_min or salary_max are always included regardless of this flag.
         """
 
+    # === Posting groups / reposts (SGSAL-024) ===
+
+    @abstractmethod
+    def set_content_hashes(self, rows: list[tuple[str, str | None]]) -> None:
+        """Write (job_uuid, content_hash) pairs. content_hash comes from
+        ``mcf.lib.pipeline.posting_key.posting_key`` and is None for text-less jobs."""
+
+    @abstractmethod
+    def find_canonicals(self, hashes: list[str]) -> dict[str, str]:
+        """Map content_hash -> canonical job_uuid for hashes whose canonical row
+        (``canonical_job_uuid = job_uuid``) already has an embedding. Unknown hashes are absent."""
+
+    @abstractmethod
+    def link_reposts(self, pairs: list[tuple[str, str]]) -> int:
+        """Set ``canonical_job_uuid`` for each (job_uuid, canonical_job_uuid) pair and
+        copy LLM fields + Jev labels from the canonical where the job's are NULL.
+        Self-pairs are allowed (they only set the pointer). Returns rows updated."""
+
+    @abstractmethod
+    def refresh_posting_groups(self) -> None:
+        """REFRESH MATERIALIZED VIEW CONCURRENTLY posting_groups. Call at crawl end."""
+
     @abstractmethod
     def get_distinct_companies(self) -> list[str]:
         """Return sorted list of distinct company_name values from active jobs."""

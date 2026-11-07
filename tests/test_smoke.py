@@ -172,3 +172,17 @@ def test_posting_groups_schema_exists(client):
               "distinct_companies", "latest_salary_min", "latest_salary_max",
               "min_salary_seen", "max_salary_seen", "occurrences"):
         assert c in vcols, c
+
+
+def test_find_canonicals_is_read_only_and_shaped(client):
+    """SGSAL-024: unknown hashes return {} and the method exists on the Storage ABC."""
+    from mcf.api.deps import get_store
+    from mcf.lib.storage.base import Storage
+
+    store = get_store()
+    assert callable(getattr(Storage, "find_canonicals"))
+    assert callable(getattr(Storage, "link_reposts"))
+    assert callable(getattr(Storage, "set_content_hashes"))
+    assert callable(getattr(Storage, "refresh_posting_groups"))
+    assert store.find_canonicals(["0" * 32, "f" * 32]) == {}
+    assert store.find_canonicals([]) == {}
