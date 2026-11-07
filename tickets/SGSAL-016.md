@@ -2,15 +2,17 @@
 id: SGSAL-016
 project: salary-matching
 title: UI + Backend — seniority dropdown on salary checker input
-status: todo
+status: done
 priority: medium
 type: feature
 labels: [frontend, backend, salary-checker, embeddings]
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-11-08
 depends_on: []
 blocks: []
 ---
+
+> **Shipped** in 99da0d9 (seniority field on `/api/lowball/check` + checker dropdown). Ticket status reconciled 2026-11-08.
 
 ## Summary
 

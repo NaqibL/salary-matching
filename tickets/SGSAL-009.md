@@ -2,13 +2,15 @@
 id: SGSAL-009
 project: salary-matching
 title: Dashboard — seniority breakdowns + skills trends from llm_fields_json
-status: todo
+status: done
 priority: medium
 type: feature
 labels: [frontend, dashboard, analytics]
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-11-08
 ---
+
+> **Shipped** in 6082f2d (dashboard: seniority, top-skills, skills-trend and role-family analytics). Ticket status reconciled 2026-11-08.
 
 ## Summary
 
@@ -22,9 +24,9 @@ Extend the market dashboard (`/dashboard`) with seniority breakdowns and skills 
 
 ## Acceptance Criteria
 
-- [ ] Seniority breakdown chart — distribution of job postings by inferred seniority (junior/mid/senior/lead)
-- [ ] Skills trends — top N canonical skills by volume, ideally over time
-- [ ] No backend schema changes required — query `llm_fields_json` via existing storage methods or a new read-only method
+- [x] Seniority breakdown chart — distribution of job postings by inferred seniority (junior/mid/senior/lead)
+- [x] Skills trends — top N canonical skills by volume, ideally over time
+- [x] No backend schema changes required — query `llm_fields_json` via existing storage methods or a new read-only method
 
 ## Notes
 

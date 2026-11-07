@@ -2,15 +2,17 @@
 id: SGSAL-015
 project: salary-matching
 title: Re-embed job DB with v2 model (backfill)
-status: in-progress
+status: done
 priority: high
 type: chore
 labels: [ml, embeddings, backfill, bge]
 created: 2026-06-14
-updated: 2026-06-15
+updated: 2026-11-08
 depends_on: [SGSAL-003]
 blocks: []
 ---
+
+> **Closed 2026-11-08.** The bulk v2 re-embed landed with 99da0d9; as of 2026-11-07 448k of the vectors are `v2` and ≈178k (`v1` / `BAAI/bge-base`, fewer after the SGSAL-024 dedup) remain. Re-embedding that remainder is tracked as **SGSAL-025 step 2**, so this ticket is superseded rather than reopened.
 
 ## Summary
 

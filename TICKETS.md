@@ -13,10 +13,10 @@ Project prefix: `SGSAL`
 | [SGSAL-006](tickets/SGSAL-006.md) | UI — recruiter caveat about inflated postings | done | medium |
 | [SGSAL-007](tickets/SGSAL-007.md) | UI — fix mobile JD wall-of-text in similar-roles cards | done | medium |
 | [SGSAL-008](tickets/SGSAL-008.md) | Backend + UI — filter non-compliant salary ranges + surface midpoint | done | medium |
-| [SGSAL-009](tickets/SGSAL-009.md) | Dashboard — seniority breakdowns + skills trends | todo | medium |
+| [SGSAL-009](tickets/SGSAL-009.md) | Dashboard — seniority breakdowns + skills trends | done | medium |
 | [SGSAL-016](tickets/SGSAL-016.md) | UI + Backend — seniority dropdown on salary checker input | done | medium |
-| [SGSAL-010](tickets/SGSAL-010.md) | UI — client-side filters on similar roles cards | todo | low |
-| [SGSAL-011](tickets/SGSAL-011.md) | Backend + UI — company dropdown canonicalization | todo | low |
+| [SGSAL-010](tickets/SGSAL-010.md) | UI — client-side filters on similar roles cards | done | low |
+| [SGSAL-011](tickets/SGSAL-011.md) | Backend + UI — company dropdown canonicalization | done | low |
 | [SGSAL-012](tickets/SGSAL-012.md) | [Personal] Filters on matches page | todo | low |
 | [SGSAL-013](tickets/SGSAL-013.md) | [Personal] Richer job cards on matches | todo | low |
 | [SGSAL-014](tickets/SGSAL-014.md) | [Personal] Experience level on candidate profile | todo | low |
@@ -28,4 +28,4 @@ Project prefix: `SGSAL`
 | [SGSAL-022](tickets/SGSAL-022.md) | Replace ML classifiers with Jev, switch cleaner model, repair LLM-field gap | in-progress | high |
 | [SGSAL-023](tickets/SGSAL-023.md) | Dedup near-identical active postings (recruiter reposts) in dashboard counts and benchmarks | todo | medium |
 | [SGSAL-024](tickets/SGSAL-024.md) | Content-addressed embeddings (one vector per posting text) + repost history per job | in-progress | high |
-| [SGSAL-025](tickets/SGSAL-025.md) | Vector storage roadmap — halfvec, role-family routed partitions, cold-tier quantisation (keep all history) | todo | medium |
+| [SGSAL-025](tickets/SGSAL-025.md) | Vector storage roadmap — halfvec, role-family routed partitions, cold-tier quantisation (keep all history) | in-progress | medium |
