@@ -228,7 +228,7 @@ class MatchingService:
         """Find top matching jobs for a candidate using semantic similarity."""
         candidate_emb = self.store.get_candidate_embedding(profile_id)
         if not candidate_emb:
-            return ([], 0, "")
+            return ([], 0, "", None)  # same arity as the normal return below
 
         profile = self.store.get_profile_by_profile_id(profile_id)
         if exclude_interacted and user_id is None and profile:
