@@ -195,6 +195,13 @@ def run_incremental_crawl(
             # Phase 1a: reposts (same title + description as a posting we already
             # hold) link to the existing canonical and skip the expensive steps.
             repost_uuids = link_reposts_for_batch(store, fetched)
+            if repost_uuids:
+                # Reposts skip embedding, so score them now against the canonical's
+                # vector (above_market_pct uses each row's own salary; never copied).
+                try:
+                    store.assign_hot_jobs_scores(sorted(repost_uuids))
+                except Exception as e:  # noqa: BLE001
+                    print(f"Warning: hot-jobs scoring for reposts failed, skipping: {e}")
             fetched = [n for n in fetched if n.job_uuid not in repost_uuids]
 
             # Phase 1b: Build embedding text. The optional LLM cleaning call is

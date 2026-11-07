@@ -250,8 +250,12 @@ Selection rulings applied:
 1. Merge this branch to master and push; watch CI and the Railway deploy.
 2. Re-run `uv run python scripts/backfill_posting_keys.py --dry-run` — hashes and assigns pointers for the NULL-pointer rows the old crawl added since 2026-11-08.
 3. `uv run python scripts/backfill_posting_keys.py --apply --expect-max 260000` (aborts with exit 2, before any copy/delete, if more vectors would be deleted).
-4. `VACUUM (ANALYZE) job_embeddings;`
-5. Invariant queries:
+4. Score the hot-jobs backlog at once (reposts never inherit `above_market_pct`; it is computed from each row's own salary). Scores every active job still missing it — reposts included — in batches of 5,000:
+   ```bash
+   uv run python -c "from dotenv import load_dotenv; load_dotenv('.env'); import os; from mcf.lib.storage.postgres_store import PostgresStore; s=PostgresStore(os.environ['DATABASE_URL']); u=s.get_active_job_uuids_missing_hot_jobs_score(limit=500000); [s.assign_hot_jobs_scores(u[i:i+5000]) for i in range(0, len(u), 5000)]; print(len(u), 'jobs scored')"
+   ```
+5. `VACUUM (ANALYZE) job_embeddings;`
+6. Invariant queries:
    ```sql
    -- non-canonical vectors: ≈0; the remainder = members whose canonical has no vector (the delete keeps a group's only vector)
    select count(*) from job_embeddings e join jobs j using(job_uuid) where j.canonical_job_uuid <> j.job_uuid;
@@ -260,8 +264,8 @@ Selection rulings applied:
    -- active jobs whose vector owner has no vector: must be 0 (today's not-yet-embedded only, until the daily embed runs)
    select count(*) from jobs j where j.is_active
       and not exists (select 1 from job_embeddings e where e.job_uuid = coalesce(j.canonical_job_uuid, j.job_uuid));
-   -- active repost rows without a hot-jobs cluster: trending to 0 after the next hot-jobs run
+   -- active repost rows without a hot-jobs cluster: 0 after step 4 (and trending to 0 after each crawl)
    select count(*) from jobs j where j.is_active and j.canonical_job_uuid <> j.job_uuid and j.hot_jobs_cluster is null;
    ```
-6. After the next 02:00 UTC crawl: `gh run view <id> --log | grep -E "reposts linked|posting_groups"`.
-7. Record post-apply `job_embeddings` row count + `pg_total_relation_size('job_embeddings')` in `tickets/SGSAL-025.md` and close this ticket.
+7. After the next 02:00 UTC crawl: `gh run view <id> --log | grep -E "reposts linked|posting_groups"`.
+8. Record post-apply `job_embeddings` row count + `pg_total_relation_size('job_embeddings')` in `tickets/SGSAL-025.md` and close this ticket.

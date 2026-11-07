@@ -39,3 +39,11 @@ def test_active_vector_gate_keeps_index_friendly_or_form():
     assert "a.canonical_job_uuid = e.job_uuid" in gate
     assert "a.canonical_job_uuid IS NULL AND a.job_uuid = e.job_uuid" in gate
     assert "COALESCE" not in gate  # COALESCE(...) = x would defeat idx_jobs_canonical / PK
+
+
+def test_reposts_never_inherit_above_market_pct():
+    # above_market_pct is derived from the row's own salary_min; hot_jobs_cluster
+    # is safe to copy (identical vector).
+    for sql in (ps._LINK_REPOSTS_SQL, ps._COPY_FIELDS_SQL):
+        assert "above_market_pct" not in sql
+        assert "hot_jobs_cluster" in sql

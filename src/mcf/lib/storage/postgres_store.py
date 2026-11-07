@@ -93,6 +93,43 @@ _ACTIVE_MEMBERS_LATERAL = (
 # IS TRUE: NULL pointer AND vector would otherwise be NULL and sort last
 _CANON_RANK_EXISTING = "((j.canonical_job_uuid = j.job_uuid AND e.job_uuid IS NOT NULL) IS TRUE) DESC"
 
+# SGSAL-024: copy rules for a repost. hot_jobs_cluster is copied (identical vector);
+# above_market_pct is NOT — it is derived from the row's own salary_min, which varies
+# within a posting group, so reposts are scored by assign_hot_jobs_scores instead.
+_LINK_REPOSTS_SQL = """
+UPDATE jobs AS j
+   SET canonical_job_uuid   = v.canonical,
+       min_years_experience = COALESCE(j.min_years_experience, c.min_years_experience),
+       llm_fields_json      = COALESCE(j.llm_fields_json, c.llm_fields_json),
+       role_family          = COALESCE(j.role_family, c.role_family),
+       role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
+       predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
+       role_conf            = COALESCE(j.role_conf, c.role_conf),
+       tier_conf            = COALESCE(j.tier_conf, c.tier_conf),
+       hot_jobs_cluster     = COALESCE(j.hot_jobs_cluster, c.hot_jobs_cluster)
+  FROM (VALUES %s) AS v(job_uuid, canonical)
+  JOIN jobs c ON c.job_uuid = v.canonical
+ WHERE j.job_uuid = v.job_uuid
+"""
+
+_COPY_FIELDS_SQL = """
+UPDATE jobs j
+   SET min_years_experience = COALESCE(j.min_years_experience, c.min_years_experience),
+       llm_fields_json      = COALESCE(j.llm_fields_json, c.llm_fields_json),
+       role_family          = COALESCE(j.role_family, c.role_family),
+       role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
+       predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
+       role_conf            = COALESCE(j.role_conf, c.role_conf),
+       tier_conf            = COALESCE(j.tier_conf, c.tier_conf),
+       hot_jobs_cluster     = COALESCE(j.hot_jobs_cluster, c.hot_jobs_cluster)
+  FROM jobs c
+ WHERE c.job_uuid = j.canonical_job_uuid
+   AND j.canonical_job_uuid <> j.job_uuid
+   AND ((j.llm_fields_json IS NULL AND c.llm_fields_json IS NOT NULL)
+        OR (j.role_family IS NULL AND c.role_family IS NOT NULL)
+        OR (j.hot_jobs_cluster IS NULL AND c.hot_jobs_cluster IS NOT NULL))
+"""
+
 _ASSIGN_CANONICALS_SQL = f"""
 WITH ranked AS (
     SELECT j.job_uuid, j.content_hash,
@@ -445,22 +482,7 @@ class PostgresStore(Storage):
             for i in range(0, len(pairs), 500):
                 execute_values(
                     cur,
-                    """
-                    UPDATE jobs AS j
-                       SET canonical_job_uuid   = v.canonical,
-                           min_years_experience = COALESCE(j.min_years_experience, c.min_years_experience),
-                           llm_fields_json      = COALESCE(j.llm_fields_json, c.llm_fields_json),
-                           role_family          = COALESCE(j.role_family, c.role_family),
-                           role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
-                           predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
-                           role_conf            = COALESCE(j.role_conf, c.role_conf),
-                           tier_conf            = COALESCE(j.tier_conf, c.tier_conf),
-                           hot_jobs_cluster     = COALESCE(j.hot_jobs_cluster, c.hot_jobs_cluster),
-                           above_market_pct     = COALESCE(j.above_market_pct, c.above_market_pct)
-                      FROM (VALUES %s) AS v(job_uuid, canonical)
-                      JOIN jobs c ON c.job_uuid = v.canonical
-                     WHERE j.job_uuid = v.job_uuid
-                    """,
+                    _LINK_REPOSTS_SQL,
                     pairs[i : i + 500],
                     template="(%s, %s)",
                     page_size=500,
@@ -550,27 +572,7 @@ class PostgresStore(Storage):
     def copy_fields_from_canonicals(self) -> int:
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
-            cur.execute(
-                """
-                UPDATE jobs j
-                   SET min_years_experience = COALESCE(j.min_years_experience, c.min_years_experience),
-                       llm_fields_json      = COALESCE(j.llm_fields_json, c.llm_fields_json),
-                       role_family          = COALESCE(j.role_family, c.role_family),
-                       role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
-                       predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
-                       role_conf            = COALESCE(j.role_conf, c.role_conf),
-                       tier_conf            = COALESCE(j.tier_conf, c.tier_conf),
-                       hot_jobs_cluster     = COALESCE(j.hot_jobs_cluster, c.hot_jobs_cluster),
-                       above_market_pct     = COALESCE(j.above_market_pct, c.above_market_pct)
-                  FROM jobs c
-                 WHERE c.job_uuid = j.canonical_job_uuid
-                   AND j.canonical_job_uuid <> j.job_uuid
-                   AND ((j.llm_fields_json IS NULL AND c.llm_fields_json IS NOT NULL)
-                        OR (j.role_family IS NULL AND c.role_family IS NOT NULL)
-                        OR (j.hot_jobs_cluster IS NULL AND c.hot_jobs_cluster IS NOT NULL)
-                        OR (j.above_market_pct IS NULL AND c.above_market_pct IS NOT NULL))
-                """
-            )
+            cur.execute(_COPY_FIELDS_SQL)
             return cur.rowcount or 0
 
     def noncanonical_embedded_uuids(self) -> list[str]:

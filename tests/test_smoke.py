@@ -304,6 +304,10 @@ def test_active_vector_gate_includes_reposts_of_inactive_canonicals(client):
                    AND a.canonical_job_uuid <> a.job_uuid
                    AND c.is_active = FALSE
                    AND EXISTS (SELECT 1 FROM job_embeddings e WHERE e.job_uuid = c.job_uuid)
+                   -- HNSW ef=100 runs before the gate; until --apply a group can hold
+                   -- hundreds of identical vectors, so pick a group with < 50 of them.
+                   AND (SELECT count(*) FROM jobs m JOIN job_embeddings me ON me.job_uuid = m.job_uuid
+                         WHERE m.content_hash = c.content_hash) < 50
                  LIMIT 1
                 """
             )
