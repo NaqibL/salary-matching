@@ -2586,6 +2586,14 @@ class PostgresStore(Storage):
                     (job_uuids,),
                 )
             else:
+                # I2: a same-batch sibling repost links to a canonical whose LLM
+                # fields were still NULL; the daily embed fills only the canonical,
+                # so fall back to the canonical's fields for the representative.
+                _from_canonical = {"llm_fields_json", "min_years_experience"}
+                cols = ", ".join(
+                    f"COALESCE(rep.{c}, c.{c}) AS {c}" if c in _from_canonical else f"rep.{c}"
+                    for c in (x.strip() for x in self._JOB_SALARY_COLS.split(","))
+                )
                 if company_name is None:
                     rep_pick = "COALESCE(pg.latest_job_uuid, c.job_uuid)"
                     company_params: tuple = ()
@@ -2597,7 +2605,12 @@ class PostgresStore(Storage):
                           SELECT m.job_uuid FROM jobs m
                            WHERE m.content_hash = c.content_hash
                              AND (m.company_canonical = %s
-                                  OR (m.company_canonical IS NULL AND m.company_name = %s))
+                                  OR (m.company_canonical IS NULL AND m.company_name = %s)
+                                  OR m.company_canonical = (
+                                      SELECT canonical_name FROM company_aliases
+                                       WHERE raw_name = %s AND canonical_name IS NOT NULL
+                                       LIMIT 1
+                                  ))
                            ORDER BY m.is_active DESC,
                                     COALESCE(m.posted_date, (m.first_seen_at AT TIME ZONE 'UTC')::date) DESC,
                                     m.first_seen_at DESC
@@ -2605,7 +2618,7 @@ class PostgresStore(Storage):
                       ) cm ON TRUE
                     """
                     rep_pick = "COALESCE(cm.job_uuid, pg.latest_job_uuid, c.job_uuid)"
-                    company_params = (company_name, company_name)
+                    company_params = (company_name, company_name, company_name)
                 cur.execute(
                     f"""
                     SELECT {cols},
