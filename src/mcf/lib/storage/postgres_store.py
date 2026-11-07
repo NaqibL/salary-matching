@@ -71,6 +71,9 @@ class PostgresStore(Storage):
             "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS role_conf REAL",
             "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS tier_conf REAL",
             "CREATE INDEX IF NOT EXISTS idx_jobs_role_family ON jobs (role_family) WHERE is_active = TRUE",
+            # Backfill / daily classify work queue: ORDER BY job_uuid LIMIT n over the
+            # unclassified rows without walking classified ones (migration 021).
+            "CREATE INDEX IF NOT EXISTS idx_jobs_role_family_todo ON jobs (job_uuid) WHERE is_active = TRUE AND role_family IS NULL",
         ]
         try:
             with self._transaction_cur() as cur:
