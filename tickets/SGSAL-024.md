@@ -2,12 +2,12 @@
 id: SGSAL-024
 project: salary-matching
 title: Content-addressed embeddings (one vector per posting text) + repost history per job
-status: todo
+status: in-progress
 priority: high
 type: feature
 labels: [storage, embeddings, data-quality, salary-checker, product, cost]
 created: 2026-11-07
-updated: 2026-11-07
+updated: 2026-11-08
 depends_on: []
 blocks: [SGSAL-025]
 ---
@@ -198,3 +198,30 @@ Thresholds are a first guess; tune after looking at the distribution of
   `v2` row as canonical when the group has one.
 - `delete_inactive_job_embeddings()` in `PostgresStore` has no callers and
   contradicts the policy above — remove it in this ticket.
+
+## Backfill dry run (2026-11-08)
+
+`scripts/backfill_posting_keys.py --dry-run` against Supabase. Additive only: wrote
+`content_hash` / `canonical_job_uuid` on `jobs` and refreshed `posting_groups`. No vectors
+deleted, no fields copied. `--apply` is pending the owner's go-ahead.
+
+Baseline before the run (2026-11-08):
+
+| metric | value |
+|---|---|
+| `job_embeddings` rows | 627,040 |
+| `pg_total_relation_size('job_embeddings')` | 4521 MB |
+| database size | 7087 MB |
+
+Run output:
+
+```
+step 1: hashed 703,398 jobs in 1,271s
+step 2: assigned 716,225 canonical pointers in 494s
+        255,252 non-canonical jobs still hold a vector
+step 5: posting_groups refreshed in 39s
+stats: {'groups': 407109, 'members': 703398, 'max_repost_count': 949, 'p50_reposts_365d': 1.0, 'p95_reposts_365d': 4.0}
+```
+
+Total runtime about 33 min (01:21 to 01:54). `--apply` would delete 255,252 vectors
+(627,040 -> ~371,788 rows). Then `VACUUM (ANALYZE) job_embeddings`.

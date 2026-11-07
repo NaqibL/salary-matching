@@ -475,6 +475,108 @@ class PostgresStore(Storage):
             cur.execute("SELECT DISTINCT COALESCE(canonical_job_uuid, job_uuid) FROM jobs WHERE is_active = TRUE")
             return {r[0] for r in cur.fetchall()}
 
+    # --- SGSAL-024 backfill helpers ---
+
+    def iter_jobs_needing_hash(self, after_uuid: str, limit: int) -> list[tuple[str, str | None, str]]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                SELECT job_uuid, title, description FROM jobs
+                 WHERE job_uuid > %s AND content_hash IS NULL
+                   AND description IS NOT NULL AND btrim(description) <> ''
+                 ORDER BY job_uuid LIMIT %s
+                """,
+                [after_uuid, int(limit)],
+            )
+            return [(r[0], r[1], r[2]) for r in cur.fetchall()]
+
+    def assign_canonicals(self) -> int:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                WITH ranked AS (
+                    SELECT j.job_uuid, j.content_hash,
+                           row_number() OVER (
+                               PARTITION BY j.content_hash
+                               ORDER BY (j.canonical_job_uuid = j.job_uuid) DESC NULLS LAST,
+                                        (e.model_name = 'NaqibL/bge-base-sgmarket-v2') DESC NULLS LAST,
+                                        (e.job_uuid IS NOT NULL) DESC,
+                                        j.first_seen_at ASC, j.job_uuid ASC) AS rn
+                      FROM jobs j
+                      LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                     WHERE j.content_hash IS NOT NULL
+                ), canon AS (
+                    SELECT content_hash, job_uuid AS canonical FROM ranked WHERE rn = 1
+                )
+                UPDATE jobs j SET canonical_job_uuid = canon.canonical
+                  FROM canon
+                 WHERE j.content_hash = canon.content_hash AND j.canonical_job_uuid IS NULL
+                """
+            )
+            n = cur.rowcount or 0
+            cur.execute(
+                "UPDATE jobs SET canonical_job_uuid = job_uuid WHERE content_hash IS NULL AND canonical_job_uuid IS NULL"
+            )
+            return n + (cur.rowcount or 0)
+
+    def copy_fields_from_canonicals(self) -> int:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                UPDATE jobs j
+                   SET min_years_experience = COALESCE(j.min_years_experience, c.min_years_experience),
+                       llm_fields_json      = COALESCE(j.llm_fields_json, c.llm_fields_json),
+                       role_family          = COALESCE(j.role_family, c.role_family),
+                       role_cluster         = COALESCE(j.role_cluster, c.role_cluster),
+                       predicted_tier       = COALESCE(j.predicted_tier, c.predicted_tier),
+                       role_conf            = COALESCE(j.role_conf, c.role_conf),
+                       tier_conf            = COALESCE(j.tier_conf, c.tier_conf)
+                  FROM jobs c
+                 WHERE c.job_uuid = j.canonical_job_uuid
+                   AND j.canonical_job_uuid <> j.job_uuid
+                   AND ((j.llm_fields_json IS NULL AND c.llm_fields_json IS NOT NULL)
+                        OR (j.role_family IS NULL AND c.role_family IS NOT NULL))
+                """
+            )
+            return cur.rowcount or 0
+
+    def noncanonical_embedded_uuids(self) -> list[str]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                SELECT e.job_uuid FROM job_embeddings e
+                  JOIN jobs j ON j.job_uuid = e.job_uuid
+                 WHERE j.canonical_job_uuid IS NOT NULL AND j.canonical_job_uuid <> j.job_uuid
+                """
+            )
+            return [r[0] for r in cur.fetchall()]
+
+    def delete_embeddings_by_uuids(self, uuids: list[str]) -> int:
+        if not uuids:
+            return 0
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute("DELETE FROM job_embeddings WHERE job_uuid = ANY(%s)", [list(uuids)])
+            return cur.rowcount or 0
+
+    def posting_group_stats(self) -> dict:
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT count(*), coalesce(sum(repost_count), 0), coalesce(max(repost_count), 0),
+                       percentile_cont(0.5) WITHIN GROUP (ORDER BY reposts_365d),
+                       percentile_cont(0.95) WITHIN GROUP (ORDER BY reposts_365d)
+                  FROM posting_groups
+                """
+            )
+            g, m, mx, p50, p95 = cur.fetchone()
+            return {"groups": int(g), "members": int(m), "max_repost_count": int(mx),
+                    "p50_reposts_365d": float(p50 or 0), "p95_reposts_365d": float(p95 or 0)}
+
     def get_job_uuids_needing_rich_backfill(self, limit: int | None = None) -> list[str]:
         """Return job UUIDs where categories_json is NULL or empty."""
         with self._cur() as cur:

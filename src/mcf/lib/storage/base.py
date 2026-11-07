@@ -561,6 +561,35 @@ class Storage(ABC):
     def active_canonical_uuids(self) -> set[str]:
         """``COALESCE(canonical_job_uuid, job_uuid)`` of every active job (checker gates)."""
 
+    # --- SGSAL-024 backfill helpers (scripts/backfill_posting_keys.py) ---
+
+    @abstractmethod
+    def iter_jobs_needing_hash(self, after_uuid: str, limit: int) -> list[tuple[str, str | None, str]]:
+        """(job_uuid, title, description) for jobs with a non-blank description and no
+        content_hash yet, job_uuid > after_uuid, ordered by job_uuid."""
+
+    @abstractmethod
+    def assign_canonicals(self) -> int:
+        """Set canonical_job_uuid where NULL: per hash prefer an existing canonical, then a
+        v2-embedded row, then any embedded row, then the earliest seen. Text-less rows
+        point at themselves. Returns rows updated."""
+
+    @abstractmethod
+    def copy_fields_from_canonicals(self) -> int:
+        """For non-canonical members, fill NULL LLM fields / Jev labels from the canonical."""
+
+    @abstractmethod
+    def noncanonical_embedded_uuids(self) -> list[str]:
+        """job_uuids that have an embedding but are not their group's canonical."""
+
+    @abstractmethod
+    def delete_embeddings_by_uuids(self, uuids: list[str]) -> int:
+        """Delete job_embeddings rows for the given uuids (batched by caller). Returns rows deleted."""
+
+    @abstractmethod
+    def posting_group_stats(self) -> dict:
+        """{groups, members, max_repost_count, p50_reposts_365d, p95_reposts_365d} from posting_groups."""
+
     @abstractmethod
     def get_distinct_companies(self) -> list[str]:
         """Return sorted list of distinct company_name values from active jobs."""

@@ -228,3 +228,11 @@ def test_legacy_delete_inactive_embeddings_is_gone(client):
     from mcf.lib.storage.base import Storage
 
     assert not hasattr(Storage, "delete_inactive_job_embeddings")
+
+
+def test_backfill_storage_methods_exist(client):
+    from mcf.lib.storage.base import Storage
+
+    for name in ("iter_jobs_needing_hash", "assign_canonicals", "copy_fields_from_canonicals",
+                 "noncanonical_embedded_uuids", "delete_embeddings_by_uuids", "posting_group_stats"):
+        assert callable(getattr(Storage, name)), name
