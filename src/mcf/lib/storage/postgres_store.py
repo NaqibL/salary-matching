@@ -1389,11 +1389,24 @@ class PostgresStore(Storage):
         }
 
     def get_all_active_jobs(self) -> list[dict]:
+        """Return the DISTINCT canonical rows (``COALESCE(canonical_job_uuid, job_uuid)``)
+        of all active jobs, whatever the canonical row's own is_active (SGSAL-024).
+
+        This is the full re-embed selection: vectors live on canonical rows only, and
+        an expired canonical still serves its active reposts (same text by
+        construction), so it is the row to re-embed; an active non-canonical never
+        gets its own vector.
+        """
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
-                "SELECT job_uuid, title, skills_json, position_levels_json, description, min_years_experience"
-                " FROM jobs WHERE is_active = TRUE"
+                """
+                SELECT c.job_uuid, c.title, c.skills_json, c.position_levels_json, c.description,
+                       c.min_years_experience
+                  FROM (SELECT DISTINCT COALESCE(canonical_job_uuid, job_uuid) AS cu
+                          FROM jobs WHERE is_active = TRUE) m
+                  JOIN jobs c ON c.job_uuid = m.cu
+                """
             )
             rows = cur.fetchall()
         return [
@@ -1409,12 +1422,22 @@ class PostgresStore(Storage):
         ]
 
     def get_active_jobs_without_embeddings(self) -> list[dict]:
+        """Return the DISTINCT canonical rows (``COALESCE(canonical_job_uuid, job_uuid)``)
+        of active jobs whose canonical has no vector, whatever the canonical row's own
+        is_active (SGSAL-024). An active repost of an expired, vectorless canonical
+        is served by embedding that canonical (same text by construction).
+        """
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
-                "SELECT j.job_uuid, j.title, j.skills_json, j.position_levels_json, j.description, j.min_years_experience"
-                " FROM jobs j LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid"
-                " WHERE j.is_active = TRUE AND e.job_uuid IS NULL AND (j.canonical_job_uuid IS NULL OR j.canonical_job_uuid = j.job_uuid)"
+                """
+                SELECT c.job_uuid, c.title, c.skills_json, c.position_levels_json, c.description,
+                       c.min_years_experience
+                  FROM (SELECT DISTINCT COALESCE(canonical_job_uuid, job_uuid) AS cu
+                          FROM jobs WHERE is_active = TRUE) m
+                  JOIN jobs c ON c.job_uuid = m.cu
+                 WHERE NOT EXISTS (SELECT 1 FROM job_embeddings e WHERE e.job_uuid = m.cu)
+                """
             )
             rows = cur.fetchall()
         return [

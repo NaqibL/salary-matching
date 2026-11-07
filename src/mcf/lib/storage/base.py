@@ -249,10 +249,17 @@ class Storage(ABC):
     ) -> list[tuple[str, str, list[float], dict]]: ...
 
     @abstractmethod
-    def get_all_active_jobs(self) -> list[dict]: ...
+    def get_all_active_jobs(self) -> list[dict]:
+        """Return the DISTINCT canonical rows (COALESCE(canonical_job_uuid, job_uuid)) of
+        all active jobs, whatever the canonical row's own is_active (SGSAL-024: vectors
+        live on canonical rows, and an expired canonical serves its active reposts).
+        Used as the full re-embed selection."""
+        ...
 
     def get_active_jobs_without_embeddings(self) -> list[dict]:
-        """Return active jobs that have no row in job_embeddings. Default: filter get_all_active_jobs."""
+        """Return the DISTINCT canonical rows (COALESCE(canonical_job_uuid, job_uuid)) of
+        active jobs whose canonical has no row in job_embeddings, whatever the canonical
+        row's own is_active (SGSAL-024)."""
         raise NotImplementedError
 
     def get_active_jobs_embedded_since(self, days: int, *, missing_llm_only: bool = False) -> list[dict]:
