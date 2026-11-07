@@ -50,7 +50,7 @@ store.get_active_jobs_by_date() -> list[dict]
 
 ## Posting groups (SGSAL-024)
 
-`jobs.content_hash` and `jobs.canonical_job_uuid` (migration `scripts/migrations/022_posting_groups.sql`) group reposts of the same text; `job_embeddings` holds canonical rows only.
+`jobs.content_hash` and `jobs.canonical_job_uuid` (migration `scripts/migrations/022_posting_groups.sql`) group reposts of the same text; `job_embeddings` holds canonical rows only once the backfill `--apply` has run (a hash can keep a second self-canonical when the first never had a vector); active-job vector queries gate on "some active member owns or points at the vector" (`_ACTIVE_VECTOR_GATE` in `postgres_store.py`), and embed selection returns the canonical rows of active jobs whatever the canonical's own `is_active`.
 
 ```python
 # Write (crawl path)

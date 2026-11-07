@@ -245,13 +245,23 @@ Selection rulings applied:
 
 ### Remaining (owner)
 
-1. `uv run python scripts/backfill_posting_keys.py --apply`, then `VACUUM (ANALYZE) job_embeddings` and the invariant queries:
+**`--apply` must not run before this branch is deployed.** (Under master's old code an expired canonical renders as "Position closed" and the old daily embed re-embeds every active repost whose vector was deleted.)
+
+1. Merge this branch to master and push; watch CI and the Railway deploy.
+2. Re-run `uv run python scripts/backfill_posting_keys.py --dry-run` — hashes and assigns pointers for the NULL-pointer rows the old crawl added since 2026-11-08.
+3. `uv run python scripts/backfill_posting_keys.py --apply --expect-max 260000` (aborts with exit 2, before any copy/delete, if more vectors would be deleted).
+4. `VACUUM (ANALYZE) job_embeddings;`
+5. Invariant queries:
    ```sql
-   select count(*) from job_embeddings e join jobs j using(job_uuid) where j.canonical_job_uuid <> j.job_uuid;  -- non-canonical vectors, must be 0
-   select count(*) from jobs where content_hash is not null and canonical_job_uuid is null;  -- hashed rows without pointer, must be 0
-   select count(*) from jobs j where j.canonical_job_uuid = j.job_uuid and j.content_hash is not null and j.is_active and not exists (select 1 from job_embeddings e where e.job_uuid=j.job_uuid);  -- active canonicals without vector, ~today's unembedded only
+   -- non-canonical vectors: ≈0; the remainder = members whose canonical has no vector (the delete keeps a group's only vector)
+   select count(*) from job_embeddings e join jobs j using(job_uuid) where j.canonical_job_uuid <> j.job_uuid;
+   -- hashed rows without pointer: must be 0
+   select count(*) from jobs where content_hash is not null and canonical_job_uuid is null;
+   -- active jobs whose vector owner has no vector: must be 0 (today's not-yet-embedded only, until the daily embed runs)
+   select count(*) from jobs j where j.is_active
+      and not exists (select 1 from job_embeddings e where e.job_uuid = coalesce(j.canonical_job_uuid, j.job_uuid));
+   -- active repost rows without a hot-jobs cluster: trending to 0 after the next hot-jobs run
+   select count(*) from jobs j where j.is_active and j.canonical_job_uuid <> j.job_uuid and j.hot_jobs_cluster is null;
    ```
-2. Merge the branch to master and push; watch CI and Railway.
-3. After the next 02:00 UTC crawl: `gh run view <id> --log | grep -E "reposts linked|posting_groups"`.
-4. If a nightly crawl ran between the dry run and the deploy, re-run `--apply` once more (resumable) to catch jobs the old code embedded.
-5. Record post-apply `job_embeddings` row count + `pg_total_relation_size` in `tickets/SGSAL-025.md` and close this ticket.
+6. After the next 02:00 UTC crawl: `gh run view <id> --log | grep -E "reposts linked|posting_groups"`.
+7. Record post-apply `job_embeddings` row count + `pg_total_relation_size('job_embeddings')` in `tickets/SGSAL-025.md` and close this ticket.
