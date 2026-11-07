@@ -247,9 +247,9 @@ Selection rulings applied:
 
 **`--apply` must not run before this branch is deployed.** (Under master's old code an expired canonical renders as "Position closed" and the old daily embed re-embeds every active repost whose vector was deleted.)
 
-1. Merge this branch to master and push; watch CI and the Railway deploy.
-2. Re-run `uv run python scripts/backfill_posting_keys.py --dry-run` — hashes and assigns pointers for the NULL-pointer rows the old crawl added since 2026-11-08.
-3. `uv run python scripts/backfill_posting_keys.py --apply --expect-max 260000` (aborts with exit 2, before any copy/delete, if more vectors would be deleted).
+1. ~~Merge this branch to master and push; watch CI and the Railway deploy.~~ **Done 2026-11-08 02:52 SGT** — master fast-forwarded to 657127a, lint green, Railway deployment 09bc85c5 healthy (startup waited ~3 min behind the dry-run's `assign_canonicals` lock + BGE download), Vercel proxy `/api/dashboard/most-reposted` serving data; `/api/lowball/check` returns `repost_count`/`canonical_job_uuid`; `/api/jobs/a4f8649a…/reposts` returns 949 occurrences.
+2. ~~Re-run `--dry-run`~~ **Done 2026-11-08** — hashed 0, assigned 0 (no crawl ran between the first dry run and the deploy); same stats.
+3. **Pending (owner):** `uv run python scripts/backfill_posting_keys.py --apply --expect-max 260000` (aborts with exit 2, before any copy/delete, if more vectors would be deleted).
 4. Score the hot-jobs backlog at once (reposts never inherit `above_market_pct`; it is computed from each row's own salary). Scores every active job still missing it — reposts included — in batches of 5,000:
    ```bash
    uv run python -c "from dotenv import load_dotenv; load_dotenv('.env'); import os; from mcf.lib.storage.postgres_store import PostgresStore; s=PostgresStore(os.environ['DATABASE_URL']); u=s.get_active_job_uuids_missing_hot_jobs_score(limit=500000); [s.assign_hot_jobs_scores(u[i:i+5000]) for i in range(0, len(u), 5000)]; print(len(u), 'jobs scored')"
