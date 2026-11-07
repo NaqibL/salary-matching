@@ -46,7 +46,7 @@ Every UPDATE writes a new row version and leaves the old one as a dead tuple. De
 
 ```sql
 -- 1. Drop index first
-DROP INDEX idx_job_embeddings_vector;
+DROP INDEX idx_job_embeddings_halfvec;
 
 -- 2. VACUUM FULL (run outside a transaction, with autocommit)
 SET statement_timeout = 0;
@@ -75,7 +75,7 @@ Disk usage drops immediately after VACUUM FULL completes (unlike regular VACUUM)
 
 ## HNSW index management
 
-Current index: `idx_job_embeddings_vector` on `job_embeddings.embedding` (`vector_cosine_ops`, `m=16`, `ef_construction=64`)
+Current index: `idx_job_embeddings_halfvec` on `(job_embeddings.embedding::halfvec(768))` (`halfvec_cosine_ops`, `m=16`, `ef_construction=64`; migration 023, SGSAL-025). The column itself is still `vector(768)`; the index is an expression index, so every job-side similarity query must use exactly `embedding::halfvec(768) <=> $1::halfvec(768)`. The old full-precision `idx_job_embeddings_vector` is dropped once the halfvec index is in use; never recreate it.
 
 **Build time:** 4–5+ hours for 172k × 768-dim on Supabase shared compute. Run overnight.
 
@@ -83,8 +83,10 @@ Current index: `idx_job_embeddings_vector` on `job_embeddings.embedding` (`vecto
 
 ```sql
 SET statement_timeout = 0;
-CREATE INDEX CONCURRENTLY idx_job_embeddings_vector
-ON job_embeddings USING hnsw (embedding vector_cosine_ops)
+SET maintenance_work_mem = '384MB';   -- keep below shared_buffers (512 MB on Small)
+SET max_parallel_maintenance_workers = 1;
+CREATE INDEX CONCURRENTLY idx_job_embeddings_halfvec
+ON job_embeddings USING hnsw ((embedding::halfvec(768)) halfvec_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 ```
 
@@ -104,11 +106,11 @@ WHERE tablename = 'job_embeddings';
 
 ```sql
 -- 1. Find and terminate worker PIDs
-SELECT pid, query FROM pg_stat_activity WHERE query ILIKE '%idx_job_embeddings_vector%';
+SELECT pid, query FROM pg_stat_activity WHERE query ILIKE '%idx_job_embeddings_halfvec%';
 SELECT pg_terminate_backend(<pid>);
 
 -- 2. Drop the invalid index
-DROP INDEX idx_job_embeddings_vector;
+DROP INDEX idx_job_embeddings_halfvec;
 
 -- 3. Retry the build
 ```

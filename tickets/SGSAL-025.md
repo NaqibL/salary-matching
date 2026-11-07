@@ -58,8 +58,39 @@ index, active + expired, so a cold query touches an index 4× larger than
   column and swap). Expected `job_embeddings` total ≈ 1.1–1.3 GB.
 - Benchmarks (pgvector issue 326, Supabase 0.7.0 post, Neon): recall identical
   to three decimals, index ~50% smaller, builds faster.
-- Also: `ALTER DATABASE … SET effective_cache_size = '1536MB'` (planner hint
-  only; harmless).
+- Also: `ALTER DATABASE postgres SET effective_cache_size = '1536MB'` (planner hint
+  only; harmless; new sessions only). **Owner must run it** — Claude's auto mode
+  refuses the ALTER (2026-11-08).
+
+#### Step 1 status (2026-11-08)
+
+- [x] Code: five job-side queries use `embedding::halfvec(768) <=> %s::halfvec(768)`
+      (ec44030, **held back locally, not pushed**).
+- [x] Migration 023 written (`scripts/migrations/023_halfvec_index.sql`).
+- [x] Workflows: the "Rebuild HNSW indexes" safety-net step in `daily-embed.yml` and
+      `re-embed.yml` used to `CREATE INDEX IF NOT EXISTS idx_job_embeddings_vector` —
+      it would have silently rebuilt the 1.9 GB full-precision index the night after
+      we drop it. Both now create the halfvec index instead (same local commit batch).
+- [x] Docs: `CLAUDE.md`, `.claude/agents/db-ops.md` point at the halfvec index.
+- [ ] `--apply` VACUUM finished (running since ≈03:30 SGT; `vacuuming indexes` phase
+      is the old HNSW index, disk-bound).
+- [ ] Build `idx_job_embeddings_halfvec` CONCURRENTLY (by hand; see migration header
+      for the session settings). Best done with no embed running: `daily-embed.yml`
+      is triggered by `daily-crawl-2.yml` (10:00 UTC / 18:00 SGT) and writes to
+      `job_embeddings`; the build survives writes but slows down.
+- [ ] Push master (ec44030 + today's docs/workflow commits) → Railway deploy →
+      `EXPLAIN (ANALYZE, BUFFERS)` of `get_all_embedded_job_ids_ranked` shows
+      `idx_job_embeddings_halfvec`. Checker p95 cold-query timing noted here.
+- [ ] `DROP INDEX CONCURRENTLY idx_job_embeddings_vector` — **only after the push**,
+      otherwise the next daily embed (old workflow on origin) recreates it.
+- [ ] `effective_cache_size` (owner, above).
+- [ ] Record `pg_relation_size` of the halfvec index (target ≤ 0.7 GB) and
+      `pg_total_relation_size('job_embeddings')`.
+
+**Order matters:** build → push → drop. Pushing before the index exists makes
+every checker query a sequential scan with the halfvec cast (the old index no
+longer matches the expression); dropping before the push lets the origin
+workflow rebuild the old index.
 
 ### 2. Re-embed the old-model vectors with `v2`
 

@@ -143,14 +143,14 @@ Read the relevant agent file before starting work in that area:
 All three root causes of the slow `/api/lowball/check` endpoint are fixed:
 
 1. **LLM clean on every query** — removed (SGSAL-004). The lowball route embeds the raw description.
-2. **pgvector HNSW index** — `idx_job_embeddings_vector` exists (SGSAL-017); `hnsw.ef_search` is set per query in `postgres_store.py`.
+2. **pgvector HNSW index** — `idx_job_embeddings_halfvec`, a halfvec(768) expression index (SGSAL-017 → SGSAL-025, migration 023); the job-side similarity queries must keep the exact `embedding::halfvec(768) <=> %s::halfvec(768)` expression or the planner stops using it. `hnsw.ef_search` is set per query in `postgres_store.py`.
 3. **Response cache** — 15-min TTL cache on `/api/lowball/check` and `/api/salary/search` (commit cd7a30c), same pattern as `src/mcf/api/cache/response.py`.
 
 Remaining known gap: the active-jobs pool cache (`src/mcf/api/cache/job_pool.py`, 24 h TTL) is only used by the matches route; the lowball route still queries the DB on a cache miss.
 
 ### Pipeline — Jev role families (SGSAL-022, in progress)
 
-The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Legacy KMeans/LR classifiers removed (C7). Left for Luqman: E1/E2 (prod auth var, stale secret). Decided 2026-11-07: **never prune job rows or expired postings**; vectors are deduplicated/compressed instead. SGSAL-024 is code-complete on branch `sgsal-024-repost-history` (migration 022 applied, backfill dry run done); remaining: backfill `--apply`, merge/deploy, then SGSAL-025 step 1 (halfvec index rebuild). SGSAL-025 covers halfvec, role-family routed partitions and cold-tier quantisation. SGSAL-023 covers near-duplicate postings with changed titles.
+The daily embed workflow runs `scripts/backfill_role_families.py` after embedding, so every new active job gets a `role_family` / tier. Legacy KMeans/LR classifiers removed (C7). Left for Luqman: E1/E2 (prod auth var, stale secret). Decided 2026-11-07: **never prune job rows or expired postings**; vectors are deduplicated/compressed instead. SGSAL-024 is live (merged 2026-11-08, `backfill_posting_keys.py --apply` run the same day: ≈255k duplicate vectors deleted, ≈376k rows left); next is SGSAL-025 step 1 (halfvec index cut-over: build `idx_job_embeddings_halfvec` by hand → push the halfvec-cast queries → drop `idx_job_embeddings_vector`). SGSAL-025 covers halfvec, role-family routed partitions and cold-tier quantisation. SGSAL-023 covers near-duplicate postings with changed titles.
 
 ### Client-facing (salary checker + dashboard)
 

@@ -70,9 +70,15 @@ jobs:
       - name: Rebuild HNSW indexes
         run: |
           psql "$DATABASE_URL" <<'SQL'
-            CREATE INDEX IF NOT EXISTS idx_job_embeddings_vector
+            -- SGSAL-025: the production index is the halfvec expression index
+            -- (migration 023). This is only a safety net for a missing index;
+            -- a real rebuild is done by hand with CREATE INDEX CONCURRENTLY.
+            -- Never recreate idx_job_embeddings_vector here: it is 1.9 GB and
+            -- the store's ORDER BY no longer matches it.
+            CREATE INDEX IF NOT EXISTS idx_job_embeddings_halfvec
               ON job_embeddings
-              USING hnsw (embedding vector_cosine_ops);
+              USING hnsw ((embedding::halfvec(768)) halfvec_cosine_ops)
+              WITH (m = 16, ef_construction = 64);
           SQL
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
