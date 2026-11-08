@@ -128,6 +128,19 @@ SELECT a.company_key, a.company, a.active_count, a.distinct_postings, a.reposted
   LEFT JOIN cat c USING (company_key)
  WHERE a.active_count > 0"""
 
+# SGSAL-028: must stay identical to scripts/migrations/025_companies.sql.
+_COMPANIES_DDL = """CREATE TABLE IF NOT EXISTS companies (
+    company_key      TEXT PRIMARY KEY,
+    name             TEXT NOT NULL,
+    uen              TEXT,
+    ssic_code        TEXT,
+    ssic_code_2020   TEXT,
+    ssic_description TEXT,
+    employee_count   INTEGER,
+    source           TEXT NOT NULL DEFAULT 'mcf',
+    fetched_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+)"""
+
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -278,6 +291,9 @@ class PostgresStore(Storage):
             _COMPANY_STATS_VIEW_SQL,
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_company_stats_key ON company_stats (company_key)",
             "CREATE INDEX IF NOT EXISTS idx_company_stats_active ON company_stats (active_count DESC)",
+            # SGSAL-028 companies registry (migration 025).
+            _COMPANIES_DDL,
+            "CREATE INDEX IF NOT EXISTS idx_companies_uen ON companies (uen)",
         ]
         try:
             with self._transaction_cur() as cur:
@@ -2977,6 +2993,72 @@ class PostgresStore(Storage):
             )
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    # === Company registry (SGSAL-028) ===
+
+    def upsert_company(
+        self,
+        *,
+        name: str,
+        uen: str | None = None,
+        ssic_code: str | None = None,
+        ssic_code_2020: str | None = None,
+        ssic_description: str | None = None,
+        employee_count: int | None = None,
+        source: str = "mcf",
+    ) -> None:
+        key = (name or "").strip().lower()
+        if not key:
+            return
+        with self._transaction_cur() as cur:
+            cur.execute(
+                """
+                INSERT INTO companies (company_key, name, uen, ssic_code, ssic_code_2020,
+                                       ssic_description, employee_count, source, fetched_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, now())
+                ON CONFLICT (company_key) DO UPDATE SET
+                    name             = EXCLUDED.name,
+                    uen              = COALESCE(EXCLUDED.uen, companies.uen),
+                    ssic_code        = COALESCE(EXCLUDED.ssic_code, companies.ssic_code),
+                    ssic_code_2020   = COALESCE(EXCLUDED.ssic_code_2020, companies.ssic_code_2020),
+                    ssic_description = COALESCE(EXCLUDED.ssic_description, companies.ssic_description),
+                    employee_count   = COALESCE(EXCLUDED.employee_count, companies.employee_count),
+                    source           = EXCLUDED.source,
+                    fetched_at       = now()
+                """,
+                (key, name.strip(), uen, ssic_code, ssic_code_2020, ssic_description, employee_count, source),
+            )
+
+    def get_companies_missing_registry(self, *, min_active: int = 1, limit: int = 20000) -> list[tuple[str, str]]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                SELECT min(j.company_name) AS name,
+                       (array_agg(j.job_uuid ORDER BY j.last_seen_at DESC NULLS LAST))[1] AS sample_uuid
+                  FROM jobs j
+                  LEFT JOIN companies c ON c.company_key = lower(j.company_name)
+                 WHERE j.is_active = TRUE AND j.company_name IS NOT NULL
+                   AND j.job_uuid NOT LIKE 'cag:%%' AND c.company_key IS NULL
+                 GROUP BY lower(j.company_name)
+                HAVING count(*) >= %s
+                 ORDER BY count(*) DESC
+                 LIMIT %s
+                """,
+                (max(1, int(min_active)), max(1, int(limit))),
+            )
+            return [(r[0], r[1]) for r in cur.fetchall()]
+
+    def get_agency_company_keys(self) -> set[str]:
+        try:
+            with self._cur() as cur:
+                cur.execute(
+                    "SELECT company_key FROM companies "
+                    "WHERE ssic_code_2020 LIKE '78%%' OR (ssic_code_2020 IS NULL AND ssic_code LIKE '78%%')"
+                )
+                return {r[0] for r in cur.fetchall()}
+        except psycopg2.errors.UndefinedTable:
+            return set()
 
     # === Match recording ===
 

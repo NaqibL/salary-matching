@@ -42,9 +42,17 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
     """Convert MCF API job detail dict to NormalizedJob."""
     title = raw.get("title") or raw.get("jobTitle")
     company_name = None
+    company_uen = company_ssic = company_ssic_2020 = company_ssic_desc = None
+    company_employees = None
     company = raw.get("postedCompany") or raw.get("hiringCompany") or raw.get("company") or raw.get("postingCompany")
     if isinstance(company, dict):
         company_name = company.get("name") or company.get("companyName")
+        company_uen = company.get("uen") or None
+        company_ssic = company.get("ssicCode") or None
+        company_ssic_2020 = company.get("ssicCode2020") or None
+        company_ssic_desc = (company.get("ssicDescription2020") or "").strip() or None
+        emp = company.get("employeeCount")
+        company_employees = int(emp) if isinstance(emp, (int, float)) else None
 
     location = None
     addr = raw.get("address") or raw.get("workLocation")
@@ -112,6 +120,11 @@ def _mcf_raw_to_normalized(raw: dict, external_id: str) -> NormalizedJob:
         salary_max=salary_max,
         posted_date=posted_date or None,
         expiry_date=expiry_date or None,
+        company_uen=company_uen,
+        company_ssic_code=company_ssic,
+        company_ssic_code_2020=company_ssic_2020,
+        company_ssic_description=company_ssic_desc,
+        company_employee_count=company_employees,
     )
 
 

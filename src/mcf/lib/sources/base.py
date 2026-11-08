@@ -104,6 +104,12 @@ class NormalizedJob:
     salary_max: int | None = None
     posted_date: str | None = None
     expiry_date: str | None = None
+    # SGSAL-028: posting-company registry fields (MCF publishes them in job detail)
+    company_uen: str | None = None
+    company_ssic_code: str | None = None
+    company_ssic_code_2020: str | None = None
+    company_ssic_description: str | None = None
+    company_employee_count: int | None = None
 
     @property
     def job_uuid(self) -> str:

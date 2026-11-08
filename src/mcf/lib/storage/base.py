@@ -678,6 +678,30 @@ class Storage(ABC):
     def get_company_top_reposted(self, company_name: str, limit: int = 5) -> list[dict]:
         """The company's active posting groups with repost_count >= 2, most reposted first."""
 
+    # === Company registry (SGSAL-028, companies table) ===
+
+    @abstractmethod
+    def upsert_company(
+        self,
+        *,
+        name: str,
+        uen: str | None = None,
+        ssic_code: str | None = None,
+        ssic_code_2020: str | None = None,
+        ssic_description: str | None = None,
+        employee_count: int | None = None,
+        source: str = "mcf",
+    ) -> None:
+        """Insert or refresh the registry row keyed by lower(name). Non-null fields win."""
+
+    @abstractmethod
+    def get_companies_missing_registry(self, *, min_active: int = 1, limit: int = 20000) -> list[tuple[str, str]]:
+        """[(company_name, sample MCF job_uuid)] for active MCF companies with no registry row."""
+
+    @abstractmethod
+    def get_agency_company_keys(self) -> set[str]:
+        """lower(name) of every registered employment agency (SSIC 78xxx)."""
+
     def reset_profile_ratings(self, user_id: str) -> dict:
         """Reset job interactions and taste profile for a user (for testing).
         Returns counts of deleted rows. Override in store implementations."""

@@ -191,6 +191,20 @@ def run_incremental_crawl(
                     expiry_date=normalized.expiry_date,
                     description=normalized.description,
                 )
+                # SGSAL-028: posting-company registry (SSIC drives the agency label). Non-fatal.
+                if normalized.company_name:
+                    try:
+                        store.upsert_company(
+                            name=normalized.company_name,
+                            uen=normalized.company_uen,
+                            ssic_code=normalized.company_ssic_code,
+                            ssic_code_2020=normalized.company_ssic_code_2020,
+                            ssic_description=normalized.company_ssic_description,
+                            employee_count=normalized.company_employee_count,
+                            source=normalized.source_id,
+                        )
+                    except Exception as e:  # noqa: BLE001
+                        print(f"Warning: company upsert failed for {normalized.company_name!r}: {e}")
 
             # Phase 1a: reposts (same title + description as a posting we already
             # hold) link to the existing canonical and skip the expensive steps.
