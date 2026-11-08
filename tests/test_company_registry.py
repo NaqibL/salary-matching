@@ -34,6 +34,24 @@ def test_upsert_marks_ssic_78_as_agency_and_merges_nulls(store):
             cur.execute("delete from companies where company_key = %s", (key,))
 
 
+def test_batch_upsert_keeps_source_sticky_and_merges(store):
+    name = f"test batch {uuid.uuid4().hex[:8]} pte ltd"
+    key = name.lower()
+    try:
+        n = store.upsert_companies([
+            {"name": name, "source": "mcf"},
+            {"name": name.upper(), "uen": "T00BATCH0A", "ssic_code_2020": "62011", "source": "mcf"},
+        ])
+        assert n == 1
+        store.upsert_company(name=name, source="cag")  # must not flip an MCF row to cag
+        with store._cur() as cur:
+            cur.execute("select uen, ssic_code_2020, source from companies where company_key = %s", (key,))
+            assert cur.fetchone() == ("T00BATCH0A", "62011", "mcf")
+    finally:
+        with store._transaction_cur() as cur:
+            cur.execute("delete from companies where company_key = %s", (key,))
+
+
 def test_missing_registry_lists_only_mcf_companies(store):
     rows = store.get_companies_missing_registry(min_active=1, limit=5)
     assert len(rows) <= 5

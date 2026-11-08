@@ -307,13 +307,13 @@ class PostgresStore(Storage):
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_posting_groups_hash ON posting_groups (content_hash)",
             "CREATE INDEX IF NOT EXISTS idx_posting_groups_canonical ON posting_groups (canonical_job_uuid)",
             "CREATE INDEX IF NOT EXISTS idx_posting_groups_reposts_365d ON posting_groups (reposts_365d DESC)",
-            # SGSAL-026 company_stats (migration 024). Production migrated by hand.
+            # SGSAL-028 companies registry (migration 025) — must precede company_stats, which joins it.
+            _COMPANIES_DDL,
+            "CREATE INDEX IF NOT EXISTS idx_companies_uen ON companies (uen)",
+            # SGSAL-026/028 company_stats (migration 026). Production migrated by hand.
             _COMPANY_STATS_VIEW_SQL,
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_company_stats_key ON company_stats (company_key)",
             "CREATE INDEX IF NOT EXISTS idx_company_stats_active ON company_stats (active_count DESC)",
-            # SGSAL-028 companies registry (migration 025).
-            _COMPANIES_DDL,
-            "CREATE INDEX IF NOT EXISTS idx_companies_uen ON companies (uen)",
         ]
         try:
             with self._transaction_cur() as cur:
@@ -2694,7 +2694,7 @@ class PostgresStore(Storage):
         ]
 
     _JOB_SALARY_COLS = (
-        "job_uuid, title, company_name, location, job_url, salary_min, salary_max, "
+        "job_uuid, title, company_name, company_canonical, content_hash, location, job_url, salary_min, salary_max, "
         "last_seen_at, is_active, description, min_years_experience, llm_fields_json"
     )
 
@@ -2907,7 +2907,7 @@ class PostgresStore(Storage):
     _COMPANY_SORTS = {
         "openings": "COALESCE(%(family_count_expr)s, active_count) DESC",
         "repost_rate": "(reposted_count::float / NULLIF(active_count, 0)) DESC NULLS LAST",
-        "median_salary": "median_salary DESC NULLS LAST",
+        "median_salary": "%(family_median_expr)s DESC NULLS LAST",
     }
 
     def refresh_company_stats(self) -> None:
@@ -2932,7 +2932,8 @@ class PostgresStore(Storage):
         family_median_expr = "(family_medians->>%(family)s)::int" if family else "NULL::int"
         family_n_expr = "(family_salary_n->>%(family)s)::int" if family else "NULL::int"
         order = self._COMPANY_SORTS.get(sort, self._COMPANY_SORTS["openings"]) % {
-            "family_count_expr": family_expr
+            "family_count_expr": family_expr,
+            "family_median_expr": family_median_expr if family else "median_salary",
         }
         where = ["active_count >= %(min_active)s"]
         if family:
@@ -2981,8 +2982,8 @@ class PostgresStore(Storage):
                     params,
                 )
                 total, openings, median = cur.fetchone()
-        except psycopg2.errors.UndefinedTable:
-            logger.warning("company_stats view missing - run scripts/migrations/024_company_stats.sql")
+        except (psycopg2.errors.UndefinedTable, psycopg2.errors.UndefinedColumn):
+            logger.warning("company_stats view missing or outdated - run scripts/migrations/026_company_stats_v2.sql")
             return empty
         return {
             "rows": rows,
@@ -3004,7 +3005,7 @@ class PostgresStore(Storage):
                     return None
                 cols = [d[0] for d in cur.description]
                 return dict(zip(cols, row))
-        except psycopg2.errors.UndefinedTable:
+        except (psycopg2.errors.UndefinedTable, psycopg2.errors.UndefinedColumn):
             return None
 
     def get_company_top_reposted(self, company_name: str, limit: int = 5) -> list[dict]:
@@ -3041,16 +3042,16 @@ class PostgresStore(Storage):
                 )
                 row = cur.fetchone()
                 return {"median_repost_rate": float(row[0]) if row and row[0] is not None else None}
-        except psycopg2.errors.UndefinedTable:
+        except (psycopg2.errors.UndefinedTable, psycopg2.errors.UndefinedColumn):
             return {"median_repost_rate": None}
 
-    def get_posting_group_companies(self, canonical_uuids: list[str]) -> dict[str, list[str]]:
-        if not canonical_uuids:
+    def get_posting_group_companies(self, content_hashes: list[str]) -> dict[str, list[str]]:
+        if not content_hashes:
             return {}
         with self._cur() as cur:
             cur.execute(
-                "SELECT canonical_job_uuid, occurrences FROM posting_groups WHERE canonical_job_uuid = ANY(%s)",
-                (list(canonical_uuids),),
+                "SELECT content_hash, occurrences FROM posting_groups WHERE content_hash = ANY(%s)",
+                (list(content_hashes),),
             )
             out: dict[str, list[str]] = {}
             for uuid, occ in cur.fetchall():
@@ -3091,23 +3092,76 @@ class PostgresStore(Storage):
                     ssic_code_2020   = COALESCE(EXCLUDED.ssic_code_2020, companies.ssic_code_2020),
                     ssic_description = COALESCE(EXCLUDED.ssic_description, companies.ssic_description),
                     employee_count   = COALESCE(EXCLUDED.employee_count, companies.employee_count),
-                    source           = EXCLUDED.source,
+                    source           = CASE WHEN companies.source = 'mcf' THEN 'mcf' ELSE EXCLUDED.source END,
                     fetched_at       = now()
                 """,
                 (key, name.strip(), uen, ssic_code, ssic_code_2020, ssic_description, employee_count, source),
             )
 
-    def get_companies_missing_registry(self, *, min_active: int = 1, limit: int = 20000) -> list[tuple[str, str]]:
+    def upsert_companies(self, rows: list[dict]) -> int:
+        """Batch form of upsert_company for the crawl: one transaction, one statement.
+
+        rows: dicts with name and optional uen / ssic_code / ssic_code_2020 / ssic_description /
+        employee_count / source. Duplicate keys keep the first row with the most identifiers.
+        """
+        best: dict[str, dict] = {}
+        for r in rows:
+            key = (r.get("name") or "").strip().lower()
+            if not key:
+                continue
+            score = sum(1 for k in ("uen", "ssic_code", "ssic_code_2020", "ssic_description") if r.get(k))
+            if key not in best or score > best[key][0]:
+                best[key] = (score, r)
+        if not best:
+            return 0
+        values = [
+            (key, r["name"].strip(), r.get("uen"), r.get("ssic_code"), r.get("ssic_code_2020"),
+             r.get("ssic_description"), r.get("employee_count"), r.get("source") or "mcf")
+            for key, (_, r) in best.items()
+        ]
+        with self._transaction_cur() as cur:
+            execute_values(
+                cur,
+                """
+                INSERT INTO companies (company_key, name, uen, ssic_code, ssic_code_2020,
+                                       ssic_description, employee_count, source, fetched_at)
+                VALUES %s
+                ON CONFLICT (company_key) DO UPDATE SET
+                    name             = EXCLUDED.name,
+                    uen              = COALESCE(EXCLUDED.uen, companies.uen),
+                    ssic_code        = COALESCE(EXCLUDED.ssic_code, companies.ssic_code),
+                    ssic_code_2020   = COALESCE(EXCLUDED.ssic_code_2020, companies.ssic_code_2020),
+                    ssic_description = COALESCE(EXCLUDED.ssic_description, companies.ssic_description),
+                    employee_count   = COALESCE(EXCLUDED.employee_count, companies.employee_count),
+                    source           = CASE WHEN companies.source = 'mcf' THEN 'mcf' ELSE EXCLUDED.source END,
+                    fetched_at       = now()
+                """,
+                values,
+                template="(%s, %s, %s, %s, %s, %s, %s, %s, now())",
+                page_size=500,
+            )
+        return len(values)
+
+    def get_companies_missing_registry(
+        self, *, min_active: int = 1, limit: int = 20000, include_empty: bool = False
+    ) -> list[tuple[str, str]]:
+        """Active MCF companies with no registry row — or, with ``include_empty``, also rows that
+        exist but carry no identifiers at all (a 404 from MCF or an older failed fetch)."""
+        missing = (
+            "(c.company_key IS NULL OR (c.uen IS NULL AND c.ssic_code IS NULL AND c.ssic_code_2020 IS NULL))"
+            if include_empty
+            else "c.company_key IS NULL"
+        )
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
-                """
+                f"""
                 SELECT min(j.company_name) AS name,
                        (array_agg(j.job_uuid ORDER BY j.last_seen_at DESC NULLS LAST))[1] AS sample_uuid
                   FROM jobs j
                   LEFT JOIN companies c ON c.company_key = lower(j.company_name)
                  WHERE j.is_active = TRUE AND j.company_name IS NOT NULL
-                   AND j.job_uuid NOT LIKE 'cag:%%' AND c.company_key IS NULL
+                   AND j.job_uuid NOT LIKE 'cag:%%' AND {missing}
                  GROUP BY lower(j.company_name)
                 HAVING count(*) >= %s
                  ORDER BY count(*) DESC
@@ -3117,14 +3171,24 @@ class PostgresStore(Storage):
             )
             return [(r[0], r[1]) for r in cur.fetchall()]
 
+    _AGENCY_SSIC_CLAUSE = "(c.ssic_code_2020 LIKE %s OR (c.ssic_code_2020 IS NULL AND c.ssic_code LIKE %s))"
+
     def get_agency_company_keys(self) -> set[str]:
+        """Raw registry keys plus the canonical spelling of every agency's jobs, so callers can
+        match either ``company_name`` or ``company_canonical`` (posting_groups uses canonical)."""
         try:
             with self._cur() as cur:
                 cur.execute(
-                    "SELECT company_key FROM companies "
-                    "WHERE ssic_code_2020 LIKE '78%%' OR (ssic_code_2020 IS NULL AND ssic_code LIKE '78%%')"
+                    f"""
+                    SELECT c.company_key FROM companies c WHERE {self._AGENCY_SSIC_CLAUSE}
+                    UNION
+                    SELECT DISTINCT lower(j.company_canonical)
+                      FROM jobs j JOIN companies c ON c.company_key = lower(j.company_name)
+                     WHERE j.company_canonical IS NOT NULL AND {self._AGENCY_SSIC_CLAUSE}
+                    """,
+                    ("78%", "78%", "78%", "78%"),
                 )
-                return {r[0] for r in cur.fetchall()}
+                return {r[0] for r in cur.fetchall() if r[0]}
         except psycopg2.errors.UndefinedTable:
             return set()
 

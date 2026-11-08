@@ -69,8 +69,14 @@ function formatSalary(min: number | null, max: number | null): string {
 
 /** "EMPLOYMENT AGENCIES (EXCEPT ...)" → "Employment agencies" — SSIC descriptions are shouty and parenthetical. */
 function titleCase(raw: string): string {
-  const base = raw.split('(')[0].trim().toLowerCase()
-  return base.charAt(0).toUpperCase() + base.slice(1)
+  const base = raw.split('(')[0].trim()
+  if (!base) return ''
+  const words = base.toLowerCase().split(/\s+/).map((w, i) => {
+    const upper = w.toUpperCase()
+    if (/^[a-z]{1,3}$/.test(w) && ['it', 'ai', 'hr', 'ict', 'r&d', 'f&b'].includes(w)) return upper
+    return i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w
+  })
+  return words.join(' ')
 }
 
 function formatRecency(isoStr: string): string {
@@ -187,7 +193,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
     : []
   const showStatsCharts = !!stats && stats.active_count >= 3
   const isAgency = !!stats?.is_agency
-  const industry = stats?.ssic_description ? titleCase(stats.ssic_description) : null
+  const industry = stats?.ssic_description ? titleCase(stats.ssic_description) || null : null
   const oneIn = (num: number, den: number) => (num > 0 && den > 0 ? Math.max(1, Math.round(den / num)) : null)
   const repostOneIn = stats ? oneIn(stats.reposted_count, stats.active_count) : null
   const typicalRate = profile.benchmarks?.median_repost_rate ?? null
@@ -195,6 +201,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
 
   const showCharts = profile.total_count >= 3
   const showSalary =
+    !profile.stats?.is_agency &&
     profile.salary_p25 != null &&
     profile.salary_p50 != null &&
     profile.salary_p75 != null &&

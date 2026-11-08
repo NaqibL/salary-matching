@@ -140,27 +140,34 @@ def _agency_keys(store: Storage) -> set[str]:
 
 
 def _direct_employers(store: Storage, rows: list[dict], agency_keys: set[str]) -> dict[str, str]:
-    """canonical_job_uuid -> a non-agency company that also posted the same ad (SGSAL-028)."""
-    wanted = [
-        (j.get("canonical_job_uuid") or j["job_uuid"])
-        for j in rows
-        if _int_or(j.get("distinct_companies"), 1) >= 2
-    ]
-    if not wanted:
+    """canonical_job_uuid -> a non-agency company that also posted the same ad text (SGSAL-028).
+
+    Looks the posting group up by ``content_hash`` (exact, even when a hash has two
+    self-canonicals). Occurrence names are canonical names, so ``agency_keys`` must contain
+    both raw and canonical spellings (see ``get_agency_company_keys``) and the card's own
+    company is excluded by raw *and* canonical name.
+    """
+    by_hash = {j["content_hash"]: j for j in rows if j.get("content_hash") and _int_or(j.get("distinct_companies"), 1) >= 2}
+    if not by_hash:
         return {}
     try:
-        groups = store.get_posting_group_companies(wanted)
+        groups = store.get_posting_group_companies(list(by_hash))
     except Exception:  # noqa: BLE001
         logger.exception("posting group company lookup failed")
         return {}
     out: dict[str, str] = {}
-    by_uuid = {(j.get("canonical_job_uuid") or j["job_uuid"]): j for j in rows}
-    for uuid, names in groups.items():
-        own = (by_uuid.get(uuid, {}).get("company_name") or "").strip().lower()
+    for content_hash, names in groups.items():
+        row = by_hash.get(content_hash)
+        if row is None:
+            continue
+        own = {
+            (row.get("company_name") or "").strip().lower(),
+            (row.get("company_canonical") or "").strip().lower(),
+        } - {""}
         for name in names:
             key = name.strip().lower()
-            if key and key != own and key not in agency_keys:
-                out[uuid] = name
+            if key and key not in own and key not in agency_keys:
+                out[row.get("canonical_job_uuid") or row["job_uuid"]] = name
                 break
     return out
 
@@ -192,7 +199,10 @@ def _build_similar_jobs(
             "salary_max": j.get("salary_max"),
             "is_active": j.get("is_active", True),
             # SGSAL-028: label facts (SSIC 78 registry; posting-group companies)
-            "is_agency": (j.get("company_name") or "").strip().lower() in agency_keys,
+            "is_agency": bool(
+                {(j.get("company_name") or "").strip().lower(), (j.get("company_canonical") or "").strip().lower()}
+                & agency_keys
+            ),
             "direct_employer": direct_by_canonical.get(score_key),
             "description": raw_desc or None,
             "similarity_score": round(uuid_to_score.get(score_key, 0.0), 4),
@@ -208,7 +218,8 @@ def _build_similar_jobs(
             "min_salary_seen": j.get("min_salary_seen"),
             "max_salary_seen": j.get("max_salary_seen"),
         })
-    result.sort(key=lambda x: x["similarity_score"], reverse=True)
+    # SGSAL-027: open roles first, then by score — callers pass open rows ahead of closed ones.
+    result.sort(key=lambda x: (not (x["is_active"] or x["active_count"] > 0), -x["similarity_score"]))
     # Until duplicate vectors are deleted, two members of one posting group can
     # resolve to the same latest occurrence: keep the best-scoring entry only.
     seen: set[str] = set()

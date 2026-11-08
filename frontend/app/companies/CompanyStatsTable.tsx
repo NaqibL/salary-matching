@@ -44,10 +44,12 @@ function SortHeader({
 /** "Healthcare & Allied Health (62%)", or "Mixed · 25 job types" for agencies / very wide spreads. */
 export function hiresMainly(r: CompanyStatsRow, familyRows?: RoleFamilyRow[]): string {
   const share = r.top_family_share ?? 0
-  if (r.is_agency || (!r.top_family || share < 0.3)) {
+  const concentrated = !!r.top_family && r.top_family !== 'other' && share >= 0.3
+  // Agencies read "Mixed" unless they genuinely concentrate on one field.
+  if (!concentrated || (r.is_agency && share < 0.6)) {
     return `Mixed · ${r.family_count} job ${r.family_count === 1 ? 'type' : 'types'}`
   }
-  return `${familyLabel(r.top_family, familyRows)} (${Math.round(share * 100)}%)`
+  return `${familyLabel(r.top_family!, familyRows)} (${Math.round(share * 100)}%)`
 }
 
 function factLine(r: CompanyStatsRow): string | null {

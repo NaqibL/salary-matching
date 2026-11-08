@@ -163,6 +163,7 @@ def run_incremental_crawl(
 
             # Phase 1: Fetch job details and upsert (no embeddings yet)
             fetched: list[NormalizedJob] = []
+            company_rows: list[dict] = []
             for external_id in added:
                 try:
                     normalized = job_source.get_job_detail(external_id)
@@ -191,20 +192,25 @@ def run_incremental_crawl(
                     expiry_date=normalized.expiry_date,
                     description=normalized.description,
                 )
-                # SGSAL-028: posting-company registry (SSIC drives the agency label). Non-fatal.
-                if normalized.company_name:
-                    try:
-                        store.upsert_company(
-                            name=normalized.company_name,
-                            uen=normalized.company_uen,
-                            ssic_code=normalized.company_ssic_code,
-                            ssic_code_2020=normalized.company_ssic_code_2020,
-                            ssic_description=normalized.company_ssic_description,
-                            employee_count=normalized.company_employee_count,
-                            source=normalized.source_id,
-                        )
-                    except Exception as e:  # noqa: BLE001
-                        print(f"Warning: company upsert failed for {normalized.company_name!r}: {e}")
+                # SGSAL-028: posting-company registry (SSIC drives the agency label). MCF only —
+                # CAG carries no registry data; flushed once after Phase 1.
+                if normalized.company_name and normalized.source_id == "mcf":
+                    company_rows.append({
+                        "name": normalized.company_name,
+                        "uen": normalized.company_uen,
+                        "ssic_code": normalized.company_ssic_code,
+                        "ssic_code_2020": normalized.company_ssic_code_2020,
+                        "ssic_description": normalized.company_ssic_description,
+                        "employee_count": normalized.company_employee_count,
+                        "source": "mcf",
+                    })
+
+            if company_rows:
+                try:
+                    n_companies = store.upsert_companies(company_rows)
+                    print(f"Registry: {n_companies} companies upserted")
+                except Exception as e:  # noqa: BLE001
+                    print(f"Warning: company registry upsert failed, skipping: {e}")
 
             # Phase 1a: reposts (same title + description as a posting we already
             # hold) link to the existing canonical and skip the expensive steps.

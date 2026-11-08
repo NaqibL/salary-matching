@@ -2,7 +2,6 @@ import type { PostingOccurrence, SimilarJob } from './types'
 
 /** First guesses (SGSAL-024); tune from the backfill's reposts_365d distribution. */
 export const REPOST_AMBER_MIN = 6
-export const REPOST_COMPANIES_AMBER_MIN = 3
 
 export type RepostTone = 'none' | 'slate' | 'amber'
 

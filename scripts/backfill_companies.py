@@ -25,10 +25,19 @@ MCF_JOB_URL = "https://api.mycareersfuture.gov.sg/v2/jobs/{uuid}"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; sglowball-registry/1.0)", "Accept": "application/json"}
 
 
+class Gone(Exception):
+    """The job no longer exists at MCF (404/410): record the miss, do not retry."""
+
+
 def fetch_posted_company(job_uuid: str) -> dict | None:
     req = urllib.request.Request(MCF_JOB_URL.format(uuid=job_uuid), headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.load(resp)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.load(resp)
+    except urllib.error.HTTPError as e:
+        if e.code in (404, 410):
+            raise Gone() from e
+        raise
     company = data.get("postedCompany") or data.get("hiringCompany")
     return company if isinstance(company, dict) else None
 
@@ -38,6 +47,8 @@ def main() -> int:
     ap.add_argument("--min-active", type=int, default=1, help="only companies with at least this many active jobs")
     ap.add_argument("--limit", type=int, default=20000)
     ap.add_argument("--rps", type=float, default=4.0, help="max requests per second to the MCF API")
+    ap.add_argument("--retry-empty", action="store_true",
+                    help="also retry companies whose registry row has no UEN/SSIC (earlier miss or failure)")
     args = ap.parse_args()
 
     load_dotenv(".env")
@@ -49,30 +60,42 @@ def main() -> int:
     from mcf.lib.storage.postgres_store import PostgresStore
 
     store = PostgresStore(url)
-    todo = store.get_companies_missing_registry(min_active=args.min_active, limit=args.limit)
+    todo = store.get_companies_missing_registry(
+        min_active=args.min_active, limit=args.limit, include_empty=args.retry_empty
+    )
     print(f"{len(todo):,} companies missing from the registry")
     delay = 1.0 / max(args.rps, 0.1)
-    done = failed = empty = 0
+    done = failed = empty = skipped = 0
     t0 = time.time()
     for i, (name, job_uuid) in enumerate(todo, 1):
         started = time.time()
+        pc: dict | None = None
+        gone = False
         try:
             pc = fetch_posted_company(job_uuid)
+        except Gone:
+            gone = True
         except urllib.error.HTTPError as e:
+            # transient (429 / 5xx): leave the company untouched so the next run retries it
             failed += 1
+            skipped += 1
             if e.code == 429:
                 time.sleep(10)
-            pc = None
-        except Exception:  # noqa: BLE001
+            continue
+        except Exception:  # noqa: BLE001 — timeout, DNS, bad JSON: retry next run
             failed += 1
-            pc = None
+            skipped += 1
+            continue
         if pc is None:
-            # record the miss so we do not retry forever; source stays 'mcf' with no SSIC
+            # a definite miss (job gone, or no posting company in a 200): record it so the
+            # default run does not retry forever; --retry-empty can revisit these later
             try:
                 store.upsert_company(name=name, source="mcf")
                 empty += 1
             except Exception as e:  # noqa: BLE001
                 print(f"  upsert failed for {name!r}: {e}")
+            if gone:
+                pass
         else:
             emp = pc.get("employeeCount")
             try:
@@ -103,12 +126,13 @@ def main() -> int:
                 print(f"  upsert failed for {name!r}: {e}")
         if i % 200 == 0 or i == len(todo):
             rate = i / max(time.time() - t0, 1e-6)
-            print(f"  {i:,}/{len(todo):,}  stored {done:,}  no-company {empty:,}  failed {failed:,}  "
+            print(f"  {i:,}/{len(todo):,}  stored {done:,}  no-company {empty:,}  retry-later {skipped:,}  "
                   f"({rate:.1f}/s, ~{(len(todo) - i) / max(rate, 1e-6) / 60:.0f} min left)", flush=True)
         spent = time.time() - started
         if spent < delay:
             time.sleep(delay - spent)
-    print(f"done: stored {done:,}, no-company {empty:,}, failed {failed:,} in {(time.time() - t0) / 60:.1f} min")
+    print(f"done: stored {done:,}, no-company {empty:,}, retry-later {skipped:,} (transient errors {failed:,}) "
+          f"in {(time.time() - t0) / 60:.1f} min")
     return 0
 
 

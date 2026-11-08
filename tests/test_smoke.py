@@ -411,3 +411,15 @@ def test_lowball_cards_show_open_roles_first(client):
         # every open card precedes every closed card
         flags = [bool(c.get("is_active") or (c.get("active_count") or 0) > 0) for c in cards]
         assert flags == sorted(flags, reverse=True)
+
+
+def test_lowball_open_first_holds_when_open_matched_is_below_top_k(client):
+    """Review finding: with top_k=100 some cards are closed fillers; open ones must still lead."""
+    body = {"title": "Data Analyst", "description": "SQL, Power BI, Python reporting for operations KPIs.",
+            "salary": 5000, "top_k": 100}
+    data = client.post("/api/lowball/check", json=body).json()
+    cards = data["similar_jobs"]
+    flags = [bool(c.get("is_active") or (c.get("active_count") or 0) > 0) for c in cards]
+    assert flags == sorted(flags, reverse=True)
+    if 0 < data["open_matched"] < len(cards):
+        assert flags.count(True) == min(data["open_matched"], len(cards))

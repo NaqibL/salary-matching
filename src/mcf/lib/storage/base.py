@@ -685,8 +685,8 @@ class Storage(ABC):
         """{"median_repost_rate": float | None} over companies with 10+ openings (context for profiles)."""
 
     @abstractmethod
-    def get_posting_group_companies(self, canonical_uuids: list[str]) -> dict[str, list[str]]:
-        """canonical_job_uuid -> distinct company names across the posting group's occurrences."""
+    def get_posting_group_companies(self, content_hashes: list[str]) -> dict[str, list[str]]:
+        """content_hash -> distinct (canonical) company names across the posting group's occurrences."""
 
     # === Company registry (SGSAL-028, companies table) ===
 
@@ -705,12 +705,19 @@ class Storage(ABC):
         """Insert or refresh the registry row keyed by lower(name). Non-null fields win."""
 
     @abstractmethod
-    def get_companies_missing_registry(self, *, min_active: int = 1, limit: int = 20000) -> list[tuple[str, str]]:
-        """[(company_name, sample MCF job_uuid)] for active MCF companies with no registry row."""
+    def get_companies_missing_registry(
+        self, *, min_active: int = 1, limit: int = 20000, include_empty: bool = False
+    ) -> list[tuple[str, str]]:
+        """[(company_name, sample MCF job_uuid)] for active MCF companies with no registry row
+        (``include_empty``: also rows with no UEN/SSIC at all)."""
+
+    @abstractmethod
+    def upsert_companies(self, rows: list[dict]) -> int:
+        """Batch upsert for the crawl; returns the number of distinct companies written."""
 
     @abstractmethod
     def get_agency_company_keys(self) -> set[str]:
-        """lower(name) of every registered employment agency (SSIC 78xxx)."""
+        """lower(name) AND lower(company_canonical) of every registered employment agency (SSIC 78xxx)."""
 
     def reset_profile_ratings(self, user_id: str) -> dict:
         """Reset job interactions and taste profile for a user (for testing).
