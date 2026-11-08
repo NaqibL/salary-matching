@@ -16,9 +16,12 @@ import {
   History,
   TrendingUp,
   Clock,
+  Repeat,
 } from 'lucide-react'
-import { companiesApi } from '@/lib/api'
-import type { CompanyProfile, CompanyJob } from '@/lib/types'
+import { companiesApi, dashboardApi } from '@/lib/api'
+import type { CompanyProfile, CompanyJob, RoleFamilyRow } from '@/lib/types'
+import { monthYear, salaryRangeText } from '@/lib/repost'
+import { familyColor, familyLabel } from '@/lib/roleFamilies'
 import { Layout } from '@/app/components/layout'
 import NavUserActions from '@/app/components/NavUserActions'
 import { Card, CardBody, PageHeader } from '@/components/design'
@@ -130,6 +133,9 @@ export default function CompanyContent({ companyName }: { companyName: string })
     () => companiesApi.getProfile(companyName),
     { revalidateOnFocus: false },
   )
+  const { data: families } = useSWR<RoleFamilyRow[]>('dashboard-role-families', dashboardApi.getRoleFamilies, {
+    revalidateOnFocus: false,
+  })
 
   if (isLoading) {
     return (
@@ -164,6 +170,24 @@ export default function CompanyContent({ companyName }: { companyName: string })
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name, value }))
 
+  // SGSAL-026: company_stats facts (null until the view has a row for this company)
+  const stats = profile.stats ?? null
+  const topReposted = profile.top_reposted ?? []
+  const repostRate = stats && stats.active_count ? Math.round((stats.reposted_count / stats.active_count) * 100) : null
+  const familyMix = stats
+    ? Object.entries(stats.role_family_counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([key, value]) => ({ key, name: familyLabel(key, families), value }))
+    : []
+  const industryMix = stats
+    ? Object.entries(stats.category_counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name, value]) => ({ name, value }))
+    : []
+  const showStatsCharts = !!stats && stats.active_count >= 3
+
   const showCharts = profile.total_count >= 3
   const showSalary =
     profile.salary_p25 != null &&
@@ -181,7 +205,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
         />
 
         {/* Stat row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
             {
               icon: <Briefcase size={18} className="text-indigo-500" />,
@@ -206,6 +230,11 @@ export default function CompanyContent({ companyName }: { companyName: string })
               value: profile.avg_min_experience != null
                 ? `${profile.avg_min_experience} yrs`
                 : '—',
+            },
+            {
+              icon: <Repeat size={18} className="text-indigo-400" />,
+              label: 'Repost rate',
+              value: repostRate != null ? `${repostRate}%` : '—',
             },
           ].map(({ icon, label, value }) => (
             <Card key={label} size="compact">
@@ -242,6 +271,51 @@ export default function CompanyContent({ companyName }: { companyName: string })
           </Card>
         )}
 
+        {/* Reposting (SGSAL-026) */}
+        {stats && (
+          <Card>
+            <CardBody>
+              <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
+                <Repeat size={16} aria-hidden /> Reposting
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
+                {stats.reposted_count.toLocaleString()} of {stats.active_count.toLocaleString()} live postings have been posted before
+                {stats.distinct_postings < stats.active_count && (
+                  <> · {stats.distinct_postings.toLocaleString()} distinct ads behind {stats.active_count.toLocaleString()} listings</>
+                )}
+                {stats.max_repost_count >= 2 && <> · one ad posted {stats.max_repost_count}×</>}
+                {stats.multi_company_count > 0 && (
+                  <> · {stats.multi_company_count.toLocaleString()} also appear under other company names</>
+                )}
+                {' · across '}
+                {stats.family_count} role {stats.family_count === 1 ? 'family' : 'families'}
+              </p>
+              {topReposted.length === 0 ? (
+                <p className="text-sm text-slate-400 dark:text-slate-500 py-2">No reposted ads among the live postings.</p>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {topReposted.map((r) => (
+                    <div key={r.canonical_job_uuid} className="flex items-start justify-between gap-3 py-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate" title={r.title ?? ''}>
+                          {r.title ?? '—'}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {r.repost_count}× · {monthYear(r.first_posted) || '?'} – {monthYear(r.last_posted) || '?'}
+                          {r.distinct_companies >= 2 && <> · under {r.distinct_companies} company names</>}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {salaryRangeText(r.latest_salary_min, r.latest_salary_max) ?? ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        )}
+
         {/* Latest openings */}
         <Card>
           <CardBody>
@@ -261,6 +335,58 @@ export default function CompanyContent({ companyName }: { companyName: string })
             )}
           </CardBody>
         </Card>
+
+        {/* Role families + industries (SGSAL-026) */}
+        {showStatsCharts && (familyMix.length > 0 || industryMix.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {familyMix.length > 0 && (
+              <Card>
+                <CardBody>
+                  <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-4">Hiring by role family</h2>
+                  <ResponsiveContainer width="100%" height={Math.max(160, familyMix.length * 28)}>
+                    <BarChart data={familyMix} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={150}
+                        tick={{ fontSize: 11, fill: 'currentColor' }}
+                        className="text-slate-600 dark:text-slate-400"
+                      />
+                      <Tooltip formatter={(v: number) => [v, 'live postings']} contentStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                        {familyMix.map((d) => (
+                          <Cell key={d.key} fill={familyColor(d.key)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardBody>
+              </Card>
+            )}
+            {industryMix.length > 0 && (
+              <Card>
+                <CardBody>
+                  <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-4">Industries</h2>
+                  <ResponsiveContainer width="100%" height={Math.max(160, industryMix.length * 28)}>
+                    <BarChart data={industryMix} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={150}
+                        tick={{ fontSize: 11, fill: 'currentColor' }}
+                        className="text-slate-600 dark:text-slate-400"
+                      />
+                      <Tooltip formatter={(v: number) => [v, 'live postings']} contentStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="var(--viz-1, #2a78d6)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardBody>
+              </Card>
+            )}
+          </div>
+        )}
 
         {/* Hiring patterns */}
         {showCharts && (posLevels.length > 0 || empTypes.length > 0) && (
