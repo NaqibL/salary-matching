@@ -23,7 +23,7 @@ export async function GET(
         if (!res.ok) throw new Error(`Backend error: ${res.status}`)
         return res.json()
       },
-      [`company-profile-${name}`],
+      [`company-profile-v3-${name}`],
       { revalidate: REVALIDATE_SECONDS },
     )()
 

@@ -61,7 +61,7 @@ SELECT content_hash,
   FROM ranked
  GROUP BY content_hash"""
 
-# SGSAL-028: must stay identical to scripts/migrations/026_company_stats_v2.sql.
+# SGSAL-028: must stay identical to scripts/migrations/027_company_stats_v3.sql.
 _COMPANY_STATS_VIEW_SQL = """CREATE MATERIALIZED VIEW IF NOT EXISTS company_stats AS
 WITH base AS (
     SELECT j.job_uuid,
@@ -77,7 +77,16 @@ WITH base AS (
            pg.repost_count, pg.distinct_companies,
            c.ssic_code_2020, c.ssic_description,
            (c.ssic_code_2020 LIKE '78%'
-            OR (c.ssic_code_2020 IS NULL AND c.ssic_code LIKE '78%'))  AS agency_row
+            OR (c.ssic_code_2020 IS NULL AND c.ssic_code LIKE '78%')
+            -- name rule, vetted by registration: only MCF companies whose SSIC is known and
+            -- is not a public body (72 research, 84 public admin, 85 education, 86 health,
+            -- 91 libraries/museums, 94 membership organisations) — keeps A*STAR, MOM,
+            -- universities and hospitals out whatever their name says
+            OR (c.source = 'mcf' AND c.ssic_code_2020 IS NOT NULL
+                AND c.ssic_code_2020 !~ '^(72|84|85|86|91|94)'
+                AND COALESCE(j.company_canonical, j.company_name)
+                    ~* '(recruit|staffing|headhunt|employment agenc|personnel|human resource|\mhr\M|manpower)'
+                AND COALESCE(j.company_canonical, j.company_name) !~* 'ministry'))  AS agency_row
       FROM jobs j
       LEFT JOIN posting_groups pg ON pg.content_hash = j.content_hash
       LEFT JOIN companies c ON c.company_key = lower(j.company_name)
@@ -2983,7 +2992,7 @@ class PostgresStore(Storage):
                 )
                 total, openings, median = cur.fetchone()
         except (psycopg2.errors.UndefinedTable, psycopg2.errors.UndefinedColumn):
-            logger.warning("company_stats view missing or outdated - run scripts/migrations/026_company_stats_v2.sql")
+            logger.warning("company_stats view missing or outdated - run scripts/migrations/027_company_stats_v3.sql")
             return empty
         return {
             "rows": rows,
@@ -3174,22 +3183,24 @@ class PostgresStore(Storage):
     _AGENCY_SSIC_CLAUSE = "(c.ssic_code_2020 LIKE %s OR (c.ssic_code_2020 IS NULL AND c.ssic_code LIKE %s))"
 
     def get_agency_company_keys(self) -> set[str]:
-        """Raw registry keys plus the canonical spelling of every agency's jobs, so callers can
-        match either ``company_name`` or ``company_canonical`` (posting_groups uses canonical)."""
+        """Every spelling (canonical key and raw job company names) of companies that
+        ``company_stats.is_agency`` marks as agencies, so the checker's card tag and the
+        companies page can never disagree about who is an agency."""
         try:
             with self._cur() as cur:
                 cur.execute(
-                    f"""
-                    SELECT c.company_key FROM companies c WHERE {self._AGENCY_SSIC_CLAUSE}
+                    """
+                    SELECT company_key FROM company_stats WHERE is_agency
                     UNION
-                    SELECT DISTINCT lower(j.company_canonical)
-                      FROM jobs j JOIN companies c ON c.company_key = lower(j.company_name)
-                     WHERE j.company_canonical IS NOT NULL AND {self._AGENCY_SSIC_CLAUSE}
-                    """,
-                    ("78%", "78%", "78%", "78%"),
+                    SELECT DISTINCT lower(j.company_name)
+                      FROM jobs j
+                     WHERE j.is_active = TRUE AND j.company_name IS NOT NULL
+                       AND lower(COALESCE(j.company_canonical, j.company_name))
+                           IN (SELECT company_key FROM company_stats WHERE is_agency)
+                    """
                 )
                 return {r[0] for r in cur.fetchall() if r[0]}
-        except psycopg2.errors.UndefinedTable:
+        except (psycopg2.errors.UndefinedTable, psycopg2.errors.UndefinedColumn):
             return set()
 
     # === Match recording ===

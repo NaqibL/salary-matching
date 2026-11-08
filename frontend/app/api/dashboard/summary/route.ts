@@ -22,7 +22,7 @@ export async function GET() {
   try {
     const data = await unstable_cache(
       fetchSummary,
-      ['dashboard-summary'],
+      ['dashboard-summary-v2'],
       { revalidate: REVALIDATE_SECONDS, tags: ['dashboard-stats'] }
     )()
     return NextResponse.json(data, {

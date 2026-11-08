@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         if (!res.ok) throw new Error(`Backend error: ${res.status}`)
         return res.json()
       },
-      [`companies-stats-${key}`],
+      [`companies-stats-v3-${key}`],
       { revalidate: REVALIDATE_SECONDS },
     )()
     return NextResponse.json(data, {

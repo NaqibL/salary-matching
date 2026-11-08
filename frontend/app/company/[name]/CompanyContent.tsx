@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { companiesApi, dashboardApi } from '@/lib/api'
 import type { CompanyProfile, CompanyJob, RoleFamilyRow } from '@/lib/types'
-import { monthYear, salaryRangeText } from '@/lib/repost'
+import { monthYear, payUnit, salaryRangeText } from '@/lib/repost'
 import { familyColor, familyLabel } from '@/lib/roleFamilies'
 import { AgencyTag } from '@/app/components/AgencyTag'
 import { Layout } from '@/app/components/layout'
@@ -61,10 +61,14 @@ function SalaryBar({ p25, p50, p75 }: { p25: number; p50: number; p75: number })
 // ---------------------------------------------------------------------------
 
 function formatSalary(min: number | null, max: number | null): string {
-  if (!min && !max) return ''
-  if (min && max) return `$${(min / 1000).toFixed(1)}k–$${(max / 1000).toFixed(1)}k`
-  if (min) return `from $${(min / 1000).toFixed(1)}k`
-  return `up to $${(max! / 1000).toFixed(1)}k`
+  const lo = min && min > 0 ? min : null
+  const hi = max && max > 0 ? max : null
+  if (lo == null && hi == null) return 'salary not stated'
+  const unit = payUnit(hi ?? lo!)
+  const k = (v: number) => (unit === '/mo' ? `$${(v / 1000).toFixed(1)}k` : `$${v.toLocaleString()}`)
+  if (lo != null && hi != null) return `${k(lo)}–${k(hi)}${unit}`
+  if (lo != null) return `from ${k(lo)}${unit}`
+  return `up to ${k(hi!)}${unit}`
 }
 
 /** "EMPLOYMENT AGENCIES (EXCEPT ...)" → "Employment agencies" — SSIC descriptions are shouty and parenthetical. */
@@ -229,6 +233,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             {
+              title: undefined as string | undefined,
               icon: <Briefcase size={18} className="text-indigo-500" />,
               label: 'Open roles',
               value: profile.active_count.toLocaleString(),
@@ -254,10 +259,15 @@ export default function CompanyContent({ companyName }: { companyName: string })
               icon: <Repeat size={18} className="text-indigo-400" />,
               label: 'Reposted ads',
               value: repostOneIn != null ? `1 in ${repostOneIn}` : stats ? 'none' : '—',
-              sub: typicalOneIn != null ? `typical company: 1 in ${typicalOneIn}` : 'of live ads were posted before',
+              sub:
+                typicalOneIn != null
+                  ? `typical company: 1 in ${typicalOneIn}${repostOneIn != null && repostOneIn < typicalOneIn ? ' · more than most' : ''}`
+                  : 'of live ads were posted before',
+              title:
+                'Share of this company\'s live ads whose exact text was posted before. Reposting can mean ongoing hiring, high turnover or an agency re-running a client role.',
             },
-          ].map(({ icon, label, value, sub }) => (
-            <Card key={label} size="compact">
+          ].map(({ icon, label, value, sub, title }) => (
+            <Card key={label} size="compact" title={title}>
               <CardBody>
                 <div className="flex items-center gap-2 mb-1">{icon}</div>
                 <p className="text-xl font-semibold text-slate-800 dark:text-slate-100">{value}</p>

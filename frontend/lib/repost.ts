@@ -41,12 +41,22 @@ export function fullDate(iso: string | null | undefined): string {
   return Number.isNaN(d.getTime()) ? '' : `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`
 }
 
+/** MCF ads sometimes put an hourly or daily rate in the salary fields; label by magnitude. */
+export function payUnit(max: number): '/hr' | '/day' | '/mo' {
+  if (max < 100) return '/hr'
+  if (max < 500) return '/day'
+  return '/mo'
+}
+
 export function salaryRangeText(min: number | null | undefined, max: number | null | undefined): string | null {
   const fmt = (v: number) => `$${v.toLocaleString()}`
-  if (min != null && max != null) return `${fmt(min)} – ${fmt(max)}/mo`
-  if (min != null) return `From ${fmt(min)}/mo`
-  if (max != null) return `Up to ${fmt(max)}/mo`
-  return null
+  const lo = min && min > 0 ? min : null
+  const hi = max && max > 0 ? max : null
+  if (lo == null && hi == null) return null
+  const unit = payUnit(hi ?? lo!)
+  if (lo != null && hi != null) return `${fmt(lo)} – ${fmt(hi)}${unit}`
+  if (lo != null) return `From ${fmt(lo)}${unit}`
+  return `Up to ${fmt(hi!)}${unit}`
 }
 
 /** Oldest vs newest salaried occurrence. null when fewer than 2 have a salary. */

@@ -1,7 +1,7 @@
 import { Building2 } from 'lucide-react'
 
 export const AGENCY_TOOLTIP =
-  'Registered as an employment agency (SSIC 78). Posts roles on behalf of other employers.'
+  'Recruitment agency: registered as an employment agency (SSIC 78), or a recruitment / staffing firm by name whose registration is not a public body. Posts roles on behalf of other employers.'
 
 /** "Recruitment agency" tag. Shown only for companies registered under SSIC 78 (SGSAL-028). */
 export function AgencyTag({ size = 'xs' }: { size?: 'xs' | 'sm' }) {

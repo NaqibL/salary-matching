@@ -61,3 +61,13 @@ def test_one_and_top_reposted(store):
     for r in reposted:
         assert r["repost_count"] >= 2
     assert [r["repost_count"] for r in reposted] == sorted((r["repost_count"] for r in reposted), reverse=True)
+
+
+def test_agency_rule_spares_public_bodies(store):
+    """Universities, research institutes and hospitals are never agencies, whatever their names."""
+    for name in ("NUS", "NTU", "A*STAR"):
+        row = store.get_company_stats_one(name)
+        if row is not None:
+            assert row["is_agency"] is False, name
+    keys = store.get_agency_company_keys()
+    assert "nus" not in keys and "a*star" not in keys
