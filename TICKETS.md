@@ -32,3 +32,4 @@ Project prefix: `SGSAL`
 | [SGSAL-026](tickets/SGSAL-026.md) | Companies page rework — explore by role family / industry, repost facts per company | done | medium |
 | [SGSAL-027](tickets/SGSAL-027.md) | Salary checker — similar-roles cards show open postings first | done | high |
 | [SGSAL-028](tickets/SGSAL-028.md) | Companies registry (SSIC) + UX v2 — recruitment-agency label, simpler companies/profile/dashboard | done | high |
+| [SGSAL-029](tickets/SGSAL-029.md) | Findings page (public what's new) + technical CHANGELOG.md | in-progress | medium |

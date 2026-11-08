@@ -123,40 +123,7 @@ uv run python -m pytest tests/ -v
 
 ## Changelog
 
-### 2026-06-16 — Seniority filter on salary checker + BGE v2 embeddings
-- **Seniority dropdown** — salary checker now accepts an optional seniority level (Intern → Director); selection is appended to the embedding query for more accurate similar-role retrieval
-- **BGE v2 model** — all 172k job embeddings re-indexed with `bge-base-sgmarket-v2` (fine-tuned on SG market data); improves BI Analyst and cross-function role separation
-- **Intern seniority** — "Intern" added as a valid seniority level in the LLM cleaner and salary checker
-
-### 2026-06-02 — Memory leak fix + salary checker polish
-- **Memory leak fix** — response and matches caches now sweep expired entries every 5 min via a background daemon thread; previously, entries with long TTLs (up to 24h) were only evicted on access and accumulated indefinitely, causing Railway memory to creep from ~18 GB to 25 GB over the course of a day
-- **Monthly base label** — salary input and result band now explicitly labelled "Monthly Base (SGD)"
-- **EP compliance filter** — malformed salary ranges (`max > 2× min`) excluded from the percentile pool
-- **P50 as headline** — "Typical salary" is the primary figure; P25/P75 shown as secondary context with sample size note
-- **Recruiter caveat** — note flags that posted ranges tend to run 10–20% above actual offers
-- **Mobile fix** — job description text on similar-roles cards no longer overflows on small screens
-
-### 2026-05 — Performance and reliability
-- HNSW index on embeddings — cosine search is now ANN instead of a full table scan
-- Binary embedding transfer via pgvector psycopg2 adapter — faster vector reads
-- Active-jobs pool cache (15-min TTL, pre-stacked numpy matrix) now used by the salary checker
-- SSL-resilient connection pool — stale connections detected and discarded before use; TCP keepalives enabled
-- Thundering-herd guard on cache miss to prevent OOM under concurrent cold starts
-
-### 2026-04 — Company pages and public launch
-- **Companies browse page** — list all hiring companies; recruitment agencies excluded
-- **Company profile page** — salary range, hiring patterns, top skills, latest openings
-- **Company canonicalization** — LLM-assisted dedup merges variant spellings in autocomplete and lookup
-- Removed Sign In nav link; job detail page made publicly accessible
-- Open Graph meta tags + static OG screenshot for link previews
-- Rebranded from "SG Salary" to **Lowball**; `/` and `/lowball` consolidated into one page
-
-### 2026-03 — Salary checker and LLM enrichment
-- Launched salary checker — paste a job title + description, get a percentile band vs. live market data
-- LLM cleaning pass (Gemini 2.5 Flash Lite) extracts `min_years_experience`, inferred seniority, and canonical skills; surfaced on similar-roles cards
-- Removed DuckDB — Postgres/Supabase only
-
----
+The technical changelog lives in [`CHANGELOG.md`](CHANGELOG.md); public-facing findings and release notes are on the site at [/findings](https://sglowball.vercel.app/findings).
 
 ## License
 

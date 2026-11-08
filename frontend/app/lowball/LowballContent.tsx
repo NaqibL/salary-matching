@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 import { useState, useEffect } from 'react'
 import { lowballApi, companiesApi } from '@/lib/api'
 import type { LowballResult, SimilarJob } from '@/lib/types'
@@ -38,6 +40,9 @@ import {
 // ---------------------------------------------------------------------------
 // Salary bar — offered is optional; omit to show market range only
 // ---------------------------------------------------------------------------
+
+/** Bump the date when the Findings page gets a new top entry (SGSAL-029). */
+const FINDINGS_BANNER_KEY = 'findings_banner_dismissed_2026-11-08'
 
 function SalaryBar({
   offered,
@@ -434,6 +439,10 @@ export function LowballContent() {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('traffic_notice_dismissed') === 'true'
   })
+  const [findingsDismissed, setFindingsDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    try { return localStorage.getItem(FINDINGS_BANNER_KEY) === 'true' } catch { return true }
+  })
 
   // selectedCompany: exact match OR resolved via alias map
   const selectedCompany = companies.includes(companyInput)
@@ -501,6 +510,27 @@ export function LowballContent() {
           Enter the job title and description to see market rates, or add an offered salary to check if you&apos;re being lowballed.
         </p>
       </div>
+
+      {/* ── What's new (SGSAL-029): one line per release, dismissible ─────── */}
+      {!findingsDismissed && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-900 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-200">
+          <p>
+            <span className="font-medium">New on 8 Nov:</span> open roles now come first, and recruitment agencies are labelled.{' '}
+            <Link href="/findings" className="underline underline-offset-2 hover:text-indigo-700">See what we found</Link>
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss what's new"
+            className="shrink-0 text-indigo-400 hover:text-indigo-700"
+            onClick={() => {
+              setFindingsDismissed(true)
+              try { localStorage.setItem(FINDINGS_BANNER_KEY, 'true') } catch {}
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* ── High-traffic notice banner ───────────────────────────────────── */}
       {!trafficNoticeDismissed && (
