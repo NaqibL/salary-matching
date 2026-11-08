@@ -33,7 +33,7 @@ toggle, floor of 10 openings, one view).
       `CompanyContent` repost tile/card + role-family and industry charts; `api.ts`/`types.ts`
 - [x] Smoke tests for the new route shapes; `tsc --noEmit` clean
 - [x] Migration applied to Supabase by hand 2026-11-08 (14,700 rows, 21 s build, 20 s concurrent refresh); local `/companies?family=data_ai_analytics`, agency toggle, `/company/RECRUIT EXPRESS PTE LTD` checked in Chrome
-- [ ] Deployed to Railway + Vercel; production `/companies` checked
+- [x] Deployed 2026-11-08 13:31 SGT (bd39352): Railway 6179ff51 SUCCESS, Vercel stats proxy live 13:34; production `/api/companies/stats` returns 1,002 companies with 10+ openings, `/companies?family=data_ai_analytics&agency=direct` lists TikTok (34), ByteDance (12)
 
 ## Notes (2026-11-08)
 
