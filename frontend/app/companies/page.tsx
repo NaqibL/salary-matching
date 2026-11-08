@@ -5,20 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { Building2, Search } from 'lucide-react'
 import { companiesApi, dashboardApi } from '@/lib/api'
-import type { CompanyAgencyFilter, CompanyStatsResponse, CompanyStatsSort, RoleFamilyRow } from '@/lib/types'
+import type { CompanyStatsResponse, CompanyStatsSort, RoleFamilyRow } from '@/lib/types'
 import { familyLabel } from '@/lib/roleFamilies'
+import { AGENCY_TOOLTIP } from '@/app/components/AgencyTag'
 import { Layout } from '@/app/components/layout'
 import NavUserActions from '@/app/components/NavUserActions'
 import { Card, CardBody, EmptyState, PageHeader } from '@/components/design'
 import { CompanyStatsTable } from './CompanyStatsTable'
 
 const MIN_ACTIVE_OPTIONS = [10, 3, 1] as const
-const SORTS: CompanyStatsSort[] = ['openings', 'repost_rate', 'median_salary']
-const AGENCY_OPTIONS: Array<{ value: CompanyAgencyFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'direct', label: 'Direct employers' },
-  { value: 'agency', label: 'Staffing agencies' },
-]
+const SORTS: CompanyStatsSort[] = ['openings', 'median_salary']
 
 const selectCls =
   'rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50'
@@ -38,10 +34,9 @@ function CompaniesExplorer() {
 
   const family = sp.get('family') ?? ''
   const category = sp.get('category') ?? ''
-  const agencyParam = sp.get('agency')
-  const agency: CompanyAgencyFilter = agencyParam === 'direct' || agencyParam === 'agency' ? agencyParam : 'all'
+  const showAgencies = sp.get('agencies') === 'show'
   const sortParam = sp.get('sort') as CompanyStatsSort | null
-  const sort: CompanyStatsSort = sortParam && SORTS.includes(sortParam) ? sortParam : 'openings'
+  const sort: CompanyStatsSort = sortParam && SORTS.includes(sortParam) && (sortParam !== 'median_salary' || family) ? sortParam : 'openings'
   const minActive = Number(sp.get('min_active')) || 10
   const [query, setQuery] = useState(sp.get('q') ?? '')
   const q = useDebounced(query.trim(), 300)
@@ -62,14 +57,23 @@ function CompaniesExplorer() {
     revalidateOnFocus: false,
   })
 
-  const params = { family, category, q, agency, min_active: q ? 1 : minActive, sort, limit: 100 }
+  // A name search looks at everyone (no floor, agencies included); otherwise agencies are hidden by default.
+  const agency = q || showAgencies ? 'all' : 'direct'
+  const effectiveMin = q ? 1 : minActive
+  const params = { family, category, q, agency, min_active: effectiveMin, sort, limit: 100 } as const
   const { data, isLoading, error } = useSWR<CompanyStatsResponse>(
     ['companies-stats', JSON.stringify(params)],
     () => companiesApi.getStats(params),
     { revalidateOnFocus: false, keepPreviousData: true },
   )
+  // How many agencies the default view hides (same filters, agencies only).
+  const hiddenParams = { family, category, agency: 'agency', min_active: effectiveMin, limit: 1 } as const
+  const { data: hidden } = useSWR<CompanyStatsResponse>(
+    agency === 'direct' ? ['companies-stats-hidden', JSON.stringify(hiddenParams)] : null,
+    () => companiesApi.getStats(hiddenParams),
+    { revalidateOnFocus: false },
+  )
 
-  // Industry options come from the data itself (MCF categories seen on the current rows).
   const categories = useMemo(() => {
     const set = new Set<string>(category ? [category] : [])
     for (const r of data?.rows ?? []) for (const c of Object.keys(r.category_counts)) set.add(c)
@@ -78,9 +82,7 @@ function CompaniesExplorer() {
 
   const summary = data?.summary
   const focus = [family && familyLabel(family, families), category].filter(Boolean).join(' · ')
-  const subtitle = focus
-    ? `Who is hiring for ${focus}`
-    : 'Who is hiring, what they pay, and how much of it is the same ad again'
+  const subtitle = focus ? `Who is hiring for ${focus}` : 'Who is hiring in Singapore, and what they advertise'
 
   return (
     <div className="space-y-5">
@@ -93,14 +95,14 @@ function CompaniesExplorer() {
           <input
             type="search"
             aria-label="Search companies"
-            placeholder="Search companies…"
+            placeholder="Search a company…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
-        <select aria-label="Role family" className={selectCls} value={family} onChange={(e) => setParam('family', e.target.value)}>
-          <option value="">All role families</option>
+        <select aria-label="Job type" className={selectCls} value={family} onChange={(e) => setParam('family', e.target.value)}>
+          <option value="">All job types</option>
           {families
             .filter((f) => f.role_family !== 'other')
             .map((f) => (
@@ -117,23 +119,6 @@ function CompaniesExplorer() {
             </option>
           ))}
         </select>
-        <div role="group" aria-label="Employer type" className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
-          {AGENCY_OPTIONS.map((a) => (
-            <button
-              key={a.value}
-              type="button"
-              aria-pressed={agency === a.value}
-              onClick={() => setParam('agency', a.value === 'all' ? '' : a.value)}
-              className={`px-2.5 py-1.5 ${
-                agency === a.value
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
         <select
           aria-label="Minimum openings"
           className={selectCls}
@@ -147,27 +132,29 @@ function CompaniesExplorer() {
             </option>
           ))}
         </select>
+        <label className={`inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 ${q ? 'opacity-50' : ''}`} title={AGENCY_TOOLTIP}>
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            checked={showAgencies || !!q}
+            disabled={!!q}
+            onChange={(e) => setParam('agencies', e.target.checked ? 'show' : '')}
+          />
+          Show recruitment agencies
+        </label>
       </div>
 
       {/* Summary strip */}
-      <div className="space-y-1">
-        {summary && summary.companies > 0 && (
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{summary.companies.toLocaleString()}</span> companies ·{' '}
-            <span className="font-medium text-slate-700 dark:text-slate-200">{summary.openings.toLocaleString()}</span> openings
-            {summary.median_salary != null && (
-              <>
-                {' '}· median <span className="font-medium text-slate-700 dark:text-slate-200">${summary.median_salary.toLocaleString()}</span>/mo
-              </>
-            )}
-            {data && data.rows.length < data.total_matching && <> · showing top {data.rows.length}</>}
-          </p>
-        )}
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          Repost rate = share of a company&apos;s live postings whose text has been posted before. Staffing agencies are identified by
-          posting across 10+ role families or by name.
+      {summary && summary.companies > 0 && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          <span className="font-medium text-slate-700 dark:text-slate-200">{summary.companies.toLocaleString()}</span> companies ·{' '}
+          <span className="font-medium text-slate-700 dark:text-slate-200">{summary.openings.toLocaleString()}</span> openings
+          {agency === 'direct' && hidden != null && hidden.total_matching > 0 && (
+            <> · {hidden.total_matching.toLocaleString()} recruitment {hidden.total_matching === 1 ? 'agency' : 'agencies'} hidden</>
+          )}
+          {data && data.rows.length < data.total_matching && <> · showing top {data.rows.length}</>}
         </p>
-      </div>
+      )}
 
       {/* Results */}
       <Card>
@@ -192,6 +179,10 @@ function CompaniesExplorer() {
           )}
         </CardBody>
       </Card>
+      <p className="text-xs text-slate-400 dark:text-slate-500">
+        Recruitment agencies are companies registered under SSIC 78 (employment agencies). Salary figures are the median of
+        advertised monthly ranges for the chosen job type. Openings count live listings.
+      </p>
     </div>
   )
 }
