@@ -85,14 +85,19 @@ export function familyColor(key: string): string {
   return `var(--viz-${slot}, ${SLOT_LIGHT_HEX[slot - 1]})`
 }
 
-/** Top-N families by count plus an aggregated "other" slice. */
+/**
+ * Top-N named families by count plus one aggregated "other" slice. The classifier's own
+ * `other` family is always folded into that slice so the key is never duplicated.
+ */
 export function topFamilies(
   counts: Record<string, number>,
   n = 3,
 ): Array<{ key: string; count: number }> {
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
-  const top = sorted.slice(0, n).map(([key, count]) => ({ key, count }))
-  const rest = sorted.slice(n).reduce((s, [, c]) => s + c, 0)
+  const named = Object.entries(counts)
+    .filter(([key]) => key !== OTHER_FAMILY)
+    .sort((a, b) => b[1] - a[1])
+  const top = named.slice(0, n).map(([key, count]) => ({ key, count }))
+  const rest = named.slice(n).reduce((s, [, c]) => s + c, 0) + (counts[OTHER_FAMILY] ?? 0)
   if (rest > 0) top.push({ key: OTHER_FAMILY, count: rest })
   return top
 }

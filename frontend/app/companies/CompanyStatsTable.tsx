@@ -74,7 +74,7 @@ export function CompanyStatsTable({
               <SortHeader label="Repost rate" value="repost_rate" current={sort} onSort={onSort} />
               <SortHeader label="Median salary" value="median_salary" current={sort} onSort={onSort} className="text-right" />
               <th className="px-3 py-2 font-medium">Role mix</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap">Hiring since</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap">Tracked since</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
