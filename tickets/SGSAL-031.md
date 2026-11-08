@@ -54,8 +54,9 @@ code.
   `resize_window` had no effect on a maximised window).
 - Skill names in the Data/AI list (RAG, LLM, ETL) have no plain gloss.
 - Long company names truncate while the agency badge wraps.
-- Production check of the follow-up commit 09e39fe by `curl` is blocked by the Vercel Security
-  Checkpoint page; the first v3 deploy was confirmed in Chrome, the follow-up only by the push.
+- `curl` against the Vercel site returns the "Vercel Security Checkpoint" page, so shell-based
+  deploy checks do not work; use the browser. Follow-up commit 09e39fe was confirmed live in
+  Chrome on 2026-11-08.
 
 ## Constraints that still apply
 
