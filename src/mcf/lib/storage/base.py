@@ -650,6 +650,18 @@ class Storage(ABC):
     def refresh_company_stats(self) -> None:
         """REFRESH MATERIALIZED VIEW CONCURRENTLY company_stats. Call at crawl end after posting_groups."""
 
+    # === Market stats (SGSAL-030, market_stats materialised view) ===
+
+    @abstractmethod
+    def refresh_market_stats(self) -> None:
+        """REFRESH MATERIALIZED VIEW CONCURRENTLY market_stats. Call at crawl end after company_stats."""
+
+    @abstractmethod
+    def get_market_stats(self) -> list[dict]:
+        """Every row of ``market_stats`` (dimension/key long format, migration 028); [] when the view
+        does not exist yet. Dimensions: total/all, family/<role_family>, poster/direct|agency,
+        bucket/1|2|3-5|6-10|11+ (``texts`` = distinct ad texts, ``live`` = live ads carrying them)."""
+
     @abstractmethod
     def get_company_stats(
         self,

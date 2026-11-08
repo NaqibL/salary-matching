@@ -7,6 +7,29 @@ design notes under `docs/superpowers/specs/`.
 
 ---
 
+## SGSAL-030 dashboard and companies v3
+
+**2026-11-08.** `market_stats` materialised view (migration 028; long format `dimension/key` =
+`total/all`, `family/<role_family>`, `poster/direct|agency`, `bucket/1|2|3-5|6-10|11+`), refreshed
+at crawl end after `company_stats`; `GET /api/dashboard/market-stats-public` (1 h cache) feeds the
+whole public dashboard, so nothing aggregates `jobs` per request. Dashboard rebuilt as one scroll in
+four sections: This week (six tiles with scope words: live ads ± 7 days, new this week vs the week
+before, median days an ad stays up, median advertised monthly base, share posted before, share from
+agencies; the added/removed chart with a local 30/90/365 switch), Job types (24-row table: live ads
+with inline bar, median advertised monthly base, new this week, posted before %, from agencies %;
+rows link to the companies page; pay by seniority as a table), Most requested skills (top 10 with a
+job-type select), Posted before (share tiles incl. direct vs agency, share by job type with the
+all-types reference line, times-posted histogram). Cut: active-jobs area chart, MCF-category chart
+and drilldown, employment-type pie, position-level bar, salary histogram, skills trend, the 20-row
+most-reposted table (endpoint kept for profiles). Companies: "Direct employers · Recruitment
+agencies · All" segmented control (`who=`), "Distinct ads" and "Posted before" columns, default
+sort by distinct ads, openings floor scoped to the chosen job type (default 3 within a type).
+Profile: "Median advertised monthly base", "Posted before", hire-mix above openings, two MCF mini
+charts removed. Not shipped: per-job-type 4-week change, because role families were only ever
+classified on active ads and the 4–8-week cohort sits in `other` (see the ticket). Design:
+`docs/superpowers/specs/2026-11-08-dashboard-companies-v3-design.md` (design agent) with a
+product-manager critique applied (segment label, "ads stay up" tile, direct-vs-agency as a tile).
+
 ## SGSAL-028 companies registry and agency label
 
 **2026-11-08.** `companies` table (migration 025) stores each posting company's UEN and SSIC

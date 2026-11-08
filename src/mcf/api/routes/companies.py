@@ -235,7 +235,7 @@ def get_company_stats(
     q: str | None = Query(default=None, max_length=80),
     agency: Literal["all", "direct", "agency"] = Query(default="all"),
     min_active: int = Query(default=10, ge=1, le=1000),
-    sort: Literal["openings", "repost_rate", "median_salary"] = Query(default="openings"),
+    sort: Literal["openings", "distinct", "repost_rate", "median_salary"] = Query(default="openings"),
     limit: int = Query(default=50, ge=1, le=200),
     store: Storage = Depends(get_store),
 ) -> CompanyStatsResponse:

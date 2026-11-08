@@ -29,6 +29,22 @@ export interface FindingEntry {
 
 export const FINDINGS: FindingEntry[] = [
   {
+    slug: 'dashboard-v3',
+    date: '8 Nov 2026',
+    kind: 'new',
+    headline: 'The Dashboard now answers four questions in one scroll.',
+    body: [
+      'How is the market this week, what does my kind of job pay and how fast is it being posted, which skills are asked for, and how much of what I see is the same ad posted again. Six headline figures carry their scope ("open today", "first seen in the last 7 days"), a job-types table replaces five charts, and a "Posted before" section shows repeats as shares by job type and as a count of how often one ad text is posted. The skills trend chart and the list of most-reposted ads are gone: the first said little, the second was one restaurant template ad.',
+      'On the Companies page the recruitment-agency checkbox became a three-way switch: direct employers, recruitment agencies, all. Companies are ordered by distinct ads, so one ad text posted under many listings no longer tops the list, and a "Posted before" column shows the repeat share of each company.',
+    ],
+    figures: [
+      { value: '37%', label: 'of live ads repeat an earlier ad text', asOf: '8 Nov 2026' },
+      { value: '38% · 36%', label: 'repeat share for direct employers and for recruitment agencies', asOf: '8 Nov 2026' },
+      { value: '29 days', label: 'median time an ad stayed up (ads closed in the last 30 days)', asOf: '8 Nov 2026' },
+    ],
+    changelogAnchor: 'sgsal-030-dashboard-and-companies-v3',
+  },
+  {
     slug: 'open-roles-first',
     date: '8 Nov 2026',
     kind: 'fixed',
@@ -139,9 +155,9 @@ export const GLOSSARY: Array<{ term: string; definition: string }> = [
       'How closely an ad\'s text matches the description you pasted, from a model trained on Singapore job ads. 90% is a very close match; below about 55% the roles differ noticeably.',
   },
   {
-    term: 'Reposted ads',
+    term: 'Posted before',
     definition:
-      'Live ads whose exact text was posted before, by the same company or another. Shown per company as "1 in 4" next to the typical company figure.',
+      'Live ads whose exact text was posted earlier, under any company name. Shown as a share on the Dashboard and per company as "1 in 4" next to the typical company figure.',
   },
   {
     term: 'Recruitment agency',

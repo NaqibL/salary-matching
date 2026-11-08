@@ -42,7 +42,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** Bump the date when the Findings page gets a new top entry (SGSAL-029). */
-const FINDINGS_BANNER_KEY = 'findings_banner_dismissed_2026-11-08'
+const FINDINGS_BANNER_KEY = 'findings_banner_dismissed_2026-11-08b'
 
 function SalaryBar({
   offered,

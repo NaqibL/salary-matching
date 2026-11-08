@@ -3,7 +3,7 @@
 import useSWR from 'swr'
 import { Database } from 'lucide-react'
 import { dashboardApi } from '@/lib/api'
-import type { Summary } from '@/app/dashboard/DashboardSummary'
+import type { PipelineSummary as Summary } from '@/lib/types'
 import { Card, CardBody } from '@/components/design'
 
 const fmt = (n: number | undefined | null) => (n == null ? '—' : n.toLocaleString())

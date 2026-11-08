@@ -51,3 +51,11 @@ export async function fetchJobsOverTimePostedAndRemoved(limitDays = 90) {
   if (!res.ok) throw new Error('Failed to fetch jobs over time')
   return res.json()
 }
+
+export async function fetchMarketStats() {
+  const res = await fetch(`${getAppBaseUrl()}/api/dashboard/market-stats`, {
+    next: { tags: ['dashboard-stats'] },
+  })
+  if (!res.ok) throw new Error('Failed to fetch market stats')
+  return res.json()
+}

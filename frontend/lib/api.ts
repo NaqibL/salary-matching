@@ -1,4 +1,4 @@
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow, PostingHistory, MostRepostedRow, CompanyStatsParams, CompanyStatsResponse } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow, PostingHistory, MostRepostedRow, CompanyStatsParams, CompanyStatsResponse, MarketStats } from './types'
 import { supabase } from './supabase'
 
 export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow }
@@ -323,6 +323,11 @@ export const dashboardApi = {
     const res = await fetch('/api/dashboard/role-families')
     if (!res.ok) throw new Error('Failed to fetch role families')
     return res.json() as Promise<RoleFamilyRow[]>
+  },
+  getMarketStats: async () => {
+    const res = await fetch('/api/dashboard/market-stats')
+    if (!res.ok) throw new Error('Failed to fetch market stats')
+    return res.json() as Promise<MarketStats>
   },
   getMostReposted: async (days: 90 | 365 = 365, limit = 20) => {
     const res = await fetch(`/api/dashboard/most-reposted?days=${days}&limit=${limit}`)

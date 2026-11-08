@@ -1,19 +1,15 @@
 'use client'
 
 import { DashboardContent } from './DashboardContent'
-import type { Summary } from './DashboardSummary'
+import type { MarketStats } from '@/lib/types'
 import type { JobsPostedRemovedPoint } from './JobsOverTimeChart'
 
 export interface DashboardWithAuthProps {
-  initialSummary: Summary | null
+  initialStats: MarketStats | null
   initialJobsOverTime: JobsPostedRemovedPoint[] | null
+  trackedTotal?: number | null
 }
 
-export function DashboardWithAuth({ initialSummary, initialJobsOverTime }: DashboardWithAuthProps) {
-  return (
-    <DashboardContent
-      initialSummary={initialSummary}
-      initialJobsOverTime={initialJobsOverTime}
-    />
-  )
+export function DashboardWithAuth(props: DashboardWithAuthProps) {
+  return <DashboardContent {...props} />
 }

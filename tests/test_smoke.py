@@ -423,3 +423,23 @@ def test_lowball_open_first_holds_when_open_matched_is_below_top_k(client):
     assert flags == sorted(flags, reverse=True)
     if 0 < data["open_matched"] < len(cards):
         assert flags.count(True) == min(data["open_matched"], len(cards))
+
+
+def test_market_stats_public_shape(client):
+    """SGSAL-030: the dashboard reads one long-format view; shares must be consistent."""
+    r = client.get("/api/dashboard/market-stats-public")
+    assert r.status_code == 200
+    data = r.json()
+    assert set(data) == {"totals", "families", "by_poster", "times_posted", "computed_at"}
+    if data["totals"] is None:  # view not populated yet on this DB
+        return
+    t = data["totals"]
+    assert 0 <= t["live_reposts"] <= t["live"]
+    assert 0 <= t["live_agency"] <= t["live"]
+    assert 0 <= t["live_multi_company"] <= t["live_reposts"]
+    assert sum(f["live"] for f in data["families"]) == t["live"]
+    assert sum(p["live"] for p in data["by_poster"]) == t["live"]
+    assert 0 < sum(b["live"] for b in data["times_posted"]) <= t["live"]  # ads without a hash sit outside posting_groups
+    assert [b["key"] for b in data["times_posted"]] == ["1", "2", "3-5", "6-10", "11+"]
+    assert data["families"][-1]["key"] == "other" or all(f["key"] != "other" for f in data["families"])
+    assert data["families"] == sorted(data["families"], key=lambda f: (f["key"] == "other", -f["live"]))

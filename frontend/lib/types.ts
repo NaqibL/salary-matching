@@ -139,7 +139,7 @@ export interface CompanyReposted {
 }
 
 export type CompanyAgencyFilter = 'all' | 'direct' | 'agency'
-export type CompanyStatsSort = 'openings' | 'repost_rate' | 'median_salary'
+export type CompanyStatsSort = 'openings' | 'distinct' | 'repost_rate' | 'median_salary'
 
 export interface CompanyStatsParams {
   family?: string
@@ -301,6 +301,58 @@ export interface MostRepostedRow {
   last_posted: string | null
   latest_salary_min: number | null
   latest_salary_max: number | null
+}
+
+// --- Dashboard: pipeline summary (admin page; /api/dashboard/summary) ---
+
+export type PipelineSummary = {
+  total_jobs: number
+  active_jobs: number
+  active_jobs_total: number
+  inactive_jobs: number
+  by_source: Record<string, number>
+  jobs_with_embeddings: number
+  inactive_jobs_with_embeddings: number
+  jobs_needing_backfill: number
+  // SGSAL-024: pipeline reach vs search reach (absent on older cached responses)
+  jobs_seen_total?: number
+  jobs_searchable_total?: number
+  vectors_stored?: number
+  // SGSAL-028: visitor tiles
+  companies_hiring?: number
+  new_this_week?: number
+}
+
+// --- Dashboard: market_stats view (SGSAL-030) ---
+
+/** One row of the market_stats view. Which columns are filled depends on `dimension`. */
+export interface MarketStatsRow {
+  dimension: 'total' | 'family' | 'poster' | 'bucket'
+  key: string
+  live: number
+  live_reposts: number | null
+  live_agency: number | null
+  live_multi_company: number | null
+  median_salary: number | null
+  salary_n: number | null
+  new_7d: number | null
+  new_prev_7d: number | null
+  new_28d: number | null
+  new_prev_28d: number | null
+  closed_7d: number | null
+  median_days_up: number | null
+  live_7d_ago: number | null
+  /** bucket rows only: distinct ad texts posted that many times */
+  texts: number | null
+  computed_at: string | null
+}
+
+export interface MarketStats {
+  totals: MarketStatsRow | null
+  families: MarketStatsRow[]
+  by_poster: MarketStatsRow[]
+  times_posted: MarketStatsRow[]
+  computed_at: string | null
 }
 
 // --- Dashboard: LLM-field analytics (seniority / skills / role families) ---

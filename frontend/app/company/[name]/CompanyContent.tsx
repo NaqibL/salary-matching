@@ -179,13 +179,6 @@ export default function CompanyContent({ companyName }: { companyName: string })
     )
   }
 
-  const posLevels = Object.entries(profile.position_levels)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name, value }))
-  const empTypes = Object.entries(profile.employment_types)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name, value }))
-
   // SGSAL-026: company_stats facts (null until the view has a row for this company)
   const stats = profile.stats ?? null
   const topReposted = profile.top_reposted ?? []
@@ -203,7 +196,6 @@ export default function CompanyContent({ companyName }: { companyName: string })
   const typicalRate = profile.benchmarks?.median_repost_rate ?? null
   const typicalOneIn = typicalRate != null && typicalRate > 0 ? Math.max(1, Math.round(1 / typicalRate)) : null
 
-  const showCharts = profile.total_count >= 3
   const showSalary =
     !profile.stats?.is_agency &&
     profile.salary_p25 != null &&
@@ -241,12 +233,12 @@ export default function CompanyContent({ companyName }: { companyName: string })
             },
             {
               icon: <TrendingUp size={18} className="text-emerald-500" />,
-              label: 'Median advertised salary',
-              value: !isAgency && profile.salary_p50 != null ? `$${profile.salary_p50.toLocaleString()}/mo` : '—',
+              label: 'Median advertised monthly base',
+              value: !isAgency && profile.salary_p50 != null ? `$${profile.salary_p50.toLocaleString()}` : '—',
               sub: isAgency
                 ? 'not shown for agencies: roles span many fields'
                 : profile.salary_p50 != null
-                  ? `across all roles · ${profile.salary_sample_size.toLocaleString()} ads`
+                  ? `across all live roles · ${profile.salary_sample_size.toLocaleString()} ads · SGD`
                   : 'no disclosed salaries',
             },
             {
@@ -257,11 +249,11 @@ export default function CompanyContent({ companyName }: { companyName: string })
             },
             {
               icon: <Repeat size={18} className="text-indigo-400" />,
-              label: 'Reposted ads',
+              label: 'Posted before',
               value: repostOneIn != null ? `1 in ${repostOneIn}` : stats ? 'none' : '—',
               sub:
                 typicalOneIn != null
-                  ? `typical company: 1 in ${typicalOneIn}${repostOneIn != null && repostOneIn < typicalOneIn ? ' · more than most' : ''}`
+                  ? `of live ads · typical company 1 in ${typicalOneIn}`
                   : 'of live ads were posted before',
               title:
                 'Share of this company\'s live ads whose exact text was posted before. Reposting can mean ongoing hiring, high turnover or an agency re-running a client role.',
@@ -307,7 +299,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
           <Card>
             <CardBody>
               <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
-                <Repeat size={16} aria-hidden /> Repeat postings
+                <Repeat size={16} aria-hidden /> Posted before
               </h2>
               {stats.multi_company_count > 0 && (
                 <p className="text-sm text-slate-700 dark:text-slate-200 mb-1">
@@ -347,26 +339,6 @@ export default function CompanyContent({ companyName }: { companyName: string })
           </Card>
         )}
 
-        {/* Latest openings */}
-        <Card>
-          <CardBody>
-            <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-              <Briefcase size={16} />
-              Latest openings
-              <span className="ml-auto text-xs font-normal text-slate-400">
-                {profile.active_jobs.length} role{profile.active_jobs.length !== 1 ? 's' : ''}
-              </span>
-            </h2>
-            {profile.active_jobs.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500 py-4 text-center">
-                No active listings right now.
-              </p>
-            ) : (
-              profile.active_jobs.map((job) => <JobRow key={job.job_uuid} job={job} />)
-            )}
-          </CardBody>
-        </Card>
-
         {/* What they hire for (SGSAL-026/028) */}
         {showStatsCharts && familyMix.length > 0 && (
           <Card>
@@ -395,79 +367,27 @@ export default function CompanyContent({ companyName }: { companyName: string })
           </Card>
         )}
 
-        {/* Hiring patterns */}
-        {showCharts && (posLevels.length > 0 || empTypes.length > 0) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {posLevels.length > 0 && (
-              <Card>
-                <CardBody>
-                  <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-4">
-                    Position levels
-                  </h2>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart
-                      data={posLevels}
-                      layout="vertical"
-                      margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
-                    >
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={110}
-                        tick={{ fontSize: 12, fill: 'currentColor' }}
-                        className="text-slate-600 dark:text-slate-400"
-                      />
-                      <Tooltip
-                        formatter={(v: number) => [v, 'jobs']}
-                        contentStyle={{ fontSize: 12 }}
-                      />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {posLevels.map((_, i) => (
-                          <Cell key={i} fill={i === 0 ? '#6366f1' : '#c7d2fe'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardBody>
-              </Card>
+        {/* Latest openings */}
+        <Card>
+          <CardBody>
+            <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+              <Briefcase size={16} />
+              Latest openings
+              <span className="ml-auto text-xs font-normal text-slate-400">
+                {profile.active_jobs.length} role{profile.active_jobs.length !== 1 ? 's' : ''}
+              </span>
+            </h2>
+            {profile.active_jobs.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500 py-4 text-center">
+                No active listings right now.
+              </p>
+            ) : (
+              profile.active_jobs.map((job) => <JobRow key={job.job_uuid} job={job} />)
             )}
-            {empTypes.length > 0 && (
-              <Card>
-                <CardBody>
-                  <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-4">
-                    Employment types
-                  </h2>
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart
-                      data={empTypes}
-                      layout="vertical"
-                      margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
-                    >
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={110}
-                        tick={{ fontSize: 12, fill: 'currentColor' }}
-                        className="text-slate-600 dark:text-slate-400"
-                      />
-                      <Tooltip
-                        formatter={(v: number) => [v, 'jobs']}
-                        contentStyle={{ fontSize: 12 }}
-                      />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {empTypes.map((_, i) => (
-                          <Cell key={i} fill={i === 0 ? '#10b981' : '#a7f3d0'} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardBody>
-              </Card>
-            )}
-          </div>
-        )}
+          </CardBody>
+        </Card>
+
+
 
       </div>
     </Layout>

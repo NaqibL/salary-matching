@@ -236,3 +236,31 @@ def get_dashboard_most_reposted_public(
             if hasattr(r.get(k), "isoformat"):
                 r[k] = r[k].isoformat()
     return rows
+
+
+@router.get("/api/dashboard/market-stats-public")
+@cache_response(TTL_DASHBOARD, "dashboard:market-stats-public")
+def get_dashboard_market_stats_public():
+    """Public: the whole dashboard's numbers from the market_stats view (SGSAL-030).
+
+    Shape: ``{totals, families, by_poster, times_posted, computed_at}``. ``totals`` is the
+    total/all row (or null before the first refresh); ``families`` are the role-family rows
+    sorted by live desc with ``other`` last; ``by_poster`` the direct/agency rows; ``times_posted``
+    the five repost-count buckets in order.
+    """
+    store = get_store()
+    rows = store.get_market_stats()
+    by_dim: dict[str, list[dict]] = {}
+    for r in rows:
+        by_dim.setdefault(r["dimension"], []).append(r)
+    totals = next(iter(by_dim.get("total", [])), None)
+    families = sorted(by_dim.get("family", []), key=lambda r: (r["key"] == "other", -(r["live"] or 0)))
+    bucket_order = {"1": 0, "2": 1, "3-5": 2, "6-10": 3, "11+": 4}
+    buckets = sorted(by_dim.get("bucket", []), key=lambda r: bucket_order.get(r["key"], 9))
+    return {
+        "totals": totals,
+        "families": families,
+        "by_poster": by_dim.get("poster", []),
+        "times_posted": buckets,
+        "computed_at": totals["computed_at"] if totals else None,
+    }
