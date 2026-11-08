@@ -46,6 +46,8 @@ FastAPI application that exposes the REST API consumed by the Next.js frontend. 
 | POST | `/api/profile/rate` | Required | Rate a job (like/dislike/save) |
 | GET | `/api/saved` | Required | Saved jobs list |
 | POST | `/api/lowball/check` | None | Salary vs market check |
+| GET | `/api/companies/stats` | None | Ranked companies from `company_stats` (SGSAL-026). Query: `family`, `category`, `q`, `agency=all\|direct\|agency`, `min_active` (default 10), `sort=openings\|repost_rate\|median_salary`, `limit` ≤ 200. Cached 1h |
+| GET | `/api/companies/{name}/profile` | None | Company profile; includes `stats` (company_stats row or null) and `top_reposted` (≤ 5 posting groups) |
 | GET | `/api/dashboard/summary-public` | None | Aggregate stats (cached 1h) |
 | GET | `/api/dashboard/active-jobs` | None | Active job counts (cached 24h) |
 | POST | `/api/admin/cache/flush` | Admin | Flush response/pool caches |
