@@ -644,6 +644,40 @@ class Storage(ABC):
         """Return top companies by active job count as [{name, active_count}]."""
         ...
 
+    # === Company stats (SGSAL-026, company_stats materialised view) ===
+
+    @abstractmethod
+    def refresh_company_stats(self) -> None:
+        """REFRESH MATERIALIZED VIEW CONCURRENTLY company_stats. Call at crawl end after posting_groups."""
+
+    @abstractmethod
+    def get_company_stats(
+        self,
+        *,
+        family: str | None = None,
+        category: str | None = None,
+        q: str | None = None,
+        agency: str = "all",
+        min_active: int = 10,
+        sort: str = "openings",
+        limit: int = 50,
+    ) -> dict:
+        """Filtered, sorted company_stats rows.
+
+        Returns {"rows": [...], "total_matching": int, "summary": {"companies", "openings",
+        "median_salary"}}. Each row carries every view column plus ``family_active_count``
+        (that family's openings when ``family`` is given, else None). ``agency`` is
+        ``all`` | ``direct`` | ``agency``; ``sort`` is ``openings`` | ``repost_rate`` |
+        ``median_salary``. Empty result when the view does not exist yet."""
+
+    @abstractmethod
+    def get_company_stats_one(self, company_name: str) -> dict | None:
+        """The company_stats row whose key is lower(company_name), or None."""
+
+    @abstractmethod
+    def get_company_top_reposted(self, company_name: str, limit: int = 5) -> list[dict]:
+        """The company's active posting groups with repost_count >= 2, most reposted first."""
+
     def reset_profile_ratings(self, user_id: str) -> dict:
         """Reset job interactions and taste profile for a user (for testing).
         Returns counts of deleted rows. Override in store implementations."""

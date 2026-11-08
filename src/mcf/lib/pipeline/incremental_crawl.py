@@ -310,6 +310,12 @@ def run_incremental_crawl(
         except Exception as e:  # noqa: BLE001
             print(f"Warning: posting_groups refresh failed, skipping: {e}")
 
+        # company_stats feeds /companies (SGSAL-026). Depends on posting_groups. Non-fatal.
+        try:
+            store.refresh_company_stats()
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: company_stats refresh failed, skipping: {e}")
+
         # Refresh dashboard materialized views (Postgres only; non-fatal)
         if hasattr(store, "refresh_dashboard_materialized_views"):
             try:

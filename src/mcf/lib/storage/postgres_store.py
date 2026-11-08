@@ -7,6 +7,7 @@ Uses psycopg2. DATABASE_URL must be a libpq-style connection string, e.g.:
 from __future__ import annotations
 
 import json
+import logging
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Iterable, Sequence
@@ -18,6 +19,8 @@ from psycopg2 import pool as pg_pool
 from psycopg2.extras import execute_values
 
 from mcf.lib.storage.base import RunStats, Storage
+
+logger = logging.getLogger(__name__)
 
 
 # SGSAL-024: must stay identical to the view statement in
@@ -2845,6 +2848,135 @@ class PostgresStore(Storage):
                 (limit,),
             )
             return [{"name": r[0], "active_count": r[1]} for r in cur.fetchall()]
+
+    # === Company stats (SGSAL-026) ===
+
+    _COMPANY_STATS_COLS = (
+        "company_key, company, active_count, distinct_postings, reposted_count, "
+        "multi_company_count, max_repost_count, median_salary, salary_sample, "
+        "role_family_counts, family_count, top_family, category_counts, "
+        "total_seen, first_seen, last_seen, likely_agency"
+    )
+    _COMPANY_SORTS = {
+        "openings": "COALESCE(%(family_count_expr)s, active_count) DESC",
+        "repost_rate": "(reposted_count::float / NULLIF(active_count, 0)) DESC NULLS LAST",
+        "median_salary": "median_salary DESC NULLS LAST",
+    }
+
+    def refresh_company_stats(self) -> None:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY company_stats")
+
+    def get_company_stats(
+        self,
+        *,
+        family: str | None = None,
+        category: str | None = None,
+        q: str | None = None,
+        agency: str = "all",
+        min_active: int = 10,
+        sort: str = "openings",
+        limit: int = 50,
+    ) -> dict:
+        if agency not in ("all", "direct", "agency"):
+            agency = "all"
+        family_expr = "(role_family_counts->>%(family)s)::int" if family else "NULL::int"
+        order = self._COMPANY_SORTS.get(sort, self._COMPANY_SORTS["openings"]) % {
+            "family_count_expr": family_expr
+        }
+        where = ["active_count >= %(min_active)s"]
+        if family:
+            where.append("role_family_counts ? %(family)s")
+        if category:
+            where.append("category_counts ? %(category)s")
+        if q:
+            where.append("company ILIKE %(q)s")
+        if agency == "direct":
+            where.append("likely_agency = FALSE")
+        elif agency == "agency":
+            where.append("likely_agency = TRUE")
+        params = {
+            "family": family,
+            "category": category,
+            "q": f"%{q}%" if q else None,
+            "min_active": max(1, int(min_active)),
+            "limit": max(1, min(int(limit), 200)),
+        }
+        where_sql = " AND ".join(where)
+        empty = {"rows": [], "total_matching": 0, "summary": {"companies": 0, "openings": 0, "median_salary": None}}
+        try:
+            with self._cur() as cur:
+                cur.execute(
+                    f"""
+                    SELECT {self._COMPANY_STATS_COLS}, {family_expr} AS family_active_count
+                      FROM company_stats
+                     WHERE {where_sql}
+                     ORDER BY {order}, active_count DESC, company ASC
+                     LIMIT %(limit)s
+                    """,
+                    params,
+                )
+                cols = [d[0] for d in cur.description]
+                rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+                cur.execute(
+                    f"""
+                    SELECT count(*)::int,
+                           COALESCE(sum(COALESCE({family_expr}, active_count)), 0)::int,
+                           (percentile_cont(0.5) WITHIN GROUP (ORDER BY median_salary))::int
+                      FROM company_stats
+                     WHERE {where_sql}
+                    """,
+                    params,
+                )
+                total, openings, median = cur.fetchone()
+        except psycopg2.errors.UndefinedTable:
+            logger.warning("company_stats view missing - run scripts/migrations/024_company_stats.sql")
+            return empty
+        return {
+            "rows": rows,
+            "total_matching": total,
+            "summary": {"companies": total, "openings": openings, "median_salary": median},
+        }
+
+    def get_company_stats_one(self, company_name: str) -> dict | None:
+        try:
+            with self._cur() as cur:
+                cur.execute(
+                    f"SELECT {self._COMPANY_STATS_COLS}, NULL::int AS family_active_count "
+                    "FROM company_stats WHERE company_key = lower(%s)",
+                    (company_name,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return None
+                cols = [d[0] for d in cur.description]
+                return dict(zip(cols, row))
+        except psycopg2.errors.UndefinedTable:
+            return None
+
+    def get_company_top_reposted(self, company_name: str, limit: int = 5) -> list[dict]:
+        with self._cur() as cur:
+            cur.execute(
+                """
+                SELECT pg.canonical_job_uuid, c.title, pg.repost_count, pg.reposts_365d,
+                       pg.distinct_companies, pg.first_posted, pg.last_posted,
+                       pg.latest_salary_min, pg.latest_salary_max
+                  FROM (SELECT DISTINCT content_hash
+                          FROM jobs
+                         WHERE is_active = TRUE AND content_hash IS NOT NULL
+                           AND (company_canonical = %s
+                                OR (company_canonical IS NULL AND company_name = %s))) h
+                  JOIN posting_groups pg ON pg.content_hash = h.content_hash
+                  JOIN jobs c ON c.job_uuid = pg.latest_job_uuid
+                 WHERE pg.repost_count >= 2
+                 ORDER BY pg.repost_count DESC, pg.last_posted DESC
+                 LIMIT %s
+                """,
+                (company_name, company_name, max(1, min(int(limit), 20))),
+            )
+            cols = [d[0] for d in cur.description]
+            return [dict(zip(cols, r)) for r in cur.fetchall()]
 
     # === Match recording ===
 
