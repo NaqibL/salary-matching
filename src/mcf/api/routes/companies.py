@@ -6,7 +6,7 @@ import json
 import logging
 from collections import Counter
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -55,11 +55,61 @@ class CompanyProfileResponse(BaseModel):
     top_skills: list[list[Any]]
     active_jobs: list[CompanyJob]
     recent_closed: list[CompanyJob]
+    stats: "CompanyStatsRow | None" = None
+    top_reposted: list["CompanyReposted"] = []
 
 
 class TopCompany(BaseModel):
     name: str
     active_count: int
+
+
+class CompanyStatsRow(BaseModel):
+    company_key: str
+    company: str
+    active_count: int
+    distinct_postings: int
+    reposted_count: int
+    multi_company_count: int
+    max_repost_count: int
+    median_salary: int | None
+    salary_sample: int
+    role_family_counts: dict[str, int]
+    family_count: int
+    top_family: str | None
+    category_counts: dict[str, int]
+    total_seen: int
+    first_seen: str | None
+    last_seen: str | None
+    likely_agency: bool
+    family_active_count: int | None = None
+
+
+class CompanyStatsSummary(BaseModel):
+    companies: int
+    openings: int
+    median_salary: int | None
+
+
+class CompanyStatsResponse(BaseModel):
+    rows: list[CompanyStatsRow]
+    total_matching: int
+    summary: CompanyStatsSummary
+
+
+class CompanyReposted(BaseModel):
+    canonical_job_uuid: str
+    title: str | None
+    repost_count: int
+    reposts_365d: int
+    distinct_companies: int
+    first_posted: str | None
+    last_posted: str | None
+    latest_salary_min: int | None
+    latest_salary_max: int | None
+
+
+CompanyProfileResponse.model_rebuild()
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +140,20 @@ def _to_iso(val) -> str:
     if isinstance(val, datetime):
         return val.isoformat()
     return str(val)
+
+
+def _stats_row(raw: dict | None) -> CompanyStatsRow | None:
+    if not raw:
+        return None
+    return CompanyStatsRow(
+        **{
+            **raw,
+            "first_seen": _to_iso(raw.get("first_seen")) or None,
+            "last_seen": _to_iso(raw.get("last_seen")) or None,
+            "role_family_counts": raw.get("role_family_counts") or {},
+            "category_counts": raw.get("category_counts") or {},
+        }
+    )
 
 
 def _to_company_job(job: dict) -> CompanyJob:
@@ -140,6 +204,43 @@ def get_popular_companies(
 ) -> list[TopCompany]:
     """Return top companies by active job count."""
     return [TopCompany(**row) for row in store.get_top_companies(limit)]
+
+
+@router.get("/api/companies/stats")
+@limiter.limit("60/minute")
+@cache_response(
+    ttl_seconds=TTL_DASHBOARD,
+    key_prefix="companies:stats",
+    key_builder=lambda **kw: "|".join(
+        str(kw.get(k)) for k in ("family", "category", "q", "agency", "min_active", "sort", "limit")
+    ),
+)
+def get_company_stats(
+    request: Request,
+    family: str | None = Query(default=None, max_length=64),
+    category: str | None = Query(default=None, max_length=64),
+    q: str | None = Query(default=None, max_length=80),
+    agency: Literal["all", "direct", "agency"] = Query(default="all"),
+    min_active: int = Query(default=10, ge=1, le=1000),
+    sort: Literal["openings", "repost_rate", "median_salary"] = Query(default="openings"),
+    limit: int = Query(default=50, ge=1, le=200),
+    store: Storage = Depends(get_store),
+) -> CompanyStatsResponse:
+    """Ranked companies from the company_stats view (SGSAL-026)."""
+    out = store.get_company_stats(
+        family=family or None,
+        category=category or None,
+        q=(q or "").strip() or None,
+        agency=agency,
+        min_active=min_active,
+        sort=sort,
+        limit=limit,
+    )
+    return CompanyStatsResponse(
+        rows=[_stats_row(r) for r in out["rows"]],
+        total_matching=out["total_matching"],
+        summary=CompanyStatsSummary(**out["summary"]),
+    )
 
 
 @router.get("/api/companies/{company_name}/profile")
@@ -202,8 +303,26 @@ def get_company_profile(
         reverse=True,
     )[:10]
 
+    stats = _stats_row(store.get_company_stats_one(company_name))
+    top_reposted = [
+        CompanyReposted(
+            canonical_job_uuid=r["canonical_job_uuid"],
+            title=r.get("title"),
+            repost_count=r["repost_count"],
+            reposts_365d=r["reposts_365d"],
+            distinct_companies=r["distinct_companies"],
+            first_posted=_to_iso(r.get("first_posted")) or None,
+            last_posted=_to_iso(r.get("last_posted")) or None,
+            latest_salary_min=r.get("latest_salary_min"),
+            latest_salary_max=r.get("latest_salary_max"),
+        )
+        for r in store.get_company_top_reposted(company_name, limit=5)
+    ]
+
     return CompanyProfileResponse(
         company_name=company_name,
+        stats=stats,
+        top_reposted=top_reposted,
         active_count=len(active_jobs_all),
         total_count=len(jobs),
         salary_p25=p25,

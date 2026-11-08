@@ -340,3 +340,46 @@ def test_active_vector_gate_includes_reposts_of_inactive_canonicals(client):
     assert canonical in by_uuid
     # last_seen_at comes from the active member, not the expired owner
     assert by_uuid[canonical] is not None
+
+
+def test_companies_stats_shape(client):
+    r = client.get("/api/companies/stats?min_active=1&limit=3")
+    assert r.status_code == 200
+    data = r.json()
+    assert set(data) == {"rows", "total_matching", "summary"}
+    assert set(data["summary"]) == {"companies", "openings", "median_salary"}
+    assert len(data["rows"]) <= 3
+    for row in data["rows"]:
+        for key in ("company", "active_count", "distinct_postings", "reposted_count",
+                    "multi_company_count", "max_repost_count", "median_salary", "salary_sample",
+                    "role_family_counts", "family_count", "top_family", "total_seen",
+                    "first_seen", "likely_agency", "family_active_count"):
+            assert key in row, key
+        assert isinstance(row["role_family_counts"], dict)
+
+
+def test_companies_stats_family_filter(client):
+    r = client.get("/api/companies/stats?family=software_engineering&min_active=1&limit=5")
+    assert r.status_code == 200
+    for row in r.json()["rows"]:
+        assert "software_engineering" in row["role_family_counts"]
+        assert row["family_active_count"] >= 1
+
+
+def test_companies_stats_rejects_bad_params(client):
+    assert client.get("/api/companies/stats?agency=bogus").status_code == 422
+    assert client.get("/api/companies/stats?sort=bogus").status_code == 422
+    assert client.get("/api/companies/stats?limit=0").status_code == 422
+
+
+def test_company_profile_has_stats_and_reposts(client):
+    rows = client.get("/api/companies/stats?min_active=10&limit=1").json()["rows"]
+    if not rows:
+        pytest.skip("company_stats empty")
+    r = client.get(f"/api/companies/{rows[0]['company']}/profile")
+    assert r.status_code == 200
+    data = r.json()
+    assert "stats" in data and "top_reposted" in data
+    assert isinstance(data["top_reposted"], list)
+    if data["stats"] is not None:
+        assert data["stats"]["company_key"] == rows[0]["company_key"]
