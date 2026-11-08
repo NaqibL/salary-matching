@@ -224,8 +224,11 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
             )}
           </div>
 
-          <div className={`shrink-0 px-3 py-1.5 rounded-full border text-sm font-semibold tabular-nums ${scoreCls}`}>
-            {scorePct}%
+          <div
+            className={`shrink-0 px-3 py-1.5 rounded-full border text-sm font-semibold tabular-nums ${scoreCls}`}
+            title="How closely this ad matches your description"
+          >
+            {scorePct}% match
           </div>
         </div>
 
@@ -671,14 +674,15 @@ export function LowballContent() {
                   <strong className="text-slate-800 dark:text-slate-200">
                     {result.percentile}th percentile
                   </strong>{' '}
-                  of {result.total_matched} similar roles
+                  of {result.total_matched} similar ads posted since Mar 2026
+                  {result.open_matched != null && <> · {result.open_matched} open now</>}
                 </p>
               )}
 
               {result.verdict === 'market_data' && !hasSalary && (
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  Based on {result.salary_coverage} of {result.total_matched} matched roles with
-                  disclosed salary
+                  Based on {result.salary_coverage} of {result.total_matched} similar ads posted since Mar 2026 with a
+                  disclosed salary{result.open_matched != null && <> · {result.open_matched} open now</>}
                 </p>
               )}
 
@@ -729,8 +733,8 @@ export function LowballContent() {
             {/* Coverage note — only show separately when salary was provided */}
             {hasSalary && (
               <p className="text-xs text-slate-400 dark:text-slate-500 px-1">
-                Based on {result.salary_coverage} of {result.total_matched} matched jobs with
-                disclosed salary
+                Based on {result.salary_coverage} of {result.total_matched} similar ads posted since Mar 2026 with a
+                disclosed salary. Cards below show open roles first.
               </p>
             )}
 
@@ -752,7 +756,7 @@ export function LowballContent() {
               const totalCount = displayJobs.length
               const listingsTotal = displayJobs.reduce((s, j) => s + (j.repost_count ?? 1), 0)
               const summaryText =
-                `${totalCount} postings · ${activeCount} still open` +
+                `${totalCount} closest ads · ${activeCount} open now` +
                 (listingsTotal > totalCount ? ` · ${listingsTotal} listings including reposts` : '')
               // Filters apply to the cards only — the benchmark above always uses the full set
               const filteredJobs = applySimilarRoleFilters(displayJobs, filters)

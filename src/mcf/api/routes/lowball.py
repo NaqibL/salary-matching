@@ -47,6 +47,8 @@ class LowballResult(BaseModel):
     similar_jobs: list[dict]
     company_similar_jobs: list[dict] | None = None
     total_listings: int | None = None
+    # SGSAL-027: open postings among the 500 nearest; cards show open roles first
+    open_matched: int | None = None
 
 
 class SalarySearchRequest(BaseModel):
@@ -268,10 +270,14 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
 
     top_slice = ranked[: body.top_k * 5]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
+    # SGSAL-027: the cards draw from the full 500 nearest so open roles can come first;
+    # the percentile pool below stays the closest top_k*5 (historical by design).
+    uuid_to_score_all = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in ranked}
 
-    jobs = store.get_jobs_with_salary_by_uuids(list(uuid_to_score.keys()), representative=True)
+    jobs_all = store.get_jobs_with_salary_by_uuids(list(uuid_to_score_all.keys()), representative=True)
     # One row per posting (I3): best-scoring hit wins, before coverage/percentiles.
-    jobs = _dedup_by_job_uuid(_by_score([j for j in jobs if _has_valid_salary(j)], uuid_to_score))
+    jobs_all = _dedup_by_job_uuid(_by_score([j for j in jobs_all if _has_valid_salary(j)], uuid_to_score_all))
+    jobs = [j for j in jobs_all if (j.get("canonical_job_uuid") or j["job_uuid"]) in uuid_to_score]
     # Salary benchmark pool uses compliant ranges only (EP rule: salary_max <= 2 * salary_min).
     salary_jobs = store.get_jobs_with_salary_by_uuids(
         list(uuid_to_score.keys()), compliant_ranges_only=True, representative=True
@@ -279,7 +285,11 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
     salary_jobs = _dedup_by_job_uuid(
         [j for j in salary_jobs if j.get("salary_min") is not None and _has_valid_salary(j)]
     )
-    similar = _build_similar_jobs(jobs, uuid_to_score, body.top_k)
+    open_jobs = [j for j in jobs_all if j.get("is_active") or _int_or(j.get("active_count"), 0) > 0]
+    closed_jobs = [j for j in jobs_all if not (j.get("is_active") or _int_or(j.get("active_count"), 0) > 0)]
+    open_matched = len(open_jobs)
+    card_rows = open_jobs[: body.top_k] + closed_jobs[: max(0, body.top_k - len(open_jobs[: body.top_k]))]
+    similar = _build_similar_jobs(card_rows, uuid_to_score_all, body.top_k)
     total_listings = sum(_int_or(j.get("repost_count"), 1) for j in similar)
 
     # Compute market percentiles regardless of whether salary was provided
@@ -290,6 +300,7 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
             salary_coverage=len(salary_jobs), total_matched=len(jobs),
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
             total_listings=total_listings,
+            open_matched=open_matched,
         )
 
     salaries = sorted(s for j in salary_jobs if (s := _effective_salary(j)) is not None)
@@ -303,6 +314,7 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
             salary_coverage=len(salaries), total_matched=len(jobs),
             similar_jobs=similar, company_similar_jobs=company_similar_jobs,
             total_listings=total_listings,
+            open_matched=open_matched,
         )
 
     # Salary provided — compute verdict and percentile
@@ -324,6 +336,7 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
         salary_coverage=len(salaries), total_matched=len(jobs),
         similar_jobs=similar, company_similar_jobs=company_similar_jobs,
         total_listings=total_listings,
+        open_matched=open_matched,
     )
 
 

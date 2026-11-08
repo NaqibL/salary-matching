@@ -244,6 +244,8 @@ export interface LowballResult {
   similar_jobs: SimilarJob[]
   company_similar_jobs?: SimilarJob[] | null
   total_listings?: number | null
+  /** SGSAL-027: open postings among the 500 nearest; cards show open roles first */
+  open_matched?: number | null
 }
 
 // --- Posting groups / reposts (SGSAL-024) ---

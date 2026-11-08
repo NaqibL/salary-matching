@@ -383,3 +383,26 @@ def test_company_profile_has_stats_and_reposts(client):
     assert isinstance(data["top_reposted"], list)
     if data["stats"] is not None:
         assert data["stats"]["company_key"] == rows[0]["company_key"]
+
+
+def test_lowball_cards_show_open_roles_first(client):
+    """SGSAL-027: cards draw from the 500 nearest postings, open ones first."""
+    body = {
+        "title": "Data Analyst",
+        "description": "Build dashboards in Power BI and Tableau, write SQL, automate weekly reports in Python, "
+                       "work with operations managers on delivery KPIs. 3 to 5 years experience.",
+        "salary": 5000,
+        "top_k": 10,
+    }
+    r = client.post("/api/lowball/check", json=body)
+    assert r.status_code == 200
+    data = r.json()
+    assert "open_matched" in data and isinstance(data["open_matched"], int)
+    cards = data["similar_jobs"]
+    assert len(cards) <= 10
+    if data["open_matched"] > 0 and cards:
+        first = cards[0]
+        assert first.get("is_active") or (first.get("active_count") or 0) > 0
+        # every open card precedes every closed card
+        flags = [bool(c.get("is_active") or (c.get("active_count") or 0) > 0) for c in cards]
+        assert flags == sorted(flags, reverse=True)
