@@ -121,6 +121,14 @@ function SalaryBar({
 // Similar job card
 // ---------------------------------------------------------------------------
 
+/** 40.3 → "40th", 51 → "51st", 92 → "92nd", 63 → "63rd" (whole-number percentile reads better than "40.3th"). */
+function ordinalPercentile(p: number): string {
+  const n = Math.round(p)
+  const mod100 = n % 100
+  const suffix = mod100 >= 11 && mod100 <= 13 ? 'th' : n % 10 === 1 ? 'st' : n % 10 === 2 ? 'nd' : n % 10 === 3 ? 'rd' : 'th'
+  return `${n}${suffix}`
+}
+
 function SimilarJobCard({ job }: { job: SimilarJob }) {
   const [descExpanded, setDescExpanded] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -682,7 +690,7 @@ export function LowballContent() {
                 <p className="mt-2 text-base text-slate-600 dark:text-slate-400">
                   Your offered salary ({fmt(result.offered_salary!)}/mo) is at the{' '}
                   <strong className="text-slate-800 dark:text-slate-200">
-                    {result.percentile}th percentile
+                    {ordinalPercentile(result.percentile)} percentile
                   </strong>{' '}
                   of {result.total_matched} similar ads posted since Mar 2026
                   {result.open_matched != null && <> · {result.open_matched} open now</>}
