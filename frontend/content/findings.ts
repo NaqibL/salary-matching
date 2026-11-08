@@ -34,8 +34,8 @@ export const FINDINGS: FindingEntry[] = [
     kind: 'fixed',
     headline: 'The salary checker now shows open roles first.',
     body: [
-      'Until today the similar-roles cards were chosen purely by how closely an ad matched your description. Because we keep every ad posted since March 2026, closed ads outnumber open ones about ten to one, so most cards were for jobs that had already closed. The pay range was always built from the full history on purpose, and still is; the cards now put open roles first and say how many are open.',
-      'This change, and the agency labels below, came out of an outside product review and a round of simulated user testing run on 8 November.',
+      'Until today the similar-roles cards were chosen purely by how closely an ad matched your description. Because we keep every ad posted since March 2026, closed ads outnumber open ones about ten to one, so most cards were for jobs that had already closed. The pay range was always built from the full history on purpose, and still is, so the numbers you saw before today have not changed. Only the cards changed: they now put open roles first and say how many are open.',
+      'We found this after an outside review and a round of test runs on 8 November, which also prompted the agency labels below.',
     ],
     figures: [
       { value: '59 of 98', label: 'similar ads open for a sample Data Analyst check', asOf: '8 Nov 2026' },
@@ -49,7 +49,7 @@ export const FINDINGS: FindingEntry[] = [
     kind: 'new',
     headline: 'Recruitment agencies are now labelled.',
     body: [
-      'A company gets a "Recruitment agency" tag when its official registration (SSIC code 78, employment placement) says so, or when it has a recruitment-style name and its registration is not a public body. Agencies are not doing anything wrong. The label exists because one role is often advertised by several agencies at once, and because an agency\'s advertised pay range is harder to read than an employer\'s.',
+      'A company gets a "Recruitment agency" tag when its ACRA registration lists it as an employment agency (SSIC 78), or when it has a recruitment-style name and its registration is not a public body. The tag is a fact about registration, not a judgement. It exists because one role is often advertised by several agencies at once, and because an agency\'s advertised pay range is harder to read than an employer\'s.',
       'Fixed along the way: an earlier rule based on how many kinds of jobs a company posts had tagged universities and research institutes as agencies. It has been replaced by the registration-based rule above, which never tags government bodies, universities or hospitals.',
     ],
     figures: [
@@ -68,7 +68,7 @@ export const FINDINGS: FindingEntry[] = [
     ],
     figures: [
       { value: '716,225', label: 'postings tracked since Mar 2026', asOf: '8 Nov 2026' },
-      { value: '45%', label: 'of those were exact reposts of an earlier ad', asOf: '8 Nov 2026' },
+      { value: '45%', label: 'of those repeated an earlier ad word for word (same title and description)', asOf: '8 Nov 2026' },
       { value: '5,753', label: 'ad texts that appeared under two or more company names', asOf: '8 Nov 2026' },
     ],
     changelogAnchor: 'sgsal-024-posting-history-and-one-vector-per-ad',
@@ -81,6 +81,7 @@ export const FINDINGS: FindingEntry[] = [
     body: [
       'Pick a job type and the page lists the employers hiring for it, how many openings each has, what they mainly hire for, and the median advertised monthly salary for that job type at that company. Agencies are hidden by default and one switch brings them back. Each company page shows its registered industry, how often its ads are reposted compared with a typical company, and the ads it has posted most.',
     ],
+    figures: [{ value: '1,002', label: 'companies with 10 or more live openings', asOf: '8 Nov 2026' }],
     changelogAnchor: 'sgsal-026-companies-explorer',
   },
   {
@@ -89,7 +90,7 @@ export const FINDINGS: FindingEntry[] = [
     kind: 'new',
     headline: 'Hot Jobs: roles advertising well above their peers.',
     body: [
-      'A daily list of live roles whose advertised pay sits clearly above similar roles. It is a starting point, not a verdict: a high posted range can also mean a hard-to-fill role or an agency estimate. Lowball was featured in The Straits Times the same day.',
+      'A daily list of live roles whose advertised pay sits clearly above similar roles. It is a starting point, not a verdict: a high posted range can also mean a hard-to-fill role or an agency estimate.',
     ],
     changelogAnchor: 'sgsal-019-hot-jobs',
   },
@@ -99,10 +100,10 @@ export const FINDINGS: FindingEntry[] = [
     kind: 'fixed',
     headline: 'Why your result may have shifted: how we read a salary range.',
     body: [
-      'Three changes in June. The headline figure became the median of similar ads, with the lower and upper quartiles shown for context. Each ad counts as the midpoint of its advertised range, and ranges whose top is more than twice the bottom are left out of the benchmark, since they carry little information. All figures are monthly base salary in SGD; posted ranges tend to run 10 to 20 percent above what is actually offered, so the result says so.',
+      'Three changes in June. The headline figure became the middle value (median) of similar ads, with the quarter marks either side shown for context. Each ad counts as the midpoint of its advertised range, and ads like "$3,000 to $8,000", where the top is more than double the bottom, are left out because they tell you nothing. All figures are monthly base salary in SGD; posted ranges tend to run 10 to 20 percent above what is actually offered, so the result says so.',
       'The matching model was also retrained on Singapore job ads so that, for example, a BI Analyst ad no longer counts as evidence for a Data Engineer salary.',
     ],
-    figures: [{ value: '85% to 87.5%', label: 'matching accuracy on our evaluation set, before and after retraining', asOf: 'Jun 2026' }],
+    figures: [{ value: '85% to 87.5%', label: 'of test ads matched to the right job type, before and after retraining', asOf: 'Jun 2026' }],
     changelogAnchor: 'june-2026-methodology-and-matching-model',
   },
   {
@@ -145,6 +146,6 @@ export const GLOSSARY: Array<{ term: string; definition: string }> = [
   {
     term: 'Recruitment agency',
     definition:
-      'A company registered under SSIC 78 (employment placement), or one with a recruitment-style name whose registration is not a public body. Government bodies, universities and hospitals are never tagged.',
+      'A company whose ACRA registration lists it as an employment agency (SSIC 78), or one with a recruitment-style name whose registration is not a public body. Government bodies, universities and hospitals are never tagged.',
   },
 ]

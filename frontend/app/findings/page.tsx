@@ -75,7 +75,7 @@ export default function FindingsPage() {
         </div>
         <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-xl">
           What we have learned from tracking every Singapore job ad since March 2026, and what changed on the site
-          because of it. Newest first. Numbers are snapshots with their date; the dashboard has today&apos;s counts.
+          because of it. Newest first. Each number is frozen at the date shown; for live counts see the Dashboard.
         </p>
       </div>
 

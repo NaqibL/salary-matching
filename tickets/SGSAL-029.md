@@ -2,7 +2,7 @@
 id: SGSAL-029
 project: salary-matching
 title: Findings page (public what's new) + technical CHANGELOG.md
-status: in-progress
+status: done
 priority: medium
 type: feature
 labels: [frontend, docs, product, trust]
@@ -33,4 +33,4 @@ the dismissible checker banner, because the owner wants the public to find it.
 - [x] Content file, page, glossary
 - [x] CHANGELOG.md + README pointer
 - [x] Sidebar link + checker banner
-- [ ] Readability check by a job-seeker agent; deploy; verify
+- [x] Deployed 15:46 SGT; job-seeker agent read it cold: trusted the site more; five copy edits applied (plain words for median/quartiles and the 2x rule, ACRA wording, frozen-number note, 'test runs'), defensive agency line removed, Straits Times mention dropped as marketing-ish, denominator added to the 45% figure
