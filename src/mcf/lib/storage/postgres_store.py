@@ -118,7 +118,7 @@ SELECT a.company_key, a.company, a.active_count, a.distinct_postings, a.reposted
        COALESCE(c.category_counts, '{}'::jsonb)    AS category_counts,
        a.total_seen, a.first_seen, a.last_seen,
        (COALESCE(f.family_count, 0) >= 10
-        OR a.company ~* '(recruit|manpower|staffing|employment|human resource|\mhr\M|talent|consultanc|outsourc)')
+        OR a.company ~* '(recruit|manpower|staffing|employment|human resource|\mhr\M|talent|consultanc|outsourc|agenc)')
                                                    AS likely_agency
   FROM agg a
   LEFT JOIN fam f USING (company_key)
