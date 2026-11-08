@@ -57,6 +57,7 @@ class CompanyProfileResponse(BaseModel):
     recent_closed: list[CompanyJob]
     stats: "CompanyStatsRow | None" = None
     top_reposted: list["CompanyReposted"] = []
+    benchmarks: "CompanyBenchmarks | None" = None
 
 
 class TopCompany(BaseModel):
@@ -81,8 +82,14 @@ class CompanyStatsRow(BaseModel):
     total_seen: int
     first_seen: str | None
     last_seen: str | None
-    likely_agency: bool
+    # SGSAL-028: registered industry (SSIC) and the only source of the agency label
+    ssic_code_2020: str | None = None
+    ssic_description: str | None = None
+    is_agency: bool = False
+    top_family_share: float | None = None
     family_active_count: int | None = None
+    family_median_salary: int | None = None
+    family_salary_sample: int | None = None
 
 
 class CompanyStatsSummary(BaseModel):
@@ -95,6 +102,10 @@ class CompanyStatsResponse(BaseModel):
     rows: list[CompanyStatsRow]
     total_matching: int
     summary: CompanyStatsSummary
+
+
+class CompanyBenchmarks(BaseModel):
+    median_repost_rate: float | None = None
 
 
 class CompanyReposted(BaseModel):
@@ -152,6 +163,8 @@ def _stats_row(raw: dict | None) -> CompanyStatsRow | None:
             "last_seen": _to_iso(raw.get("last_seen")) or None,
             "role_family_counts": raw.get("role_family_counts") or {},
             "category_counts": raw.get("category_counts") or {},
+            "top_family_share": float(raw["top_family_share"]) if raw.get("top_family_share") is not None else None,
+            "is_agency": bool(raw.get("is_agency")),
         }
     )
 
@@ -323,6 +336,7 @@ def get_company_profile(
         company_name=company_name,
         stats=stats,
         top_reposted=top_reposted,
+        benchmarks=CompanyBenchmarks(**store.get_company_benchmarks()),
         active_count=len(active_jobs_all),
         total_count=len(jobs),
         salary_p25=p25,

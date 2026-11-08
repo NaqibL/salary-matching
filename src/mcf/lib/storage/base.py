@@ -668,7 +668,9 @@ class Storage(ABC):
         "median_salary"}}. Each row carries every view column plus ``family_active_count``
         (that family's openings when ``family`` is given, else None). ``agency`` is
         ``all`` | ``direct`` | ``agency``; ``sort`` is ``openings`` | ``repost_rate`` |
-        ``median_salary``. Empty result when the view does not exist yet."""
+        ``median_salary``. With ``family`` set, rows also carry ``family_median_salary`` and
+        ``family_salary_sample``. ``agency`` filters on ``is_agency`` (SSIC 78, from the companies
+        registry). Empty result when the view does not exist yet."""
 
     @abstractmethod
     def get_company_stats_one(self, company_name: str) -> dict | None:
@@ -677,6 +679,14 @@ class Storage(ABC):
     @abstractmethod
     def get_company_top_reposted(self, company_name: str, limit: int = 5) -> list[dict]:
         """The company's active posting groups with repost_count >= 2, most reposted first."""
+
+    @abstractmethod
+    def get_company_benchmarks(self) -> dict:
+        """{"median_repost_rate": float | None} over companies with 10+ openings (context for profiles)."""
+
+    @abstractmethod
+    def get_posting_group_companies(self, canonical_uuids: list[str]) -> dict[str, list[str]]:
+        """canonical_job_uuid -> distinct company names across the posting group's occurrences."""
 
     # === Company registry (SGSAL-028, companies table) ===
 

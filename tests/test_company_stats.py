@@ -34,11 +34,15 @@ def test_stats_family_filter_sorts_by_family_openings(store):
     assert all(c is not None and c >= 1 for c in counts)
     assert counts == sorted(counts, reverse=True)
     assert all("data_ai_analytics" in r["role_family_counts"] for r in out["rows"])
+    for r in out["rows"]:
+        assert "family_median_salary" in r and "family_salary_sample" in r
+        if r["family_salary_sample"]:
+            assert r["family_median_salary"] is not None
 
 
 def test_stats_agency_filter_and_sorts(store):
     direct = store.get_company_stats(agency="direct", min_active=1, limit=5)
-    assert all(r["likely_agency"] is False for r in direct["rows"])
+    assert all(r["is_agency"] is False for r in direct["rows"])
     by_rate = store.get_company_stats(sort="repost_rate", min_active=10, limit=5)["rows"]
     rates = [r["reposted_count"] / r["active_count"] for r in by_rate]
     assert rates == sorted(rates, reverse=True)

@@ -37,7 +37,7 @@ def test_summary_public_searchable_vs_seen(client):
     """SGSAL-024 semantics: a job is searchable when a vector exists for it OR for its
     canonical posting; vectors are deduplicated so vectors_stored <= jobs searchable."""
     data = client.get("/api/dashboard/summary-public").json()
-    for key in ("jobs_seen_total", "jobs_searchable_total", "vectors_stored"):
+    for key in ("jobs_seen_total", "jobs_searchable_total", "vectors_stored", "companies_hiring", "new_this_week"):
         assert key in data, key
         assert isinstance(data[key], int)
     assert data["jobs_searchable_total"] <= data["jobs_seen_total"]
@@ -352,8 +352,9 @@ def test_companies_stats_shape(client):
     for row in data["rows"]:
         for key in ("company", "active_count", "distinct_postings", "reposted_count",
                     "multi_company_count", "max_repost_count", "median_salary", "salary_sample",
-                    "role_family_counts", "family_count", "top_family", "total_seen",
-                    "first_seen", "likely_agency", "family_active_count"):
+                    "role_family_counts", "family_count", "top_family", "top_family_share", "total_seen",
+                    "first_seen", "is_agency", "ssic_description", "family_active_count",
+                    "family_median_salary", "family_salary_sample"):
             assert key in row, key
         assert isinstance(row["role_family_counts"], dict)
 
@@ -379,8 +380,9 @@ def test_company_profile_has_stats_and_reposts(client):
     r = client.get(f"/api/companies/{rows[0]['company']}/profile")
     assert r.status_code == 200
     data = r.json()
-    assert "stats" in data and "top_reposted" in data
+    assert "stats" in data and "top_reposted" in data and "benchmarks" in data
     assert isinstance(data["top_reposted"], list)
+    assert set(data["benchmarks"]) == {"median_repost_rate"}
     if data["stats"] is not None:
         assert data["stats"]["company_key"] == rows[0]["company_key"]
 

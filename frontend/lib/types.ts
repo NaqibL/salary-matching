@@ -78,6 +78,7 @@ export interface CompanyProfile {
   // SGSAL-026 (absent on older cached responses)
   stats?: CompanyStatsRow | null
   top_reposted?: CompanyReposted[]
+  benchmarks?: CompanyBenchmarks | null
 }
 
 // --- Company stats (SGSAL-026) ---
@@ -99,8 +100,18 @@ export interface CompanyStatsRow {
   total_seen: number
   first_seen: string | null
   last_seen: string | null
-  likely_agency: boolean
+  /** SGSAL-028: registered industry (SSIC); is_agency = SSIC 78 only */
+  ssic_code_2020: string | null
+  ssic_description: string | null
+  is_agency: boolean
+  top_family_share: number | null
   family_active_count: number | null
+  family_median_salary: number | null
+  family_salary_sample: number | null
+}
+
+export interface CompanyBenchmarks {
+  median_repost_rate: number | null
 }
 
 export interface CompanyStatsSummary {

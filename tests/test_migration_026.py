@@ -1,8 +1,8 @@
-"""SGSAL-026: keep the ensure_schema view constant identical to migration 024."""
+"""SGSAL-028: keep the ensure_schema view constant identical to migration 026 (company_stats v2)."""
 
 from pathlib import Path
 
-MIGRATION = Path(__file__).resolve().parent.parent / "scripts" / "migrations" / "024_company_stats.sql"
+MIGRATION = Path(__file__).resolve().parent.parent / "scripts" / "migrations" / "026_company_stats_v2.sql"
 START = "CREATE MATERIALIZED VIEW IF NOT EXISTS company_stats AS"
 END = "WHERE a.active_count > 0"
 

@@ -61,7 +61,7 @@ SELECT content_hash,
   FROM ranked
  GROUP BY content_hash"""
 
-# SGSAL-026: must stay identical to scripts/migrations/024_company_stats.sql.
+# SGSAL-028: must stay identical to scripts/migrations/026_company_stats_v2.sql.
 _COMPANY_STATS_VIEW_SQL = """CREATE MATERIALIZED VIEW IF NOT EXISTS company_stats AS
 WITH base AS (
     SELECT j.job_uuid,
@@ -74,9 +74,13 @@ WITH base AS (
                 THEN (j.salary_min + j.salary_max) / 2
                 ELSE j.salary_min END                           AS salary_mid,
            j.categories_json,
-           pg.repost_count, pg.distinct_companies
+           pg.repost_count, pg.distinct_companies,
+           c.ssic_code_2020, c.ssic_description,
+           (c.ssic_code_2020 LIKE '78%'
+            OR (c.ssic_code_2020 IS NULL AND c.ssic_code LIKE '78%'))  AS agency_row
       FROM jobs j
       LEFT JOIN posting_groups pg ON pg.content_hash = j.content_hash
+      LEFT JOIN companies c ON c.company_key = lower(j.company_name)
      WHERE j.company_name IS NOT NULL
        AND COALESCE(j.company_canonical, j.company_name) NOT IN
            (SELECT canonical_name FROM company_aliases WHERE is_excluded = TRUE)
@@ -84,9 +88,19 @@ WITH base AS (
     SELECT company_key,
            jsonb_object_agg(role_family, n)                                  AS role_family_counts,
            count(*)::int                                                     AS family_count,
-           (array_agg(role_family ORDER BY n DESC, role_family))[1]          AS top_family
+           (array_agg(role_family ORDER BY n DESC, role_family))[1]          AS top_family,
+           (array_agg(n ORDER BY n DESC, role_family))[1]                    AS top_family_n
       FROM (SELECT company_key, role_family, count(*)::int AS n
               FROM base WHERE is_active GROUP BY 1, 2) f
+     GROUP BY company_key
+), famsal AS (
+    SELECT company_key,
+           jsonb_object_agg(role_family, med) AS family_medians,
+           jsonb_object_agg(role_family, n)   AS family_salary_n
+      FROM (SELECT company_key, role_family,
+                   (percentile_cont(0.5) WITHIN GROUP (ORDER BY salary_mid))::int AS med,
+                   count(*)::int AS n
+              FROM base WHERE is_active AND salary_mid IS NOT NULL GROUP BY 1, 2) x
      GROUP BY company_key
 ), cat AS (
     SELECT company_key, jsonb_object_agg(category, n) AS category_counts
@@ -109,7 +123,10 @@ WITH base AS (
            (count(salary_mid) FILTER (WHERE is_active))::int                            AS salary_sample,
            count(*)::int                                                                AS total_seen,
            min(first_seen_at)                                                           AS first_seen,
-           max(last_seen_at)                                                            AS last_seen
+           max(last_seen_at)                                                            AS last_seen,
+           mode() WITHIN GROUP (ORDER BY ssic_code_2020)                                AS ssic_code_2020,
+           mode() WITHIN GROUP (ORDER BY ssic_description)                              AS ssic_description,
+           COALESCE(bool_or(agency_row), FALSE)                                         AS is_agency
       FROM base
      GROUP BY company_key
 )
@@ -118,13 +135,16 @@ SELECT a.company_key, a.company, a.active_count, a.distinct_postings, a.reposted
        COALESCE(f.role_family_counts, '{}'::jsonb) AS role_family_counts,
        COALESCE(f.family_count, 0)                 AS family_count,
        f.top_family,
+       CASE WHEN a.active_count > 0
+            THEN round(COALESCE(f.top_family_n, 0)::numeric / a.active_count, 3) END AS top_family_share,
+       COALESCE(fs.family_medians, '{}'::jsonb)    AS family_medians,
+       COALESCE(fs.family_salary_n, '{}'::jsonb)   AS family_salary_n,
        COALESCE(c.category_counts, '{}'::jsonb)    AS category_counts,
        a.total_seen, a.first_seen, a.last_seen,
-       (COALESCE(f.family_count, 0) >= 10
-        OR a.company ~* '(recruit|manpower|staffing|employment|human resource|\mhr\M|talent|consultanc|outsourc|agenc)')
-                                                   AS likely_agency
+       a.ssic_code_2020, a.ssic_description, a.is_agency
   FROM agg a
   LEFT JOIN fam f USING (company_key)
+  LEFT JOIN famsal fs USING (company_key)
   LEFT JOIN cat c USING (company_key)
  WHERE a.active_count > 0"""
 
@@ -1958,6 +1978,14 @@ class PostgresStore(Storage):
             row = cur.fetchone()
             cur.execute("SELECT COUNT(*) FROM job_embeddings")
             vectors_stored = cur.fetchone()[0]
+            cur.execute("SELECT COUNT(*) FROM jobs WHERE first_seen_at >= now() - interval '7 days'")
+            new_this_week = cur.fetchone()[0]
+        try:
+            with self._cur() as cur:
+                cur.execute("SELECT COUNT(*) FROM company_stats")
+                companies_hiring = cur.fetchone()[0]
+        except psycopg2.errors.UndefinedTable:
+            companies_hiring = 0
         total = row[0] if row else 0
         active = row[1] if row else 0
         inactive = row[2] if row else 0
@@ -1991,6 +2019,9 @@ class PostgresStore(Storage):
             "jobs_seen_total": total,
             "jobs_searchable_total": searchable_total,
             "vectors_stored": vectors_stored,
+            # SGSAL-028 visitor tiles
+            "companies_hiring": companies_hiring,
+            "new_this_week": new_this_week,
         }
 
     def get_jobs_over_time_posted_and_removed(self, limit_days: int = 90) -> list[dict]:
@@ -2870,8 +2901,8 @@ class PostgresStore(Storage):
     _COMPANY_STATS_COLS = (
         "company_key, company, active_count, distinct_postings, reposted_count, "
         "multi_company_count, max_repost_count, median_salary, salary_sample, "
-        "role_family_counts, family_count, top_family, category_counts, "
-        "total_seen, first_seen, last_seen, likely_agency"
+        "role_family_counts, family_count, top_family, top_family_share, category_counts, "
+        "total_seen, first_seen, last_seen, ssic_code_2020, ssic_description, is_agency"
     )
     _COMPANY_SORTS = {
         "openings": "COALESCE(%(family_count_expr)s, active_count) DESC",
@@ -2898,6 +2929,8 @@ class PostgresStore(Storage):
         if agency not in ("all", "direct", "agency"):
             agency = "all"
         family_expr = "(role_family_counts->>%(family)s)::int" if family else "NULL::int"
+        family_median_expr = "(family_medians->>%(family)s)::int" if family else "NULL::int"
+        family_n_expr = "(family_salary_n->>%(family)s)::int" if family else "NULL::int"
         order = self._COMPANY_SORTS.get(sort, self._COMPANY_SORTS["openings"]) % {
             "family_count_expr": family_expr
         }
@@ -2909,9 +2942,9 @@ class PostgresStore(Storage):
         if q:
             where.append("company ILIKE %(q)s")
         if agency == "direct":
-            where.append("likely_agency = FALSE")
+            where.append("is_agency = FALSE")
         elif agency == "agency":
-            where.append("likely_agency = TRUE")
+            where.append("is_agency = TRUE")
         params = {
             "family": family,
             "category": category,
@@ -2925,7 +2958,9 @@ class PostgresStore(Storage):
             with self._cur() as cur:
                 cur.execute(
                     f"""
-                    SELECT {self._COMPANY_STATS_COLS}, {family_expr} AS family_active_count
+                    SELECT {self._COMPANY_STATS_COLS}, {family_expr} AS family_active_count,
+                           {family_median_expr} AS family_median_salary,
+                           {family_n_expr} AS family_salary_sample
                       FROM company_stats
                      WHERE {where_sql}
                      ORDER BY {order}, active_count DESC, company ASC
@@ -2959,7 +2994,8 @@ class PostgresStore(Storage):
         try:
             with self._cur() as cur:
                 cur.execute(
-                    f"SELECT {self._COMPANY_STATS_COLS}, NULL::int AS family_active_count "
+                    f"SELECT {self._COMPANY_STATS_COLS}, NULL::int AS family_active_count, "
+                    "NULL::int AS family_median_salary, NULL::int AS family_salary_sample "
                     "FROM company_stats WHERE company_key = lower(%s)",
                     (company_name,),
                 )
@@ -2993,6 +3029,38 @@ class PostgresStore(Storage):
             )
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    def get_company_benchmarks(self) -> dict:
+        try:
+            with self._cur() as cur:
+                cur.execute(
+                    """
+                    SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY reposted_count::float / NULLIF(active_count, 0))
+                      FROM company_stats WHERE active_count >= 10
+                    """
+                )
+                row = cur.fetchone()
+                return {"median_repost_rate": float(row[0]) if row and row[0] is not None else None}
+        except psycopg2.errors.UndefinedTable:
+            return {"median_repost_rate": None}
+
+    def get_posting_group_companies(self, canonical_uuids: list[str]) -> dict[str, list[str]]:
+        if not canonical_uuids:
+            return {}
+        with self._cur() as cur:
+            cur.execute(
+                "SELECT canonical_job_uuid, occurrences FROM posting_groups WHERE canonical_job_uuid = ANY(%s)",
+                (list(canonical_uuids),),
+            )
+            out: dict[str, list[str]] = {}
+            for uuid, occ in cur.fetchall():
+                names: list[str] = []
+                for o in occ or []:
+                    name = (o or {}).get("company")
+                    if name and name not in names:
+                        names.append(name)
+                out[uuid] = names
+            return out
 
     # === Company registry (SGSAL-028) ===
 
