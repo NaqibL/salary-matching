@@ -29,7 +29,7 @@ Plan: `docs/superpowers/plans/2026-11-08-ux-v2-agencies-open-roles.md`
 
 ## Checklist
 
-- [x] Migration 025 `companies` + crawler capture (batched, MCF only) + `scripts/backfill_companies.py` (running 2026-11-08 ~14:00–16:00 SGT, ~2.1 companies/s)
+- [x] Migration 025 `companies` + crawler capture (batched, MCF only) + `scripts/backfill_companies.py` (done 2026-11-08 16:38 SGT: 14,801 registry rows, all with SSIC; 125 min at ~2/s; `--retry-empty` recovered the single miss; `company_stats` refreshed: 986 of 14,700 companies tagged as agencies, 301 of the 1,002 with 10+ openings)
 - [x] Migration 026 `company_stats` v2 (`is_agency`, SSIC, per-family medians) — applied 2026-11-08
 - [x] Checker cards: agency tag, direct-employer chip, sentence copy
 - [x] Companies table v2, profile v2
