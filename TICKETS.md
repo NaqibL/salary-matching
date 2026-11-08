@@ -29,3 +29,4 @@ Project prefix: `SGSAL`
 | [SGSAL-023](tickets/SGSAL-023.md) | Dedup near-identical active postings (recruiter reposts) in dashboard counts and benchmarks | todo | medium |
 | [SGSAL-024](tickets/SGSAL-024.md) | Content-addressed embeddings (one vector per posting text) + repost history per job | in-progress | high |
 | [SGSAL-025](tickets/SGSAL-025.md) | Vector storage roadmap — halfvec, role-family routed partitions, cold-tier quantisation (keep all history) | in-progress | medium |
+| [SGSAL-026](tickets/SGSAL-026.md) | Companies page rework — explore by role family / industry, repost facts per company | in-progress | medium |
