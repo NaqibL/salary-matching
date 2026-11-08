@@ -15,7 +15,13 @@ export type Summary = {
   jobs_with_embeddings: number
   inactive_jobs_with_embeddings: number
   jobs_needing_backfill: number
+  // SGSAL-024: pipeline reach vs search reach (absent on older cached responses)
+  jobs_seen_total?: number
+  jobs_searchable_total?: number
+  vectors_stored?: number
 }
+
+const fmtK = (n: number) => `${(n / 1000).toFixed(1)}k`
 
 const SUMMARY_CARDS = [
   {
@@ -47,7 +53,7 @@ const SUMMARY_CARDS = [
   },
   {
     key: 'jobs_embedded_total',
-    label: 'Jobs embedded',
+    label: 'Searchable jobs',
     icon: Database,
     iconColor: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
     valueColor: 'text-indigo-600 dark:text-indigo-400',
@@ -105,11 +111,13 @@ export function DashboardSummary({ fallbackData }: DashboardSummaryProps) {
             valueKey === 'active_unembedded'
               ? (displaySummary?.active_jobs_total ?? 0) - activeEmbedded
               : valueKey === 'jobs_embedded_total'
-              ? activeEmbedded + inactiveEmbedded
+              ? displaySummary?.jobs_searchable_total ?? activeEmbedded + inactiveEmbedded
               : displaySummary?.[valueKey]
           const embeddedSublabel =
             valueKey === 'jobs_embedded_total'
-              ? `${(activeEmbedded / 1000).toFixed(1)}k active · ${(inactiveEmbedded / 1000).toFixed(1)}k inactive`
+              ? displaySummary?.jobs_seen_total != null && displaySummary?.vectors_stored != null
+                ? `of ${fmtK(displaySummary.jobs_seen_total)} seen · ${fmtK(displaySummary.vectors_stored)} vectors`
+                : `${fmtK(activeEmbedded)} active · ${fmtK(inactiveEmbedded)} inactive`
               : undefined
           const displayValue =
             rawValue != null ? (typeof rawValue === 'number' ? rawValue.toLocaleString() : String(rawValue)) : '—'

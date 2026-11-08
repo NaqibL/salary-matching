@@ -439,7 +439,12 @@ class Storage(ABC):
     # === Dashboard ===
 
     @abstractmethod
-    def get_dashboard_summary(self) -> dict: ...
+    def get_dashboard_summary(self) -> dict:
+        """Summary tiles. Searchable = a vector exists for the job or its canonical posting
+        (SGSAL-024). Keys: total_jobs (= jobs_searchable_total), active_jobs (searchable active),
+        active_jobs_total, inactive_jobs, jobs_with_embeddings, inactive_jobs_with_embeddings,
+        jobs_needing_backfill, jobs_seen_total, jobs_searchable_total, vectors_stored."""
+        ...
 
     def get_jobs_over_time_posted_and_removed(self, limit_days: int = 90) -> list[dict]:
         """Added and removed counts per day from job_daily_stats (primary source only).

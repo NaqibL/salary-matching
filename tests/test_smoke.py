@@ -33,6 +33,20 @@ def test_summary_public(client):
     assert "total_jobs" in data
 
 
+def test_summary_public_searchable_vs_seen(client):
+    """SGSAL-024 semantics: a job is searchable when a vector exists for it OR for its
+    canonical posting; vectors are deduplicated so vectors_stored <= jobs searchable."""
+    data = client.get("/api/dashboard/summary-public").json()
+    for key in ("jobs_seen_total", "jobs_searchable_total", "vectors_stored"):
+        assert key in data, key
+        assert isinstance(data[key], int)
+    assert data["jobs_searchable_total"] <= data["jobs_seen_total"]
+    assert data["vectors_stored"] <= data["jobs_searchable_total"]
+    assert data["jobs_with_embeddings"] <= data["active_jobs_total"]
+    assert data["jobs_searchable_total"] == data["jobs_with_embeddings"] + data["inactive_jobs_with_embeddings"]
+    assert data["total_jobs"] == data["jobs_searchable_total"]
+
+
 def test_active_jobs_over_time_public(client):
     r = client.get("/api/dashboard/active-jobs-over-time-public")
     assert r.status_code == 200

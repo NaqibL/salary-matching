@@ -211,6 +211,9 @@ export const dashboardApi = {
       jobs_with_embeddings: number
       inactive_jobs_with_embeddings: number
       jobs_needing_backfill: number
+      jobs_seen_total?: number
+      jobs_searchable_total?: number
+      vectors_stored?: number
     }>
   },
   getSummaryPublic: async () =>
@@ -221,7 +224,11 @@ export const dashboardApi = {
       inactive_jobs: number
       by_source: Record<string, number>
       jobs_with_embeddings: number
+      inactive_jobs_with_embeddings: number
       jobs_needing_backfill: number
+      jobs_seen_total?: number
+      jobs_searchable_total?: number
+      vectors_stored?: number
     }>('/api/dashboard/summary-public'),
 
   getJobsOverTimePostedAndRemoved: async (limitDays = 90) => {

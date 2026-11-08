@@ -1844,6 +1844,13 @@ class PostgresStore(Storage):
     # === Dashboard ===
 
     def get_dashboard_summary(self) -> dict:
+        """Pipeline reach vs. search reach.
+
+        SGSAL-024: a job is *searchable* when a vector exists for it or for its canonical
+        posting (``COALESCE(canonical_job_uuid, job_uuid)``); reposts share the canonical's
+        vector, so joining on ``job_uuid`` alone would report every active repost as backlog.
+        ``vectors_stored`` is the deduplicated vector count, always <= ``jobs_searchable_total``.
+        """
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
             cur.execute(
@@ -1852,18 +1859,20 @@ class PostgresStore(Storage):
                   COUNT(*) AS total,
                   COUNT(*) FILTER (WHERE j.is_active = TRUE) AS active,
                   COUNT(*) FILTER (WHERE j.is_active = FALSE) AS inactive,
-                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = TRUE) AS active_with_embeddings,
-                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = FALSE) AS inactive_with_embeddings
+                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = TRUE) AS active_searchable,
+                  COUNT(e.job_uuid) FILTER (WHERE j.is_active = FALSE) AS inactive_searchable
                 FROM jobs j
-                LEFT JOIN job_embeddings e ON e.job_uuid = j.job_uuid
+                LEFT JOIN job_embeddings e ON e.job_uuid = COALESCE(j.canonical_job_uuid, j.job_uuid)
                 """
             )
             row = cur.fetchone()
+            cur.execute("SELECT COUNT(*) FROM job_embeddings")
+            vectors_stored = cur.fetchone()[0]
         total = row[0] if row else 0
         active = row[1] if row else 0
         inactive = row[2] if row else 0
-        jobs_with_embeddings = row[3] if row else 0
-        inactive_jobs_with_embeddings = row[4] if row else 0
+        active_searchable = row[3] if row else 0
+        inactive_searchable = row[4] if row else 0
 
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
@@ -1877,15 +1886,21 @@ class PostgresStore(Storage):
             row = cur.fetchone()
         jobs_needing_backfill = row[0] if row else 0
 
+        searchable_total = active_searchable + inactive_searchable
         return {
-            "total_jobs": jobs_with_embeddings + inactive_jobs_with_embeddings,
-            "active_jobs": jobs_with_embeddings,
+            # legacy keys (same names, canonical-aware values)
+            "total_jobs": searchable_total,
+            "active_jobs": active_searchable,
             "active_jobs_total": active,
             "inactive_jobs": inactive,
-            "by_source": {"mcf": jobs_with_embeddings},
-            "jobs_with_embeddings": jobs_with_embeddings,
-            "inactive_jobs_with_embeddings": inactive_jobs_with_embeddings,
+            "by_source": {"mcf": active_searchable},
+            "jobs_with_embeddings": active_searchable,
+            "inactive_jobs_with_embeddings": inactive_searchable,
             "jobs_needing_backfill": jobs_needing_backfill,
+            # SGSAL-024 pipeline-vs-search reach
+            "jobs_seen_total": total,
+            "jobs_searchable_total": searchable_total,
+            "vectors_stored": vectors_stored,
         }
 
     def get_jobs_over_time_posted_and_removed(self, limit_days: int = 90) -> list[dict]:

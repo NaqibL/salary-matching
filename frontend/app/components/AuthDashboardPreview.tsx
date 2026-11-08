@@ -93,7 +93,7 @@ export function AuthDashboardPreview({
               <div className="text-xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400">
                 {summary.jobs_with_embeddings?.toLocaleString() ?? '—'}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">With embeddings</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Searchable now</div>
             </div>
           </Card>
         </div>
