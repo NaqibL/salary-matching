@@ -214,6 +214,8 @@ export const dashboardApi = {
       jobs_seen_total?: number
       jobs_searchable_total?: number
       vectors_stored?: number
+      companies_hiring?: number
+      new_this_week?: number
     }>
   },
   getSummaryPublic: async () =>

@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
-import { Briefcase, CheckCircle, XCircle, Database, AlertCircle, SearchX } from 'lucide-react'
+import { Briefcase, Building2, CheckCircle, Sparkles } from 'lucide-react'
 import { dashboardApi } from '@/lib/api'
 import { Card } from '@/components/design'
 import { DASHBOARD_SWR_CONFIG } from '@/lib/swr-config'
@@ -19,64 +19,53 @@ export type Summary = {
   jobs_seen_total?: number
   jobs_searchable_total?: number
   vectors_stored?: number
+  // SGSAL-028: visitor tiles
+  companies_hiring?: number
+  new_this_week?: number
 }
 
-const fmtK = (n: number) => `${(n / 1000).toFixed(1)}k`
+const TRACKED_SINCE = 'Mar 2026'
 
+/**
+ * Four tiles a visitor understands (SGSAL-028). The pipeline numbers (searchable, inactive,
+ * backlog, backfill) live on the owner-only admin page — see app/admin/PipelinePanel.tsx.
+ */
 const SUMMARY_CARDS = [
   {
-    key: 'active_jobs',
+    key: 'live',
     label: 'Live jobs',
     icon: CheckCircle,
     iconColor: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
     valueColor: 'text-emerald-600 dark:text-emerald-400',
-    valueKey: 'active_jobs' as const,
-    sublabel: 'Active & searchable',
+    pick: (s: Summary) => s.active_jobs_total,
+    sublabel: 'open right now',
   },
   {
-    key: 'active_jobs_total',
-    label: 'Active in DB',
+    key: 'new',
+    label: 'New this week',
+    icon: Sparkles,
+    iconColor: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+    valueColor: 'text-indigo-600 dark:text-indigo-400',
+    pick: (s: Summary) => s.new_this_week,
+    sublabel: 'first seen in the last 7 days',
+  },
+  {
+    key: 'companies',
+    label: 'Companies hiring',
+    icon: Building2,
+    iconColor: 'bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400',
+    valueColor: 'text-sky-700 dark:text-sky-400',
+    pick: (s: Summary) => s.companies_hiring,
+    sublabel: 'with at least one live job',
+  },
+  {
+    key: 'tracked',
+    label: `Postings tracked since ${TRACKED_SINCE}`,
     icon: Briefcase,
     iconColor: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
     valueColor: 'text-slate-900 dark:text-slate-100',
-    valueKey: 'active_jobs_total' as const,
-    sublabel: null as string | null,
-  },
-  {
-    key: 'inactive_jobs',
-    label: 'Inactive jobs',
-    icon: XCircle,
-    iconColor: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
-    valueColor: 'text-slate-600 dark:text-slate-400',
-    valueKey: 'inactive_jobs' as const,
-    sublabel: null as string | null,
-  },
-  {
-    key: 'jobs_embedded_total',
-    label: 'Searchable jobs',
-    icon: Database,
-    iconColor: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-    valueColor: 'text-indigo-600 dark:text-indigo-400',
-    valueKey: 'jobs_embedded_total' as const,
-    sublabel: null as string | null,
-  },
-  {
-    key: 'active_unembedded',
-    label: 'Embedding backlog',
-    icon: SearchX,
-    iconColor: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
-    valueColor: 'text-rose-600 dark:text-rose-400',
-    valueKey: 'active_unembedded' as const,
-    sublabel: 'Not yet searchable',
-  },
-  {
-    key: 'jobs_needing_backfill',
-    label: 'Need backfill',
-    icon: AlertCircle,
-    iconColor: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-    valueColor: 'text-amber-600 dark:text-amber-400',
-    valueKey: 'jobs_needing_backfill' as const,
-    sublabel: 'Category/employment missing',
+    pick: (s: Summary) => s.jobs_seen_total ?? s.active_jobs_total + s.inactive_jobs,
+    sublabel: 'including closed ones',
   },
 ]
 
@@ -97,30 +86,17 @@ export function DashboardSummary({ fallbackData }: DashboardSummaryProps) {
   const displaySummary = summary ?? fallbackData
   if (error && !displaySummary) return null
   if (!displaySummary && isLoading) return null
+  if (!displaySummary) return null
 
   return (
     <section>
       <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
         Summary
       </h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {SUMMARY_CARDS.map(({ key, label, icon: Icon, iconColor, valueColor, valueKey, sublabel }) => {
-          const activeEmbedded = displaySummary?.jobs_with_embeddings ?? 0
-          const inactiveEmbedded = displaySummary?.inactive_jobs_with_embeddings ?? 0
-          const rawValue =
-            valueKey === 'active_unembedded'
-              ? (displaySummary?.active_jobs_total ?? 0) - activeEmbedded
-              : valueKey === 'jobs_embedded_total'
-              ? displaySummary?.jobs_searchable_total ?? activeEmbedded + inactiveEmbedded
-              : displaySummary?.[valueKey]
-          const embeddedSublabel =
-            valueKey === 'jobs_embedded_total'
-              ? displaySummary?.jobs_seen_total != null && displaySummary?.vectors_stored != null
-                ? `of ${fmtK(displaySummary.jobs_seen_total)} seen · ${fmtK(displaySummary.vectors_stored)} vectors`
-                : `${fmtK(activeEmbedded)} active · ${fmtK(inactiveEmbedded)} inactive`
-              : undefined
-          const displayValue =
-            rawValue != null ? (typeof rawValue === 'number' ? rawValue.toLocaleString() : String(rawValue)) : '—'
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {SUMMARY_CARDS.map(({ key, label, icon: Icon, iconColor, valueColor, pick, sublabel }) => {
+          const rawValue = pick(displaySummary)
+          const displayValue = rawValue != null ? rawValue.toLocaleString() : '—'
           return (
             <Card
               key={key}
@@ -130,13 +106,9 @@ export function DashboardSummary({ fallbackData }: DashboardSummaryProps) {
               <div className={`p-2 rounded-lg mb-2 ${iconColor}`}>
                 <Icon className="size-5" aria-hidden />
               </div>
-              <div className={`text-xl font-bold tabular-nums ${valueColor}`}>
-                {displayValue}
-              </div>
+              <div className={`text-xl font-bold tabular-nums ${valueColor}`}>{displayValue}</div>
               <div className="text-sm text-slate-500 dark:text-slate-400">{label}</div>
-              {(embeddedSublabel ?? sublabel) && (
-                <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{embeddedSublabel ?? sublabel}</div>
-              )}
+              <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sublabel}</div>
             </Card>
           )
         })}
