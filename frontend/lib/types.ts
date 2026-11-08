@@ -75,6 +75,69 @@ export interface CompanyProfile {
   top_skills: [string, number][]
   active_jobs: CompanyJob[]
   recent_closed: CompanyJob[]
+  // SGSAL-026 (absent on older cached responses)
+  stats?: CompanyStatsRow | null
+  top_reposted?: CompanyReposted[]
+}
+
+// --- Company stats (SGSAL-026) ---
+
+export interface CompanyStatsRow {
+  company_key: string
+  company: string
+  active_count: number
+  distinct_postings: number
+  reposted_count: number
+  multi_company_count: number
+  max_repost_count: number
+  median_salary: number | null
+  salary_sample: number
+  role_family_counts: Record<string, number>
+  family_count: number
+  top_family: string | null
+  category_counts: Record<string, number>
+  total_seen: number
+  first_seen: string | null
+  last_seen: string | null
+  likely_agency: boolean
+  family_active_count: number | null
+}
+
+export interface CompanyStatsSummary {
+  companies: number
+  openings: number
+  median_salary: number | null
+}
+
+export interface CompanyStatsResponse {
+  rows: CompanyStatsRow[]
+  total_matching: number
+  summary: CompanyStatsSummary
+}
+
+export interface CompanyReposted {
+  canonical_job_uuid: string
+  title: string | null
+  repost_count: number
+  reposts_365d: number
+  distinct_companies: number
+  first_posted: string | null
+  last_posted: string | null
+  latest_salary_min: number | null
+  latest_salary_max: number | null
+}
+
+export type CompanyAgencyFilter = 'all' | 'direct' | 'agency'
+export type CompanyStatsSort = 'openings' | 'repost_rate' | 'median_salary'
+
+export interface CompanyStatsParams {
+  family?: string
+  category?: string
+  q?: string
+  agency?: CompanyAgencyFilter
+  min_active?: number
+  sort?: CompanyStatsSort
+  limit?: number
 }
 
 export interface Profile {

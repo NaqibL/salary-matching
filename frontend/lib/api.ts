@@ -1,4 +1,4 @@
-import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow, PostingHistory, MostRepostedRow } from './types'
+import type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow, PostingHistory, MostRepostedRow, CompanyStatsParams, CompanyStatsResponse } from './types'
 import { supabase } from './supabase'
 
 export type { Profile, Match, Job, JobDetail, DiscoverStats, MatchMode, LowballResult, SimilarJob, SalarySearchResult, CompanyProfile, TopCompany, HotJob, HotJobsResponse, SeniorityBreakdownRow, TopSkillRow, SkillsTrendRow, RoleFamilyRow }
@@ -385,6 +385,16 @@ export const companiesApi = {
   getPopular: async (limit = 20): Promise<TopCompany[]> => {
     const res = await fetch(`/api/companies/popular?limit=${limit}`)
     if (!res.ok) return []
+    return res.json()
+  },
+
+  getStats: async (params: CompanyStatsParams = {}): Promise<CompanyStatsResponse> => {
+    const qs = new URLSearchParams()
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v))
+    }
+    const res = await fetch(`/api/companies/stats?${qs.toString()}`)
+    if (!res.ok) throw new Error('Failed to fetch company stats')
     return res.json()
   },
 
