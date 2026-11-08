@@ -45,9 +45,9 @@ FastAPI application that exposes the REST API consumed by the Next.js frontend. 
 | GET | `/api/profile` | Required | User profile (embedding status, ratings) |
 | POST | `/api/profile/rate` | Required | Rate a job (like/dislike/save) |
 | GET | `/api/saved` | Required | Saved jobs list |
-| POST | `/api/lowball/check` | None | Salary vs market check |
+| POST | `/api/lowball/check` | None | Salary vs market check; cards show open roles first (`open_matched`), each card carries `is_agency` and `direct_employer` (SGSAL-027/028) |
 | GET | `/api/companies/stats` | None | Ranked companies from `company_stats` (SGSAL-026). Query: `family`, `category`, `q`, `agency=all\|direct\|agency`, `min_active` (default 10), `sort=openings\|repost_rate\|median_salary`, `limit` ≤ 200. Cached 1h |
-| GET | `/api/companies/{name}/profile` | None | Company profile; includes `stats` (company_stats row or null) and `top_reposted` (≤ 5 posting groups) |
+| GET | `/api/companies/{name}/profile` | None | Company profile; includes `stats` (company_stats row or null, with `is_agency` / SSIC industry), `top_reposted` (≤ 5 posting groups) and `benchmarks.median_repost_rate` |
 | GET | `/api/dashboard/summary-public` | None | Aggregate stats (cached 1h) |
 | GET | `/api/dashboard/active-jobs` | None | Active job counts (cached 24h) |
 | POST | `/api/admin/cache/flush` | Admin | Flush response/pool caches |
