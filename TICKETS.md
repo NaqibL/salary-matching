@@ -31,4 +31,4 @@ Project prefix: `SGSAL`
 | [SGSAL-025](tickets/SGSAL-025.md) | Vector storage roadmap — halfvec, role-family routed partitions, cold-tier quantisation (keep all history) | in-progress | medium |
 | [SGSAL-026](tickets/SGSAL-026.md) | Companies page rework — explore by role family / industry, repost facts per company | done | medium |
 | [SGSAL-027](tickets/SGSAL-027.md) | Salary checker — similar-roles cards show open postings first | done | high |
-| [SGSAL-028](tickets/SGSAL-028.md) | Companies registry (SSIC) + UX v2 — recruitment-agency label, simpler companies/profile/dashboard | in-progress | high |
+| [SGSAL-028](tickets/SGSAL-028.md) | Companies registry (SSIC) + UX v2 — recruitment-agency label, simpler companies/profile/dashboard | done | high |

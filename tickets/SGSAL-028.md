@@ -2,7 +2,7 @@
 id: SGSAL-028
 project: salary-matching
 title: Companies registry (SSIC) + UX v2 — recruitment-agency label, simpler companies/profile/dashboard
-status: in-progress
+status: done
 priority: high
 type: feature
 labels: [companies, salary-checker, dashboard, product, ux, data-quality]
@@ -15,8 +15,8 @@ blocks: []
 ## Summary
 
 Store each posting company's UEN and SSIC code (MCF publishes them in job detail; the crawler
-parsed and discarded them). "Recruitment agency" = SSIC 78 only — never name keywords (would tag
-A*STAR, MOM, e2i, TalentCorp). Tag on checker cards, companies table and profile. Companies
+parsed and discarded them). "Recruitment agency" = SSIC 78, or a recruitment-style name vetted by a known non-public-body
+registration (migration 027) — never bare keywords (would tag A*STAR, MOM, e2i, TalentCorp). Tag on checker cards, companies table and profile. Companies
 table simplified (Company, Openings, Hires mainly, per-family median only when a family is
 chosen; agencies hidden by default). Profile: registered industry subtitle, "1 in 4 (typical 2 in
 5)" reposts, repeat-postings card led by the other-company-names fact. Dashboard: four visitor
@@ -35,7 +35,7 @@ Plan: `docs/superpowers/plans/2026-11-08-ux-v2-agencies-open-roles.md`
 - [x] Companies table v2, profile v2
 - [x] Dashboard tiles v2, admin pipeline panel
 - [x] Code-review agent: 5 high / 5 medium / 7 low findings, all high+medium fixed (62f2d0c); deployed 2026-11-08 14:49 + 14:58 SGT
-- [ ] Job-seeker agent re-test on production; findings addressed
+- [x] Job-seeker agent re-test on production (15:05 SGT): checker + chips + agency pages praised; found stale-cache dashes/'Mixed'/hidden NUS, untagged name-obvious agencies, '$14/mo' + '$0.0k' pay copy, missing tooltips → all fixed in cb2efc1 (migration 027 vetted name rule, versioned proxy caches, pay units, tile tooltip)
 
 ## Parked
 

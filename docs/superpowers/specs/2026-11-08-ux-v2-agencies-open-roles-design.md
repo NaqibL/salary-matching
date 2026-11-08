@@ -150,3 +150,19 @@ header "Ads posted again and again · last 12 months", column "Times posted".
 
 Migration 025 + backfill first (background, ~1 h), then migration 026, then code deploy. The
 checker fix (SGSAL-027) has no data dependency and ships in the same push.
+
+## Addendum (2026-11-08, after the job-seeker re-test)
+
+- **Agency rule widened, still fenced.** SSIC 78 alone left obvious agencies untagged (Simple
+  Recruit, Total Manpower, Heng Got Manpower, One Plus One Human Resources are registered under
+  70/81/46). Migration 027 adds a name rule that applies only to MCF companies with a known
+  registration that is not a public body (SSIC 72, 84, 85, 86, 91, 94 excluded; names containing
+  "ministry" excluded). Bare keywords are still never used; CAG companies are never tagged.
+  Result on 2026-11-08: 301 of the top 1,002 companies tagged (was 162), NUS/NTU/A*STAR untouched.
+- **Stale proxy caches** served pre-migration responses for up to an hour after each deploy
+  (dashes, "Mixed", hidden NUS). Proxy cache keys are now versioned (`companies-stats-v3`,
+  `company-profile-v3`, `dashboard-summary-v2`); bump them whenever the API shape changes.
+- **Pay units.** Hourly / daily rates in MCF salary fields read "/hr" and "/day"; undisclosed pay
+  reads "salary not stated".
+- Still parked: merging identical agency ads into one checker card; Hot Jobs job-type filter;
+  hardcoded "Mar 2026" copy.
