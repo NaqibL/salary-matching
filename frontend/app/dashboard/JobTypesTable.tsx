@@ -21,10 +21,10 @@ const SORT_LABEL: Record<SortKey, string> = {
 
 const TIP: Record<SortKey, string> = {
   live: 'Ads open today in this job type',
-  median_salary: `Median of the advertised monthly base salaries of live ads with a compliant range, SGD. Shown from ${MIN_SALARY_N} ads.`,
+  median_salary: `Middle value of the advertised monthly base salaries in this job type's live ads, SGD (ranges whose top is more than double the bottom are left out). Shown from ${MIN_SALARY_N} ads.`,
   new_7d: 'Ads in this job type first seen in the last 7 days',
   reposts: 'Live ads whose exact text was posted earlier, under any company name',
-  agency: 'Live ads placed by a recruitment agency (SSIC 78 registration or a confirmed recruitment-agency name)',
+  agency: 'Live ads placed by a recruitment agency (registered as an employment agency, or a recruitment-agency name confirmed by its registration)',
 }
 
 /**

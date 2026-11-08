@@ -169,6 +169,7 @@ function CompaniesExplorer() {
         </select>
         <select
           aria-label="Minimum openings"
+          title={family ? `Openings in ${familyLabel(family, families)}` : 'Live ads per company'}
           className={selectCls}
           value={minActive}
           disabled={!!q}
@@ -176,7 +177,7 @@ function CompaniesExplorer() {
         >
           {MIN_ACTIVE_OPTIONS.map((n) => (
             <option key={n} value={n}>
-              {n === 1 ? 'Any openings' : `${n}+ ${family ? familyLabel(family, families) : ''} openings`.replace(/\s+/g, ' ')}
+              {n === 1 ? 'Any openings' : `${n}+ openings`}
             </option>
           ))}
         </select>
@@ -221,8 +222,8 @@ function CompaniesExplorer() {
         </CardBody>
       </Card>
       <p className="text-xs text-slate-400 dark:text-slate-500">
-        &ldquo;Recruitment agency&rdquo; is a registration fact: SSIC 78 (employment agencies), or a recruitment-agency name
-        confirmed by its registration. &ldquo;Posted before&rdquo;: {POSTED_BEFORE_TIP.charAt(0).toLowerCase() + POSTED_BEFORE_TIP.slice(1)}.
+        &ldquo;Recruitment agency&rdquo; is a registration fact: the company is registered as an employment agency (SSIC 78), or
+        has a recruitment-agency name confirmed by its registration. &ldquo;Posted before&rdquo;: {POSTED_BEFORE_TIP.charAt(0).toLowerCase() + POSTED_BEFORE_TIP.slice(1)}.
         Salary figures are the median advertised monthly base for the chosen job type, SGD. Openings count live ads.
       </p>
     </div>

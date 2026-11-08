@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  LabelList,
 } from 'recharts'
 import {
   Building2,
@@ -250,7 +251,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
             {
               icon: <Repeat size={18} className="text-indigo-400" />,
               label: 'Posted before',
-              value: repostOneIn != null ? `1 in ${repostOneIn}` : stats ? 'none' : '—',
+              value: repostOneIn === 1 ? 'All' : repostOneIn != null ? `1 in ${repostOneIn}` : stats ? 'none' : '—',
               sub:
                 typicalOneIn != null
                   ? `of live ads · typical company 1 in ${typicalOneIn}`
@@ -346,7 +347,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
               <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">What they hire for</h2>
               <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">Live ads by job type</p>
               <ResponsiveContainer width="100%" height={Math.max(160, familyMix.length * 28)}>
-                <BarChart data={familyMix} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+                <BarChart data={familyMix} layout="vertical" margin={{ top: 0, right: 44, bottom: 0, left: 0 }}>
                   <XAxis type="number" hide />
                   <YAxis
                     type="category"
@@ -360,6 +361,7 @@ export default function CompanyContent({ companyName }: { companyName: string })
                     {familyMix.map((d) => (
                       <Cell key={d.key} fill={familyColor(d.key)} />
                     ))}
+                    <LabelList dataKey="value" position="right" fontSize={11} fill="currentColor" formatter={(v: number) => v.toLocaleString()} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

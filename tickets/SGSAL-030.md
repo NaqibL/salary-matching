@@ -77,3 +77,18 @@ backfill `role_family` for closed ads.
   order) and `test_market_stats_public_shape` (shares consistent, families sum to total).
 - Local visual check in Chrome at 1568 px and 390 px: dashboard, companies (direct/agency/all,
   family view), profile.
+
+## Job-seeker test on production (2026-11-08, after deploy)
+
+A fresh agent playing a non-technical job seeker found all three 10-second answers (market this
+week, data-analytics pay once sorted by pay, share of repeats) and no broken controls. Fixed in the
+follow-up commit: blank "Posted before" cells sorting as if high (share now always shown, muted
+under 5 openings); "1 in 1" on profiles (now "All"); "SSIC 78" and "compliant range" in visitor
+copy (plain words first, code in tooltips); the clipped "3+ Data, AI & Analytics openings" option;
+counts on the profile's "What they hire for" bars.
+
+Left as is, for the owner: the default Companies list (direct employers, by distinct ads) is led
+by direct-sales firms with many distinct ads (ROYAL ORG, HYPERSCAL, AVARON) that read as untrusted
+next to NUS, Micron and TikTok; fixing that needs a judgement signal the content rules forbid, or a
+"well-known employers" curation. Skill names in the Data/AI list (RAG, LLM, ETL) have no plain
+gloss. Long company names truncate with the agency badge wrapping.

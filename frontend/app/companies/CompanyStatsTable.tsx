@@ -8,13 +8,13 @@ import { AgencyTag } from '@/app/components/AgencyTag'
 
 const fmtMoney = (v: number | null | undefined) => (v == null ? '—' : `$${v.toLocaleString()}`)
 
-/** Below this many openings a repeat share is not worth showing. */
+/** Below this many openings the repeat share is shown muted (small sample). */
 const MIN_FOR_SHARE = 5
 
 export const POSTED_BEFORE_TIP = 'Live ads whose exact text was posted earlier, under any company name'
 
 export function postedBeforePct(r: CompanyStatsRow): number | null {
-  if (r.active_count < MIN_FOR_SHARE) return null
+  if (r.active_count === 0) return null
   return Math.round((100 * r.reposted_count) / r.active_count)
 }
 
@@ -145,8 +145,11 @@ export function CompanyStatsTable({
                       {r.distinct_postings.toLocaleString()}
                     </td>
                   )}
-                  <td className="px-3 py-2.5 text-right tabular-nums" title={share == null ? `Shown from ${MIN_FOR_SHARE} openings` : `${r.reposted_count.toLocaleString()} of ${r.active_count.toLocaleString()} live ads`}>
-                    {share == null ? <span className="text-slate-400">—</span> : `${share}%`}
+                  <td
+                    className={`px-3 py-2.5 text-right tabular-nums ${r.active_count < MIN_FOR_SHARE ? 'text-slate-400 dark:text-slate-500' : ''}`}
+                    title={`${r.reposted_count.toLocaleString()} of ${r.active_count.toLocaleString()} live ads${r.active_count < MIN_FOR_SHARE ? ' · small sample' : ''}`}
+                  >
+                    {share == null ? '—' : `${share}%`}
                   </td>
                   <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300">{hiresMainly(r, familyRows)}</td>
                   {showSalary && (

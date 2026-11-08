@@ -5,7 +5,7 @@ import type { MarketStats } from '@/lib/types'
 import { Card } from '@/components/design'
 import { fmtDelta, fmtMoney, fmtPct, pct } from './ChartTooltip'
 
-export const AGENCY_SCOPE = 'SSIC 78 registration or a confirmed recruitment-agency name'
+export const AGENCY_SCOPE = 'registered as an employment agency, or a recruitment-agency name confirmed by its registration'
 
 interface Tile {
   key: string
@@ -52,8 +52,8 @@ export function MarketSummary({ stats }: { stats: MarketStats | null | undefined
       key: 'pay',
       label: 'Median advertised monthly base',
       value: fmtMoney(t.median_salary),
-      sub: 'live ads with a compliant range · SGD',
-      title: 'Each ad counts as the midpoint of its advertised range; ranges whose top is more than double the bottom are left out.',
+      sub: 'typical advertised pay in live ads · SGD',
+      title: 'The middle value of the advertised monthly base salaries of live ads. Each ad counts as the midpoint of its range; ranges whose top is more than double the bottom are left out.',
     },
     {
       key: 'reposts',

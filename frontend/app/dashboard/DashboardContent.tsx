@@ -165,9 +165,10 @@ export function DashboardContent({ initialStats, initialJobsOverTime, trackedTot
 
             <p className="text-xs text-slate-400 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 pt-4">
               Source: every MyCareersFuture and Careers@Gov ad since {TRACKED_SINCE}, updated daily. Salary figures are the median
-              advertised monthly base of ads with a compliant range. &ldquo;Posted before&rdquo; means the exact ad text was posted
-              earlier, under any company name. &ldquo;Recruitment agency&rdquo; is a registration fact: SSIC 78, or a
-              recruitment-agency name confirmed by its registration.
+              (middle value) of the advertised monthly base salaries in live ads; ranges whose top is more than double the bottom are
+              left out. &ldquo;Posted before&rdquo; means the exact ad text was posted earlier, under any company name.
+              &ldquo;Recruitment agency&rdquo; is a registration fact: the company is registered as an employment agency (SSIC 78), or
+              has a recruitment-agency name confirmed by its registration.
             </p>
           </div>
         )}
