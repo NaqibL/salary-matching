@@ -72,20 +72,37 @@ index, active + expired, so a cold query touches an index 4× larger than
       it would have silently rebuilt the 1.9 GB full-precision index the night after
       we drop it. Both now create the halfvec index instead (same local commit batch).
 - [x] Docs: `CLAUDE.md`, `.claude/agents/db-ops.md` point at the halfvec index.
-- [ ] `--apply` VACUUM finished (running since ≈03:30 SGT; `vacuuming indexes` phase
-      is the old HNSW index, disk-bound).
-- [ ] Build `idx_job_embeddings_halfvec` CONCURRENTLY (by hand; see migration header
-      for the session settings). Best done with no embed running: `daily-embed.yml`
-      is triggered by `daily-crawl-2.yml` (10:00 UTC / 18:00 SGT) and writes to
-      `job_embeddings`; the build survives writes but slows down.
-- [ ] Push master (ec44030 + today's docs/workflow commits) → Railway deploy →
-      `EXPLAIN (ANALYZE, BUFFERS)` of `get_all_embedded_job_ids_ranked` shows
-      `idx_job_embeddings_halfvec`. Checker p95 cold-query timing noted here.
-- [ ] `DROP INDEX CONCURRENTLY idx_job_embeddings_vector` — **only after the push**,
-      otherwise the next daily embed (old workflow on origin) recreates it.
+- [x] `--apply` VACUUM **cancelled** 11:55 SGT after 9 h (`pg_cancel_backend`). It had
+      finished the heap scan and the two small indexes; the remaining 8.8 h were all
+      the pgvector bulk-delete of the old 1.9 GB `idx_job_embeddings_vector`, which
+      step 1 drops anyway (no progress counter for that phase; a parallel worker was
+      pinned on `DataFileRead`). The 255k dead heap tuples are still there; the
+      post-drop VACUUM below handles them cheaply because the halfvec index never
+      contained them.
+- [x] `ALTER TABLE job_embeddings SET (autovacuum_enabled = false)` 11:55 SGT so
+      autovacuum (255k dead ≫ the ≈75k trigger; it has never run on this table) does
+      not start the same slow HNSW bulk-delete and compete with the index build.
+      **Must be reset — see the VACUUM step below.**
+- [x] Build `idx_job_embeddings_halfvec` CONCURRENTLY — **done 12:27 SGT, 29.3 min, 719 MB, valid+ready** (vs 1910 MB old index). Started 11:58 SGT (pid
+      3902397, session pooler :5432, `maintenance_work_mem=384MB`, 1 parallel worker;
+      log in the Claude scratchpad `halfvec_build.log`). Watch with
+      `select phase, blocks_done, blocks_total from pg_stat_progress_create_index`.
+      Best done with no embed running: `daily-embed.yml` is triggered by
+      `daily-crawl-2.yml` (10:00 UTC / 18:00 SGT) and writes to `job_embeddings`;
+      the build survives writes but slows down.
+- [x] Push master → Railway deploy 284ca765 SUCCESS 12:55 SGT (85887de, includes the
+      dashboard summary fix). `EXPLAIN (ANALYZE, BUFFERS)` of the ranked query:
+      `Index Scan using idx_job_embeddings_halfvec`, 2.3 s cold (2.8k blocks read),
+      14 ms warm, ef_search 500.
+- [x] `DROP INDEX CONCURRENTLY idx_job_embeddings_vector` — done 12:57 SGT (0.2 s).
+- [x] `ALTER TABLE job_embeddings RESET (autovacuum_enabled)` + `VACUUM (ANALYZE)` — done
+      12:58 SGT, **1.5 min** (vs 9 h+ with the old index in place); 0 dead tuples left,
+      autovacuum back on.
 - [ ] `effective_cache_size` (owner, above).
-- [ ] Record `pg_relation_size` of the halfvec index (target ≤ 0.7 GB) and
-      `pg_total_relation_size('job_embeddings')`.
+- [x] Sizes: halfvec index **719 MB** (target ≤ 0.7 GB, met); `job_embeddings` total
+      5240 MB → **3331 MB**; database 8993 MB → **7083 MB**; 371,788 vectors.
+      Step 1 complete 2026-11-08. Remaining in this ticket: `effective_cache_size` (owner),
+      then steps 2–4.
 
 **Order matters:** build → push → drop. Pushing before the index exists makes
 every checker query a sequential scan with the halfvec cast (the old index no
