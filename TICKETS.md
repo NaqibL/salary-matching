@@ -34,3 +34,4 @@ Project prefix: `SGSAL`
 | [SGSAL-028](tickets/SGSAL-028.md) | Companies registry (SSIC) + UX v2 — recruitment-agency label, simpler companies/profile/dashboard | done | high |
 | [SGSAL-029](tickets/SGSAL-029.md) | Findings page (public what's new) + technical CHANGELOG.md | done | medium |
 | [SGSAL-030](tickets/SGSAL-030.md) | Dashboard + Companies v3 — market_stats view, job-types table, "Posted before" section, direct-employer/agency views | done | high |
+| [SGSAL-031](tickets/SGSAL-031.md) | Dashboard + Companies v4 — owner still not happy with v3; ask what is missing before redesigning | todo | high |
