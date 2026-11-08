@@ -62,7 +62,7 @@ SELECT content_hash,
  GROUP BY content_hash"""
 
 # SGSAL-028: must stay identical to scripts/migrations/027_company_stats_v3.sql.
-_COMPANY_STATS_VIEW_SQL = """CREATE MATERIALIZED VIEW IF NOT EXISTS company_stats AS
+_COMPANY_STATS_VIEW_SQL = r"""CREATE MATERIALIZED VIEW IF NOT EXISTS company_stats AS
 WITH base AS (
     SELECT j.job_uuid,
            lower(COALESCE(j.company_canonical, j.company_name)) AS company_key,

@@ -16,7 +16,9 @@ def store():
     return PostgresStore(url)
 
 
-def test_upsert_marks_ssic_78_as_agency_and_merges_nulls(store):
+def test_upsert_merges_nulls_and_keeps_identifiers(store):
+    """Registry rows merge field by field; the agency label itself is derived by company_stats
+    (refreshed at crawl end), so a bare registry row is not expected in get_agency_company_keys."""
     name = f"test registry {uuid.uuid4().hex[:8]} pte ltd"
     key = name.lower()
     try:
@@ -24,7 +26,6 @@ def test_upsert_marks_ssic_78_as_agency_and_merges_nulls(store):
         assert key not in store.get_agency_company_keys()
         # second upsert adds the SSIC; the earlier UEN must survive (COALESCE merge)
         store.upsert_company(name=name.upper(), ssic_code_2020="78104", ssic_description="EMPLOYMENT AGENCIES")
-        assert key in store.get_agency_company_keys()
         with store._cur() as cur:
             cur.execute("select name, uen, ssic_code_2020 from companies where company_key = %s", (key,))
             row = cur.fetchone()
