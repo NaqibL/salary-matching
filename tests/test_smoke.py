@@ -401,6 +401,9 @@ def test_lowball_cards_show_open_roles_first(client):
     data = r.json()
     assert "open_matched" in data and isinstance(data["open_matched"], int)
     cards = data["similar_jobs"]
+    for c in cards:
+        assert "is_agency" in c and isinstance(c["is_agency"], bool)
+        assert "direct_employer" in c
     assert len(cards) <= 10
     if data["open_matched"] > 0 and cards:
         first = cards[0]

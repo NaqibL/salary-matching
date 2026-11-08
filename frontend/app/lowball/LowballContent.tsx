@@ -15,6 +15,7 @@ import NavUserActions from '../components/NavUserActions'
 import SimilarRoleFilterBar from './SimilarRoleFilterBar'
 import { RepostBadge } from './RepostBadge'
 import { PostingHistoryPanel } from './PostingHistoryPanel'
+import { AgencyTag } from '@/app/components/AgencyTag'
 import { monthYear } from '@/lib/repost'
 import { Card, CardBody } from '@/components/design'
 import { Input } from '@/components/ui/input'
@@ -206,7 +207,16 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
                   Position closed
                 </span>
               )}
+              {job.is_agency && <AgencyTag />}
               <RepostBadge job={job} expanded={historyOpen} onToggle={() => setHistoryOpen(v => !v)} />
+              {job.direct_employer && (
+                <span
+                  className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                  title="The same ad text was also posted directly by this employer"
+                >
+                  Also posted directly by {job.direct_employer}
+                </span>
+              )}
             </div>
             {historyOpen && <PostingHistoryPanel jobUuid={job.canonical_job_uuid ?? job.job_uuid} />}
 

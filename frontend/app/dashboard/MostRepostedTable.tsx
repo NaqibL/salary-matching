@@ -20,10 +20,10 @@ export function MostRepostedTable() {
       <CardBody>
         <div className="flex items-center gap-2 mb-1">
           <Repeat className="w-4 h-4 text-indigo-500" />
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Most reposted roles · last 12 months</h3>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Ads posted again and again · last 12 months</h3>
         </div>
         <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
-          Each distinct posting text counts once. Reposts are shown as that posting&apos;s history.
+          The same ad text, counted every time it was posted. Click a company to see its page.
         </p>
         {isLoading && <div className="h-24 rounded bg-slate-100 dark:bg-slate-700 animate-pulse" />}
         {error && <EmptyState icon={Repeat} message="Couldn't load reposts" description="Try again later." />}
@@ -35,7 +35,7 @@ export function MostRepostedTable() {
                 <tr>
                   <th className="px-2 py-1 font-medium">Role</th>
                   <th className="px-2 py-1 font-medium">Company</th>
-                  <th className="px-2 py-1 font-medium text-right">Postings</th>
+                  <th className="px-2 py-1 font-medium text-right">Times posted</th>
                   <th className="px-2 py-1 font-medium">First</th>
                   <th className="px-2 py-1 font-medium">Last</th>
                   <th className="px-2 py-1 font-medium">Latest range</th>

@@ -11,19 +11,19 @@ type GroupFacts = Pick<SimilarJob, 'repost_count' | 'reposts_365d' | 'distinct_c
 export function repostTone(j: GroupFacts): RepostTone {
   const n = j.repost_count ?? 1
   if (n < 2) return 'none'
-  if ((j.distinct_companies ?? 1) >= REPOST_COMPANIES_AMBER_MIN) return 'amber'
+  if ((j.distinct_companies ?? 1) >= 2) return 'amber'
   if ((j.reposts_365d ?? 0) >= REPOST_AMBER_MIN) return 'amber'
   return 'slate'
 }
 
-/** Badge copy. Names the fact; never a judgement. */
+/** Chip copy. A plain sentence that names the fact; never a judgement (SGSAL-028). */
 export function repostLabel(j: GroupFacts): string {
   const n = j.repost_count ?? 1
   const companies = j.distinct_companies ?? 1
-  if (companies >= REPOST_COMPANIES_AMBER_MIN) return `Posted under ${companies} company names`
-  if ((j.reposts_365d ?? 0) >= REPOST_AMBER_MIN) return `Reposted ${n}× in 12 months`
+  if (companies >= 2) return `Same ad under ${companies} company names`
+  if ((j.reposts_365d ?? 0) >= REPOST_AMBER_MIN) return `Posted ${n} times this year`
   const since = monthYear(j.first_posted)
-  return since ? `Reposted ${n}× · since ${since}` : `Reposted ${n}×`
+  return since ? `Posted ${n} times since ${since}` : `Posted ${n} times`
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

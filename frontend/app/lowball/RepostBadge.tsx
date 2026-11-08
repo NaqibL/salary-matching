@@ -10,7 +10,7 @@ interface Props {
   onToggle: () => void
 }
 
-/** Chip-row button: "Reposted N× · since Mon YYYY". Hidden for single postings. */
+/** Chip-row button: "Posted N times since Mon YYYY" / "Same ad under N company names". Hidden for single postings. */
 export function RepostBadge({ job, expanded, onToggle }: Props) {
   const tone = repostTone(job)
   if (tone === 'none') return null

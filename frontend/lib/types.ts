@@ -189,6 +189,9 @@ export interface SimilarJob {
   min_years_experience?: number | null
   inferred_seniority?: string | null
   canonical_skills?: string[] | null
+  // SGSAL-028: label facts
+  is_agency?: boolean
+  direct_employer?: string | null
   // SGSAL-024 posting group facts (absent on older API responses)
   canonical_job_uuid?: string
   repost_count?: number

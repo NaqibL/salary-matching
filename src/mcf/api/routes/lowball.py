@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import json as _json
 from statistics import quantiles as _quantiles
 
@@ -17,6 +19,8 @@ from mcf.api.limiter import limiter
 from mcf.lib.embeddings.base import EmbedderProtocol
 from mcf.lib.embeddings.job_description_extractor import extract_high_signal_description
 from mcf.lib.storage.base import Storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -117,7 +121,60 @@ def _by_score(rows: list[dict], uuid_to_score: dict[str, float]) -> list[dict]:
     )
 
 
-def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k: int) -> list[dict]:
+_AGENCY_CACHE: dict[str, object] = {"keys": set(), "at": 0.0}
+_AGENCY_TTL_SECONDS = 3600
+
+
+def _agency_keys(store: Storage) -> set[str]:
+    """lower(company_name) of registered employment agencies (SSIC 78), refreshed hourly."""
+    import time as _time
+
+    now = _time.time()
+    if now - float(_AGENCY_CACHE["at"]) > _AGENCY_TTL_SECONDS:
+        try:
+            _AGENCY_CACHE["keys"] = store.get_agency_company_keys()
+        except Exception:  # noqa: BLE001 — never fail a check over the label
+            logger.exception("agency key refresh failed")
+        _AGENCY_CACHE["at"] = now
+    return _AGENCY_CACHE["keys"]  # type: ignore[return-value]
+
+
+def _direct_employers(store: Storage, rows: list[dict], agency_keys: set[str]) -> dict[str, str]:
+    """canonical_job_uuid -> a non-agency company that also posted the same ad (SGSAL-028)."""
+    wanted = [
+        (j.get("canonical_job_uuid") or j["job_uuid"])
+        for j in rows
+        if _int_or(j.get("distinct_companies"), 1) >= 2
+    ]
+    if not wanted:
+        return {}
+    try:
+        groups = store.get_posting_group_companies(wanted)
+    except Exception:  # noqa: BLE001
+        logger.exception("posting group company lookup failed")
+        return {}
+    out: dict[str, str] = {}
+    by_uuid = {(j.get("canonical_job_uuid") or j["job_uuid"]): j for j in rows}
+    for uuid, names in groups.items():
+        own = (by_uuid.get(uuid, {}).get("company_name") or "").strip().lower()
+        for name in names:
+            key = name.strip().lower()
+            if key and key != own and key not in agency_keys:
+                out[uuid] = name
+                break
+    return out
+
+
+def _build_similar_jobs(
+    jobs: list[dict],
+    uuid_to_score: dict[str, float],
+    top_k: int,
+    *,
+    agency_keys: set[str] | None = None,
+    direct_by_canonical: dict[str, str] | None = None,
+) -> list[dict]:
+    agency_keys = agency_keys or set()
+    direct_by_canonical = direct_by_canonical or {}
     result = []
     for j in jobs:
         raw_desc = j.get("description") or ""
@@ -134,6 +191,9 @@ def _build_similar_jobs(jobs: list[dict], uuid_to_score: dict[str, float], top_k
             "salary_min": j.get("salary_min"),
             "salary_max": j.get("salary_max"),
             "is_active": j.get("is_active", True),
+            # SGSAL-028: label facts (SSIC 78 registry; posting-group companies)
+            "is_agency": (j.get("company_name") or "").strip().lower() in agency_keys,
+            "direct_employer": direct_by_canonical.get(score_key),
             "description": raw_desc or None,
             "similarity_score": round(uuid_to_score.get(score_key, 0.0), 4),
             "min_years_experience": j.get("min_years_experience"),
@@ -256,6 +316,8 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
     # Pool cache is active-only, so bypass it here.
     ranked = store.get_all_embedded_job_ids_ranked(vector, limit=500)
 
+    agency_keys = _agency_keys(store)
+
     # Company-specific results: direct similarity search scoped to the company,
     # independent of the global top-500 so no Shopee-style jobs get missed.
     company_similar_jobs = None
@@ -266,7 +328,10 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
             c_scores = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in company_ranked}
             c_jobs = store.get_jobs_with_salary_by_uuids(c_uuids, representative=True, company_name=body.company_name)
             c_jobs = _dedup_by_job_uuid(_by_score(c_jobs, c_scores))
-            company_similar_jobs = _build_similar_jobs(c_jobs, c_scores, body.top_k)
+            company_similar_jobs = _build_similar_jobs(
+                c_jobs, c_scores, body.top_k,
+                agency_keys=agency_keys, direct_by_canonical=_direct_employers(store, c_jobs, agency_keys),
+            )
 
     top_slice = ranked[: body.top_k * 5]
     uuid_to_score = {uuid: round(1.0 - dist, 4) for uuid, dist, _ in top_slice}
@@ -289,7 +354,10 @@ def _compute_lowball(body: LowballCheckRequest, store: Storage, embedder: Embedd
     closed_jobs = [j for j in jobs_all if not (j.get("is_active") or _int_or(j.get("active_count"), 0) > 0)]
     open_matched = len(open_jobs)
     card_rows = open_jobs[: body.top_k] + closed_jobs[: max(0, body.top_k - len(open_jobs[: body.top_k]))]
-    similar = _build_similar_jobs(card_rows, uuid_to_score_all, body.top_k)
+    similar = _build_similar_jobs(
+        card_rows, uuid_to_score_all, body.top_k,
+        agency_keys=agency_keys, direct_by_canonical=_direct_employers(store, card_rows, agency_keys),
+    )
     total_listings = sum(_int_or(j.get("repost_count"), 1) for j in similar)
 
     # Compute market percentiles regardless of whether salary was provided
