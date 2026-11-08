@@ -29,14 +29,24 @@ Plan: `docs/superpowers/plans/2026-11-08-ux-v2-agencies-open-roles.md`
 
 ## Checklist
 
-- [ ] Migration 025 `companies` + crawler capture + `scripts/backfill_companies.py` run
-- [ ] Migration 026 `company_stats` v2 (`is_agency`, SSIC, per-family medians)
-- [ ] Checker cards: agency tag, direct-employer chip, sentence copy
-- [ ] Companies table v2, profile v2
-- [ ] Dashboard tiles v2, admin pipeline panel
-- [ ] Code-review agent findings addressed; deployed; job-seeker agent re-test findings addressed
+- [x] Migration 025 `companies` + crawler capture (batched, MCF only) + `scripts/backfill_companies.py` (running 2026-11-08 ~14:00–16:00 SGT, ~2.1 companies/s)
+- [x] Migration 026 `company_stats` v2 (`is_agency`, SSIC, per-family medians) — applied 2026-11-08
+- [x] Checker cards: agency tag, direct-employer chip, sentence copy
+- [x] Companies table v2, profile v2
+- [x] Dashboard tiles v2, admin pipeline panel
+- [x] Code-review agent: 5 high / 5 medium / 7 low findings, all high+medium fixed (62f2d0c); deployed 2026-11-08 14:49 + 14:58 SGT
+- [ ] Job-seeker agent re-test on production; findings addressed
 
 ## Parked
 
 - Merge identical agency ads into one checker card ("Same ad from 4 agencies").
 - Hot Jobs job-type filter.
+
+## Notes (2026-11-08)
+
+- Production briefly returned 500 on `/api/companies/stats` between applying migration 026
+  (view column change) and the deploy (~25 min); the Vercel proxy's 15-min cache masked most of
+  it. Lesson recorded in the plan: column-changing view migrations must be applied right
+  before the deploy, and readers now tolerate `UndefinedColumn`.
+- Registry coverage grows with the backfill; until a company has a row it is simply untagged.
+  `scripts/backfill_companies.py --retry-empty` revisits rows with no identifiers.
