@@ -373,18 +373,46 @@ def test_companies_stats_rejects_bad_params(client):
     assert client.get("/api/companies/stats?limit=0").status_code == 422
 
 
-def test_company_profile_has_stats_and_reposts(client):
+def test_company_profile_counts_agree(client):
+    """The profile's open-role count, per-job-type table and ad list come from the same rows."""
     rows = client.get("/api/companies/stats?min_active=10&limit=1").json()["rows"]
     if not rows:
         pytest.skip("company_stats empty")
     r = client.get(f"/api/companies/{rows[0]['company']}/profile")
     assert r.status_code == 200
     data = r.json()
-    assert "stats" in data and "top_reposted" in data and "benchmarks" in data
     assert isinstance(data["top_reposted"], list)
-    assert set(data["benchmarks"]) == {"median_repost_rate"}
     if data["stats"] is not None:
         assert data["stats"]["company_key"] == rows[0]["company_key"]
+    assert sum(row["open_count"] for row in data["pay_by_family"]) == data["active_count"]
+    assert len(data["active_jobs"]) == min(data["active_count"], 200)
+    assert data["salary_sample_size"] == sum(row["salary_sample"] for row in data["pay_by_family"])
+    assert data["salary_sample_size"] <= data["active_count"] <= data["total_count"]
+    for row in data["pay_by_family"]:
+        assert row["salary_sample"] <= row["open_count"]
+        if row["salary_sample"]:
+            assert row["salary_p25"] <= row["salary_p50"] <= row["salary_p75"]
+        else:
+            assert row["salary_p50"] is None
+    for job in data["active_jobs"]:
+        assert {"job_uuid", "title", "salary_min", "salary_max", "role_family", "job_url"} <= set(job)
+    firsts = [j["first_seen_at"] for j in data["active_jobs"] if j["first_seen_at"]]
+    assert firsts == sorted(firsts, reverse=True)
+
+
+def test_company_profile_unknown_is_404(client):
+    assert client.get("/api/companies/no such company zzz/profile").status_code == 404
+
+
+def test_companies_search_finds_exact_name_first(client):
+    rows = client.get("/api/companies/stats?min_active=1&limit=1").json()["rows"]
+    if not rows:
+        pytest.skip("company_stats empty")
+    name = rows[0]["company"]
+    found = client.get("/api/companies/stats", params={"q": name.lower(), "min_active": 1, "limit": 5}).json()["rows"]
+    assert found and found[0]["company_key"] == rows[0]["company_key"]
+    # wildcards typed by a user match literally
+    assert client.get("/api/companies/stats", params={"q": "%_%", "min_active": 1}).json()["rows"] == []
 
 
 def test_lowball_cards_show_open_roles_first(client):

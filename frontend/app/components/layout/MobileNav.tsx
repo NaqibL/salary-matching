@@ -129,6 +129,9 @@ export default function MobileNav({ open, onToggle, userSlot }: MobileNavProps) 
           </nav>
 
           <div className="px-6 py-4 border-t border-slate-200">
+            <Link href="/findings" onClick={onToggle} className="block text-sm font-medium text-slate-600 hover:text-slate-900 mb-4">
+              Findings &amp; what&apos;s new
+            </Link>
             <p className="text-xs font-medium text-slate-400 mb-3">Contact me</p>
             <div className="flex items-center gap-4 text-slate-400">
               <a href={`mailto:${CONTACT_EMAIL}`} title={CONTACT_EMAIL} className="hover:text-slate-600 transition-colors">

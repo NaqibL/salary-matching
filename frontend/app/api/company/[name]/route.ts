@@ -1,37 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
 
 import { getApiBaseUrl } from '../../../../lib/server-fetch'
 const API_BASE_URL = getApiBaseUrl()
-const REVALIDATE_SECONDS = 900 // 15 min — aligns with crawl cadence
 
-export const revalidate = REVALIDATE_SECONDS
+// Not stored in the Next.js data cache (see companies/stats): a profile saved mid-crawl used
+// to be served for days. The backend caches the profile; the CDN holds it for 5 min.
+export const dynamic = 'force-dynamic'
+
+const CDN_SECONDS = 300
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { name: string } },
 ) {
-  const name = params.name
   try {
-    const data = await unstable_cache(
-      async () => {
-        const res = await fetch(
-          `${API_BASE_URL}/api/companies/${encodeURIComponent(name)}/profile`,
-          { next: { revalidate: REVALIDATE_SECONDS } },
-        )
-        if (res.status === 404) return null
-        if (!res.ok) throw new Error(`Backend error: ${res.status}`)
-        return res.json()
-      },
-      [`company-profile-v3-${name}`],
-      { revalidate: REVALIDATE_SECONDS },
-    )()
-
-    if (!data) {
+    const res = await fetch(
+      `${API_BASE_URL}/api/companies/${encodeURIComponent(params.name)}/profile`,
+      { cache: 'no-store' },
+    )
+    if (res.status === 404) {
       return NextResponse.json({ detail: 'Company not found' }, { status: 404 })
     }
-    return NextResponse.json(data, {
-      headers: { 'Cache-Control': `public, s-maxage=${REVALIDATE_SECONDS}, stale-while-revalidate` },
+    if (!res.ok) throw new Error(`Backend error: ${res.status}`)
+    return NextResponse.json(await res.json(), {
+      headers: { 'Cache-Control': `public, s-maxage=${CDN_SECONDS}` },
     })
   } catch (err) {
     console.error('[company/profile]', err)

@@ -1,6 +1,6 @@
 /**
  * Webhook called by incremental_crawl when crawl completes.
- * Invalidates: Next.js dashboard-stats tag, FastAPI pool + matches + dashboard + job caches.
+ * Invalidates: Next.js dashboard-stats tag, FastAPI pool + matches + dashboard + job + companies caches.
  * Auth: X-Crawl-Secret header must match CRON_SECRET or REVALIDATE_SECRET.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -23,11 +23,12 @@ export async function POST(request: NextRequest) {
     const apiUrl = API_BASE_URL.replace(/\/$/, '')
     const headers: Record<string, string> = { 'X-Crawl-Secret': expectedSecret }
 
-    const [poolRes, matchesRes, dashboardRes, jobRes] = await Promise.all([
+    const [poolRes, matchesRes, dashboardRes, jobRes, companiesRes] = await Promise.all([
       fetch(`${apiUrl}/api/admin/invalidate-pool`, { method: 'POST', headers }),
       fetch(`${apiUrl}/api/admin/invalidate-cache?prefix=matches:`, { method: 'POST', headers }),
       fetch(`${apiUrl}/api/admin/invalidate-cache?prefix=dashboard:`, { method: 'POST', headers }),
       fetch(`${apiUrl}/api/admin/invalidate-cache?prefix=job:`, { method: 'POST', headers }),
+      fetch(`${apiUrl}/api/admin/invalidate-cache?prefix=companies:`, { method: 'POST', headers }),
     ])
 
     return NextResponse.json({
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       fastapi_matches: matchesRes.ok,
       fastapi_dashboard: dashboardRes.ok,
       fastapi_job: jobRes.ok,
+      fastapi_companies: companiesRes.ok,
       now: Date.now(),
     })
   } catch (err) {

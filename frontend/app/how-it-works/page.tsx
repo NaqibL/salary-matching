@@ -4,9 +4,11 @@ import { Layout } from '../components/layout'
 import NavUserActions from '../components/NavUserActions'
 import { Card, CardBody } from '@/components/design'
 
+// Help for the owner-only matching pages (linked from the sign-in screen); kept out of search results.
 export const metadata = {
-  title: 'How It Works | MCF Job Matcher',
-  description: 'Learn how MCF Job Matcher helps you find jobs that fit your resume and preferences.',
+  title: 'How matching works | Lowball',
+  description: 'How the resume matching pages work.',
+  robots: { index: false, follow: false },
 }
 
 const steps = [

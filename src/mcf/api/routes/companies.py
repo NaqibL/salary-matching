@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import Counter
 from datetime import datetime
 from typing import Any, Literal
 
@@ -35,29 +34,40 @@ class CompanyJob(BaseModel):
     first_seen_at: str | None
     last_seen_at: str | None
     employment_types: list[str]
-    position_levels: list[str]
     min_years_experience: int | None
-    inferred_seniority: str | None
     job_url: str | None
+    role_family: str
+
+
+class CompanyPayRow(BaseModel):
+    """One job type at one company: open ads and what they advertise."""
+
+    role_family: str
+    open_count: int
+    salary_p25: int | None
+    salary_p50: int | None
+    salary_p75: int | None
+    salary_sample: int
 
 
 class CompanyProfileResponse(BaseModel):
+    """Everything on the profile is computed from the company's open ads in one request,
+    so the counts on the page always agree with each other."""
+
     company_name: str
     active_count: int
     total_count: int
+    first_seen: str | None = None
+    # advertised pay across the open ads (None when no open ad states a salary)
     salary_p25: int | None
     salary_p50: int | None
     salary_p75: int | None
     salary_sample_size: int
-    avg_min_experience: float | None
-    position_levels: dict[str, int]
-    employment_types: dict[str, int]
-    top_skills: list[list[Any]]
+    pay_by_family: list[CompanyPayRow] = []
+    # newest first, capped at OPEN_JOBS_CAP; active_count is the full number
     active_jobs: list[CompanyJob]
-    recent_closed: list[CompanyJob]
     stats: "CompanyStatsRow | None" = None
     top_reposted: list["CompanyReposted"] = []
-    benchmarks: "CompanyBenchmarks | None" = None
 
 
 class TopCompany(BaseModel):
@@ -104,10 +114,6 @@ class CompanyStatsResponse(BaseModel):
     summary: CompanyStatsSummary
 
 
-class CompanyBenchmarks(BaseModel):
-    median_repost_rate: float | None = None
-
-
 class CompanyReposted(BaseModel):
     canonical_job_uuid: str
     title: str | None
@@ -128,6 +134,62 @@ CompanyProfileResponse.model_rebuild()
 # ---------------------------------------------------------------------------
 
 
+OPEN_JOBS_CAP = 200
+
+# Short names people type that appear nowhere in the registered name. Each maps to name
+# fragments to search for as well. Kept small and factual; anything else matches on the text.
+_SHORT_NAMES: dict[str, tuple[str, ...]] = {
+    "nuh": ("national university hospital",),
+    "nuhs": ("national university health",),
+    "sgh": ("singapore general hospital",),
+    "ttsh": ("tan tock seng",),
+    "ktph": ("khoo teck puat",),
+    "cgh": ("changi general hospital",),
+    "skh": ("sengkang general hospital",),
+    "kkh": ("kk women",),
+    "ntfgh": ("ng teng fong",),
+    "imh": ("institute of mental health",),
+    "nhg": ("national healthcare group",),
+    "singhealth": ("singapore health services",),
+    "govtech": ("government technology agency",),
+    "moe": ("ministry of education",),
+    "moh": ("ministry of health",),
+    "mom": ("ministry of manpower",),
+    "mha": ("ministry of home affairs",),
+    "mindef": ("ministry of defence",),
+    "mas": ("monetary authority of singapore",),
+    "cpf": ("central provident fund",),
+    "hdb": ("housing & development board", "housing and development board"),
+    "lta": ("land transport authority",),
+    "iras": ("inland revenue authority",),
+    "nea": ("national environment agency",),
+    "imda": ("infocomm media development",),
+    "csa": ("cyber security agency",),
+    "edb": ("economic development board",),
+    "dsta": ("defence science and technology agency",),
+    "astar": ("a*star", "agency for science, technology and research"),
+    "a-star": ("a*star", "agency for science, technology and research"),
+    "nus": ("national university of singapore",),
+    "ntu": ("nanyang technological university",),
+    "smu": ("singapore management university",),
+    "sutd": ("singapore university of technology and design",),
+    "sit": ("singapore institute of technology",),
+    "suss": ("singapore university of social sciences",),
+    "pwc": ("pricewaterhousecoopers",),
+    "ey": ("ernst & young",),
+    "sia": ("singapore airlines",),
+    "singtel": ("singapore telecommunications",),
+    "uob": ("united overseas bank",),
+    "ocbc": ("oversea-chinese banking",),
+    "sbs": ("sbs transit",),
+}
+
+
+def short_name_expansions(q: str | None) -> tuple[str, ...]:
+    """Full-name fragments for a typed short name ("NUH" -> National University Hospital)."""
+    return _SHORT_NAMES.get((q or "").strip().lower(), ())
+
+
 def _parse_json_list(raw) -> list:
     if not raw:
         return []
@@ -139,10 +201,24 @@ def _parse_json_list(raw) -> list:
 
 
 def _effective_salary(job: dict) -> int | None:
+    """Same midpoint the company_stats view uses, so list and profile figures agree."""
     lo, hi = job.get("salary_min"), job.get("salary_max")
     if lo is not None and hi is not None:
         return (lo + hi) // 2
     return lo
+
+
+def _percentiles(salaries: list[int]) -> tuple[int | None, int | None, int | None]:
+    if len(salaries) >= 4:
+        return (
+            int(np.percentile(salaries, 25)),
+            int(np.percentile(salaries, 50)),
+            int(np.percentile(salaries, 75)),
+        )
+    if salaries:
+        mid = int(np.percentile(salaries, 50))
+        return mid, mid, mid
+    return None, None, None
 
 
 def _to_iso(val) -> str:
@@ -170,11 +246,6 @@ def _stats_row(raw: dict | None) -> CompanyStatsRow | None:
 
 
 def _to_company_job(job: dict) -> CompanyJob:
-    llm_raw = job.get("llm_fields_json")
-    try:
-        llm = json.loads(llm_raw) if isinstance(llm_raw, str) else (llm_raw or {})
-    except (json.JSONDecodeError, TypeError):
-        llm = {}
     return CompanyJob(
         job_uuid=job["job_uuid"],
         title=job["title"],
@@ -183,10 +254,9 @@ def _to_company_job(job: dict) -> CompanyJob:
         first_seen_at=_to_iso(job.get("first_seen_at")),
         last_seen_at=_to_iso(job.get("last_seen_at")),
         employment_types=_parse_json_list(job.get("employment_types_json")),
-        position_levels=_parse_json_list(job.get("position_levels_json")),
         min_years_experience=job.get("min_years_experience"),
-        inferred_seniority=llm.get("inferred_seniority"),
         job_url=job.get("job_url"),
+        role_family=job.get("role_family") or "other",
     )
 
 
@@ -244,6 +314,7 @@ def get_company_stats(
         family=family or None,
         category=category or None,
         q=(q or "").strip() or None,
+        q_also=short_name_expansions(q),
         agency=agency,
         min_active=min_active,
         sort=sort,
@@ -257,66 +328,55 @@ def get_company_stats(
 
 
 @router.get("/api/companies/{company_name}/profile")
+@cache_response(
+    ttl_seconds=TTL_DASHBOARD,
+    key_prefix="companies:profile",
+    key_builder=lambda **kw: str(kw.get("company_name")),
+)
 def get_company_profile(
     company_name: str,
     store: Storage = Depends(get_store),
 ) -> CompanyProfileResponse:
-    """Return aggregated profile for a company (active + historical jobs)."""
+    """Company profile built from the company's open ads.
+
+    Open-role count, pay figures, the per-job-type table and the ad list all come from
+    the same rows, so they cannot disagree. ``stats`` (company_stats view) is used only
+    for the registered industry and the agency flag.
+    """
     try:
-        jobs = store.get_all_jobs_by_company(company_name)
+        counts = store.get_company_job_counts(company_name)
+        if not counts["total"]:
+            raise HTTPException(status_code=404, detail="Company not found")
+        jobs = store.get_open_jobs_by_company(company_name)
+    except HTTPException:
+        raise
     except Exception:
-        logger.exception("get_all_jobs_by_company failed for %r", company_name)
+        logger.exception("company profile query failed for %r", company_name)
         raise HTTPException(status_code=500, detail="Failed to fetch company jobs")
-    if not jobs:
-        raise HTTPException(status_code=404, detail="Company not found")
 
-    # salary percentiles — use midpoint to match lowball checker behaviour
     salaries = [s for j in jobs if (s := _effective_salary(j)) is not None]
-    if len(salaries) >= 4:
-        p25 = int(np.percentile(salaries, 25))
-        p50 = int(np.percentile(salaries, 50))
-        p75 = int(np.percentile(salaries, 75))
-    elif salaries:
-        mid = int(np.percentile(salaries, 50))
-        p25 = p50 = p75 = mid
-    else:
-        p25 = p50 = p75 = None
+    p25, p50, p75 = _percentiles(salaries)
 
-    # avg min experience
-    exp_values = [j["min_years_experience"] for j in jobs if j.get("min_years_experience") is not None]
-    avg_min_experience = round(sum(exp_values) / len(exp_values), 1) if exp_values else None
-
-    # frequency counters
-    pl_counter: Counter = Counter()
-    et_counter: Counter = Counter()
-    skill_counter: Counter = Counter()
+    by_family: dict[str, list[dict]] = {}
     for j in jobs:
-        for level in _parse_json_list(j.get("position_levels_json")):
-            pl_counter[level] += 1
-        for et in _parse_json_list(j.get("employment_types_json")):
-            et_counter[et] += 1
-        llm_raw = j.get("llm_fields_json")
-        try:
-            llm = json.loads(llm_raw) if isinstance(llm_raw, str) else (llm_raw or {})
-        except (json.JSONDecodeError, TypeError):
-            llm = {}
-        for skill in llm.get("canonical_skills") or []:
-            skill_counter[skill] += 1
+        by_family.setdefault(j.get("role_family") or "other", []).append(j)
+    pay_by_family = []
+    for family, rows in by_family.items():
+        fam_salaries = [s for j in rows if (s := _effective_salary(j)) is not None]
+        f25, f50, f75 = _percentiles(fam_salaries)
+        pay_by_family.append(
+            CompanyPayRow(
+                role_family=family,
+                open_count=len(rows),
+                salary_p25=f25,
+                salary_p50=f50,
+                salary_p75=f75,
+                salary_sample=len(fam_salaries),
+            )
+        )
+    # most open ads first; the classifier's remainder ("other") always last
+    pay_by_family.sort(key=lambda r: (r.role_family == "other", -r.open_count, r.role_family))
 
-    top_skills = [[skill, count] for skill, count in skill_counter.most_common(20)]
-
-    active_jobs_all = sorted(
-        [j for j in jobs if j.get("is_active")],
-        key=lambda j: _to_iso(j.get("first_seen_at")),
-        reverse=True,
-    )
-    closed_jobs_raw = sorted(
-        [j for j in jobs if not j.get("is_active")],
-        key=lambda j: _to_iso(j.get("last_seen_at")),
-        reverse=True,
-    )[:10]
-
-    stats = _stats_row(store.get_company_stats_one(company_name))
     top_reposted = [
         CompanyReposted(
             canonical_job_uuid=r["canonical_job_uuid"],
@@ -329,24 +389,20 @@ def get_company_profile(
             latest_salary_min=r.get("latest_salary_min"),
             latest_salary_max=r.get("latest_salary_max"),
         )
-        for r in store.get_company_top_reposted(company_name, limit=5)
+        for r in store.get_company_top_reposted(company_name, limit=10)
     ]
 
     return CompanyProfileResponse(
         company_name=company_name,
-        stats=stats,
-        top_reposted=top_reposted,
-        benchmarks=CompanyBenchmarks(**store.get_company_benchmarks()),
-        active_count=len(active_jobs_all),
-        total_count=len(jobs),
+        active_count=len(jobs),
+        total_count=counts["total"],
+        first_seen=_to_iso(counts.get("first_seen")) or None,
         salary_p25=p25,
         salary_p50=p50,
         salary_p75=p75,
         salary_sample_size=len(salaries),
-        avg_min_experience=avg_min_experience,
-        position_levels=dict(pl_counter),
-        employment_types=dict(et_counter),
-        top_skills=top_skills,
-        active_jobs=[_to_company_job(j) for j in active_jobs_all[:10]],
-        recent_closed=[_to_company_job(j) for j in closed_jobs_raw],
+        pay_by_family=pay_by_family,
+        active_jobs=[_to_company_job(j) for j in jobs[:OPEN_JOBS_CAP]],
+        stats=_stats_row(store.get_company_stats_one(company_name)),
+        top_reposted=top_reposted,
     )

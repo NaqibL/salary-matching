@@ -1,397 +1,354 @@
 'use client'
 
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import useSWR from 'swr'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
-} from 'recharts'
-import {
-  Building2,
-  Briefcase,
-  TrendingUp,
-  Clock,
-  Repeat,
-} from 'lucide-react'
-import { companiesApi, dashboardApi } from '@/lib/api'
-import type { CompanyProfile, CompanyJob, RoleFamilyRow } from '@/lib/types'
-import { monthYear, payUnit, salaryRangeText } from '@/lib/repost'
-import { familyColor, familyLabel } from '@/lib/roleFamilies'
-import { AgencyTag } from '@/app/components/AgencyTag'
+import { companiesApi } from '@/lib/api'
+import type { CompanyJob, CompanyPayRow, CompanyProfile, CompanyStatsResponse } from '@/lib/types'
+import { monthYear, payUnit } from '@/lib/repost'
+import { familyLabel } from '@/lib/roleFamilies'
+import { adPayText, count, industryText, money, payText, plural, postedText, spreadText } from '@/lib/companyFormat'
 import { Layout } from '@/app/components/layout'
 import NavUserActions from '@/app/components/NavUserActions'
-import { Card, CardBody, PageHeader } from '@/components/design'
 
-// ---------------------------------------------------------------------------
-// Salary bar (same visual as salary checker)
-// ---------------------------------------------------------------------------
+/** Pay is shown once this many open ads state a salary. */
+const MIN_ADS_FOR_PAY = 3
+const ROLES_SHOWN = 20
+const JOB_TYPES_SHOWN = 8
+const PER = { '/mo': 'a month', '/day': 'a day', '/hr': 'an hour' } as const
 
-function SalaryBar({ p25, p50, p75 }: { p25: number; p50: number; p75: number }) {
-  const low = p25 * 0.85
-  const high = p75 * 1.15
-  const range = high - low
-  const pct = (v: number) => `${Math.round(((v - low) / range) * 100)}%`
+const linkCls = 'text-slate-900 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900'
+const h2Cls = 'text-lg font-semibold text-slate-900'
 
+function Shell({ children, backHref = '/companies' }: { children: React.ReactNode; backHref?: string }) {
   return (
-    <div className="mt-4 mb-2">
-      <div className="relative h-6 rounded-full bg-slate-100 dark:bg-slate-700">
-        <div
-          className="absolute top-0 h-full rounded-full bg-indigo-100 dark:bg-indigo-900/40"
-          style={{ left: pct(p25), width: `${Math.round(((p75 - p25) / range) * 100)}%` }}
-        />
-        <div className="absolute top-0 h-full w-px bg-indigo-400" style={{ left: pct(p25) }} />
-        <div className="absolute top-0 h-full w-0.5 bg-indigo-600" style={{ left: pct(p50) }} />
-        <div className="absolute top-0 h-full w-px bg-indigo-400" style={{ left: pct(p75) }} />
+    <Layout userSlot={<NavUserActions />}>
+      <div className="max-w-3xl">
+        <Link href={backHref} className={`text-[15px] ${linkCls}`}>
+          Back to companies
+        </Link>
+        {children}
       </div>
-      <div className="relative mt-1 text-xs text-slate-500 dark:text-slate-400" style={{ height: '16px' }}>
-        <span className="absolute -translate-x-1/2" style={{ left: pct(p25) }}>P25</span>
-        <span className="absolute -translate-x-1/2" style={{ left: pct(p50) }}>P50</span>
-        <span className="absolute -translate-x-1/2" style={{ left: pct(p75) }}>P75</span>
-      </div>
-    </div>
+    </Layout>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Job row
+// Not found: offer the nearest names instead of a dead end
 // ---------------------------------------------------------------------------
 
-function formatSalary(min: number | null, max: number | null): string {
-  const lo = min && min > 0 ? min : null
-  const hi = max && max > 0 ? max : null
-  if (lo == null && hi == null) return 'salary not stated'
-  const unit = payUnit(hi ?? lo!)
-  const k = (v: number) => (unit === '/mo' ? `$${(v / 1000).toFixed(1)}k` : `$${v.toLocaleString()}`)
-  if (lo != null && hi != null) return `${k(lo)}–${k(hi)}${unit}`
-  if (lo != null) return `from ${k(lo)}${unit}`
-  return `up to ${k(hi!)}${unit}`
-}
-
-/** "EMPLOYMENT AGENCIES (EXCEPT ...)" → "Employment agencies" — SSIC descriptions are shouty and parenthetical. */
-function titleCase(raw: string): string {
-  const base = raw.split('(')[0].trim()
-  if (!base) return ''
-  const words = base.toLowerCase().split(/\s+/).map((w, i) => {
-    const upper = w.toUpperCase()
-    if (/^[a-z]{1,3}$/.test(w) && ['it', 'ai', 'hr', 'ict', 'r&d', 'f&b'].includes(w)) return upper
-    return i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w
-  })
-  return words.join(' ')
-}
-
-function formatRecency(isoStr: string): string {
-  if (!isoStr) return ''
-  const days = Math.floor((Date.now() - new Date(isoStr).getTime()) / 86_400_000)
-  if (days === 0) return 'today'
-  if (days === 1) return '1d ago'
-  if (days < 30) return `${days}d ago`
-  const months = Math.floor(days / 30)
-  return `${months}mo ago`
-}
-
-function JobRow({ job, muted = false }: { job: CompanyJob; muted?: boolean }) {
-  const salary = formatSalary(job.salary_min, job.salary_max)
-  const recency = formatRecency(job.first_seen_at ?? job.last_seen_at)
-  const seniority = job.inferred_seniority ?? job.position_levels[0] ?? null
-  const et = job.employment_types[0] ?? null
-
-  const titleEl = job.job_url ? (
-    <a
-      href={job.job_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 truncate block"
-    >
-      {job.title}
-    </a>
-  ) : (
-    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate block">
-      {job.title}
-    </span>
+function NotFound({ name }: { name: string }) {
+  const { data, isLoading } = useSWR<CompanyStatsResponse>(
+    ['company-suggest', name],
+    () => companiesApi.getStats({ q: name, agency: 'all', min_active: 1, limit: 5 }),
+    { revalidateOnFocus: false },
   )
-
+  const suggestions = data?.rows ?? []
   return (
-    <div className={`flex items-start justify-between gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0 ${muted ? 'opacity-60' : ''}`}>
-      <div className="min-w-0">
-        {titleEl}
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
-          {salary && <span>{salary}</span>}
-          {seniority && <span>{seniority}</span>}
-          {et && <span>{et}</span>}
-          {job.min_years_experience != null && (
-            <span>{job.min_years_experience}+ yrs</span>
-          )}
-        </div>
-      </div>
-      {recency && (
-        <div className="shrink-0">
-          <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap flex items-center gap-1">
-            <Clock size={11} />
-            {recency}
-          </span>
-        </div>
+    <Shell>
+      <h1 className="mt-4 text-2xl font-semibold text-slate-900 sm:text-3xl">No company called “{name}”</h1>
+      {isLoading ? (
+        <p className="mt-3 text-slate-600">Looking for similar names…</p>
+      ) : suggestions.length > 0 ? (
+        <>
+          <p className="mt-3 text-slate-900">Did you mean:</p>
+          <ul className="mt-2 space-y-2">
+            {suggestions.map((r) => (
+              <li key={r.company_key}>
+                <Link href={`/company/${encodeURIComponent(r.company)}`} className={linkCls}>
+                  {r.company}
+                </Link>
+                <span className="ml-2 text-sm text-slate-600">{plural(r.active_count, 'open role', 'open roles')}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-3 text-slate-900">
+          No company with open roles has a name like that. Company names here are the ones written on the job ads.
+        </p>
       )}
-    </div>
+    </Shell>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Open roles: one row per distinct ad title + pay, newest first
+// ---------------------------------------------------------------------------
+
+type RoleGroup = { job: CompanyJob; copies: number }
+
+function groupRoles(jobs: CompanyJob[]): RoleGroup[] {
+  const groups = new Map<string, RoleGroup>()
+  for (const job of jobs) {
+    const key = `${(job.title ?? '').trim().toLowerCase()}|${job.salary_min ?? ''}|${job.salary_max ?? ''}`
+    const seen = groups.get(key)
+    if (seen) seen.copies += 1
+    else groups.set(key, { job, copies: 1 })
+  }
+  return Array.from(groups.values())
+}
+
+function RoleRow({ group }: { group: RoleGroup }) {
+  const { job, copies } = group
+  const kind = job.employment_types.find((t) => !/^(full time|permanent)$/i.test(t))
+  const details = [
+    adPayText(job.salary_min, job.salary_max),
+    job.min_years_experience != null && job.min_years_experience > 0
+      ? `asks for ${job.min_years_experience}+ ${job.min_years_experience === 1 ? 'year' : 'years'}`
+      : null,
+    kind ?? null,
+    postedText(job.first_seen_at) ? `posted ${postedText(job.first_seen_at)}` : null,
+  ].filter(Boolean)
+  const title = job.title ?? 'Untitled ad'
+  return (
+    <li className="border-b border-slate-200 py-3">
+      {job.job_url ? (
+        <a href={job.job_url} target="_blank" rel="noopener noreferrer" className={`font-medium break-words ${linkCls}`}>
+          {title}
+        </a>
+      ) : (
+        <span className="font-medium break-words text-slate-900">{title}</span>
+      )}
+      {copies > 1 && <span className="ml-2 text-sm text-slate-600">{copies} open ads</span>}
+      <div className="mt-1 text-sm text-slate-700">{details.join(' · ')}</div>
+    </li>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Pay by job type
+// ---------------------------------------------------------------------------
+
+function payCell(row: CompanyPayRow): { main: string; sub: string | null } | null {
+  const main = payText(row.salary_p50)
+  if (!main || row.salary_sample < MIN_ADS_FOR_PAY) return null
+  const spread = spreadText(row.salary_p25, row.salary_p75)
+  return { main, sub: spread ? `most ads ${spread}` : null }
 }
 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function CompanyContent({ companyName }: { companyName: string }) {
-  const { data: profile, error, isLoading } = useSWR<CompanyProfile>(
+export default function CompanyContent({ companyName, initialFamily = '' }: { companyName: string; initialFamily?: string }) {
+  const { data: profile, error, isLoading } = useSWR<CompanyProfile | null>(
     `company-profile-${companyName}`,
     () => companiesApi.getProfile(companyName),
     { revalidateOnFocus: false },
   )
-  const { data: families } = useSWR<RoleFamilyRow[]>('dashboard-role-families', dashboardApi.getRoleFamilies, {
-    revalidateOnFocus: false,
-  })
+  const [familyFilter, setFamilyFilter] = useState(initialFamily)
+  const [showAll, setShowAll] = useState(false)
+  const [allJobTypes, setAllJobTypes] = useState(false)
+  const backHref = initialFamily ? `/companies?family=${encodeURIComponent(initialFamily)}` : '/companies'
+
+  const jobs = profile?.active_jobs
+  const roleGroups = useMemo(
+    () => groupRoles((jobs ?? []).filter((j) => !familyFilter || j.role_family === familyFilter)),
+    [jobs, familyFilter],
+  )
 
   if (isLoading) {
     return (
-      <Layout userSlot={<NavUserActions />}>
-        <div className="space-y-4">
-          <div className="h-10 w-64 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-          <div className="h-32 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
-          <div className="h-64 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
-        </div>
-      </Layout>
+      <Shell backHref={backHref}>
+        <p className="mt-4 py-8 text-slate-600">Loading {companyName}…</p>
+      </Shell>
     )
   }
-
-  if (error || !profile) {
+  if (error) {
     return (
-      <Layout userSlot={<NavUserActions />}>
-        <Card>
-          <CardBody>
-            <p className="text-slate-500 dark:text-slate-400">
-              Company not found or failed to load.
-            </p>
-          </CardBody>
-        </Card>
-      </Layout>
+      <Shell backHref={backHref}>
+        <h1 className="mt-4 text-2xl font-semibold text-slate-900 sm:text-3xl">{companyName}</h1>
+        <p className="mt-3 text-slate-900">This company could not be loaded. Please try again in a minute.</p>
+      </Shell>
     )
   }
+  if (!profile) return <NotFound name={companyName} />
 
-  // SGSAL-026: company_stats facts (null until the view has a row for this company)
-  const stats = profile.stats ?? null
-  const topReposted = profile.top_reposted ?? []
-  const familyMix = stats
-    ? Object.entries(stats.role_family_counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(([key, value]) => ({ key, name: familyLabel(key, families), value }))
-    : []
-  const showStatsCharts = !!stats && stats.active_count >= 3
-  const isAgency = !!stats?.is_agency
-  const industry = stats?.ssic_description ? titleCase(stats.ssic_description) || null : null
-  const oneIn = (num: number, den: number) => (num > 0 && den > 0 ? Math.max(1, Math.round(den / num)) : null)
-  const repostOneIn = stats ? oneIn(stats.reposted_count, stats.active_count) : null
-  const typicalRate = profile.benchmarks?.median_repost_rate ?? null
-  const typicalOneIn = typicalRate != null && typicalRate > 0 ? Math.max(1, Math.round(1 / typicalRate)) : null
+  const isAgency = !!profile.stats?.is_agency
+  const industry = industryText(profile.stats?.ssic_description)
+  const open = profile.active_count
+  const payRows = profile.pay_by_family
+  const reposted = profile.top_reposted ?? []
+  const listed = profile.active_jobs.length
 
-  const showSalary =
-    !profile.stats?.is_agency &&
-    profile.salary_p25 != null &&
-    profile.salary_p50 != null &&
-    profile.salary_p75 != null &&
-    profile.salary_sample_size >= 3
+  const overallSpread = spreadText(profile.salary_p25, profile.salary_p75)
+  const showOverallPay = !isAgency && profile.salary_p50 != null && profile.salary_p50 > 0 && profile.salary_sample_size >= MIN_ADS_FOR_PAY
+  const per = PER[payUnit(profile.salary_p50 ?? 0)]
+
+  // Job types with enough ads to state a pay figure go in the table; the rest are named in one line.
+  const pricedRows = payRows.filter((row) => payCell(row))
+  const otherRows = payRows.filter((row) => !payCell(row))
+  const tableRows = allJobTypes ? pricedRows : pricedRows.slice(0, JOB_TYPES_SHOWN)
+
+  const visibleGroups = showAll ? roleGroups : roleGroups.slice(0, ROLES_SHOWN)
+  const selectFamily = (family: string) => {
+    setFamilyFilter(family)
+    setShowAll(false)
+    document.getElementById('open-roles')?.scrollIntoView({ block: 'start' })
+  }
 
   return (
-    <Layout userSlot={<NavUserActions />}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center gap-3">
-          <PageHeader
-            title={profile.company_name}
-            subtitle={[
-              industry ?? (isAgency ? 'Employment agency' : 'Employer'),
-              `${profile.active_count} open role${profile.active_count !== 1 ? 's' : ''}`,
-              stats?.first_seen ? `tracked since ${monthYear(stats.first_seen)}` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          />
-          {isAgency && <AgencyTag size="sm" />}
-        </div>
+    <Shell backHref={backHref}>
+      <h1 className="mt-4 break-words text-2xl font-semibold text-slate-900 sm:text-3xl">{profile.company_name}</h1>
+      <p className="mt-1 text-base text-slate-700">
+        {[isAgency ? 'Recruitment agency' : industry, open > 0 ? plural(open, 'open role', 'open roles') : 'No open roles right now']
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
 
-        {/* Stat row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            {
-              title: undefined as string | undefined,
-              icon: <Briefcase size={18} className="text-indigo-500" />,
-              label: 'Open roles',
-              value: profile.active_count.toLocaleString(),
-              sub: `${profile.total_count.toLocaleString()} postings since ${stats?.first_seen ? monthYear(stats.first_seen) : 'Mar 2026'}`,
-            },
-            {
-              icon: <TrendingUp size={18} className="text-emerald-500" />,
-              label: 'Median advertised monthly base',
-              value: !isAgency && profile.salary_p50 != null ? `$${profile.salary_p50.toLocaleString()}` : '—',
-              sub: isAgency
-                ? 'not shown for agencies: roles span many fields'
-                : profile.salary_p50 != null
-                  ? `across all live roles · ${profile.salary_sample_size.toLocaleString()} ads · SGD`
-                  : 'no disclosed salaries',
-            },
-            {
-              icon: <Clock size={18} className="text-amber-500" />,
-              label: 'Experience asked',
-              value: profile.avg_min_experience != null ? `${profile.avg_min_experience} yrs` : '—',
-              sub: 'average minimum in their ads',
-            },
-            {
-              icon: <Repeat size={18} className="text-indigo-400" />,
-              label: 'Posted before',
-              value: repostOneIn === 1 ? 'All' : repostOneIn != null ? `1 in ${repostOneIn}` : stats ? 'none' : '—',
-              sub:
-                typicalOneIn != null
-                  ? `of live ads · typical company 1 in ${typicalOneIn}`
-                  : 'of live ads were posted before',
-              title:
-                'Share of this company\'s live ads whose exact text was posted before. Reposting can mean ongoing hiring, high turnover or an agency re-running a client role.',
-            },
-          ].map(({ icon, label, value, sub, title }) => (
-            <Card key={label} size="compact" title={title}>
-              <CardBody>
-                <div className="flex items-center gap-2 mb-1">{icon}</div>
-                <p className="text-xl font-semibold text-slate-800 dark:text-slate-100">{value}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{label}</p>
-                {sub && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>}
-              </CardBody>
-            </Card>
+      {isAgency && (
+        <p className="mt-4 max-w-2xl text-slate-900">
+          A recruitment agency advertises roles for other employers. The employer is usually not named in the ad.
+        </p>
+      )}
+      {showOverallPay && (
+        <p className="mt-4 max-w-2xl text-slate-900">
+          {overallSpread ? (
+            <>
+              Most of its open ads pay <strong className="font-semibold">{overallSpread}</strong> {per}. The middle is{' '}
+              <strong className="font-semibold">{money(profile.salary_p50!)}</strong>.
+            </>
+          ) : (
+            <>
+              Its open ads typically pay <strong className="font-semibold">{money(profile.salary_p50!)}</strong> {per}.
+            </>
+          )}{' '}
+          <span className="text-slate-600">From {plural(profile.salary_sample_size, 'open ad', 'open ads')} that state a salary.</span>
+        </p>
+      )}
+
+      {/* Pay by job type */}
+      {open > 0 && pricedRows.length > 0 && (
+        <section className="mt-8">
+          <h2 className={h2Cls}>Pay by job type</h2>
+          <table className="mt-2 w-full text-[15px]">
+            <thead>
+              <tr className="border-b border-slate-300 text-left text-sm text-slate-600">
+                <th scope="col" className="py-2 pr-3 font-normal">
+                  Job type
+                </th>
+                <th scope="col" className="py-2 pl-3 text-right font-normal">
+                  Open roles
+                </th>
+                <th scope="col" className="py-2 pl-3 text-right font-normal">
+                  Typical pay
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row) => {
+                const pay = payCell(row)!
+                return (
+                  <tr key={row.role_family} className="border-b border-slate-200 align-baseline">
+                    <td className="py-2.5 pr-3">
+                      <button
+                        type="button"
+                        onClick={() => selectFamily(row.role_family)}
+                        className={`text-left ${linkCls} ${familyFilter === row.role_family ? 'font-semibold' : ''}`}
+                      >
+                        {familyLabel(row.role_family)}
+                      </button>
+                    </td>
+                    <td className="py-2.5 pl-3 text-right tabular-nums text-slate-900">{count(row.open_count)}</td>
+                    <td className="py-2.5 pl-3 text-right tabular-nums">
+                      <span className="whitespace-nowrap text-slate-900">{pay.main}</span>
+                      {pay.sub && <span className="block whitespace-nowrap text-sm text-slate-600 sm:ml-2 sm:inline">{pay.sub}</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {!allJobTypes && pricedRows.length > JOB_TYPES_SHOWN && (
+            <button type="button" onClick={() => setAllJobTypes(true)} className={`mt-3 text-[15px] ${linkCls}`}>
+              Show all {count(pricedRows.length)} job types
+            </button>
+          )}
+          <p className="mt-3 max-w-2xl text-sm text-slate-600">
+            Advertised salaries in this company&rsquo;s open ads. Typical pay is the middle ad; “most ads” covers the middle half.
+          </p>
+        </section>
+      )}
+      {open > 0 && otherRows.length > 0 && (
+        <p className={`max-w-2xl text-[15px] text-slate-700 ${pricedRows.length > 0 ? 'mt-3' : 'mt-8'}`}>
+          {pricedRows.length > 0 ? 'Also hiring: ' : 'Hiring: '}
+          {otherRows.map((row, i) => (
+            <span key={row.role_family}>
+              {i > 0 && ', '}
+              <button type="button" onClick={() => selectFamily(row.role_family)} className={`text-left ${linkCls}`}>
+                {familyLabel(row.role_family)}
+              </button>{' '}
+              ({count(row.open_count)})
+            </span>
           ))}
-        </div>
+          . Too few of these ads state a salary to give a typical figure.
+        </p>
+      )}
 
-        {/* Salary overview */}
-        {showSalary && (
-          <Card>
-            <CardBody>
-              <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Salary range
-              </h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">
-                Based on {profile.salary_sample_size} posting{profile.salary_sample_size !== 1 ? 's' : ''} with disclosed salary
+      {/* Open roles */}
+      <section className="mt-8 scroll-mt-20" id="open-roles">
+        <h2 className={h2Cls}>
+          {familyFilter ? `Open roles in ${familyLabel(familyFilter)}` : 'Open roles'}
+          {open > 0 && !familyFilter && <span className="font-normal text-slate-600"> ({count(open)})</span>}
+        </h2>
+        {open === 0 ? (
+          <p className="mt-2 text-slate-900">
+            No open roles right now. {plural(profile.total_count, 'ad', 'ads')} seen from this company
+            {profile.first_seen ? ` since ${monthYear(profile.first_seen)}` : ''}.
+          </p>
+        ) : (
+          <>
+            {familyFilter && (
+              <p className="mt-1 text-[15px]">
+                <button type="button" onClick={() => selectFamily('')} className={linkCls}>
+                  Show all {count(open)} open roles
+                </button>
               </p>
-              <div className="flex justify-between text-sm text-slate-600 dark:text-slate-300 mb-1">
-                <span>P25 — ${profile.salary_p25!.toLocaleString()}</span>
-                <span className="font-medium">P50 — ${profile.salary_p50!.toLocaleString()}</span>
-                <span>P75 — ${profile.salary_p75!.toLocaleString()}</span>
-              </div>
-              <SalaryBar
-                p25={profile.salary_p25!}
-                p50={profile.salary_p50!}
-                p75={profile.salary_p75!}
-              />
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Reposting (SGSAL-026) */}
-        {stats && (
-          <Card>
-            <CardBody>
-              <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
-                <Repeat size={16} aria-hidden /> Posted before
-              </h2>
-              {stats.multi_company_count > 0 && (
-                <p className="text-sm text-slate-700 dark:text-slate-200 mb-1">
-                  {stats.multi_company_count.toLocaleString()} of their live ads also appear under other company names.
-                </p>
-              )}
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
-                {stats.reposted_count.toLocaleString()} of {stats.active_count.toLocaleString()} live ads were posted before
-                {stats.distinct_postings < stats.active_count && (
-                  <> · {stats.active_count.toLocaleString()} listings, {stats.distinct_postings.toLocaleString()} distinct ads</>
-                )}
-                {typicalOneIn != null && <> · typical company: 1 in {typicalOneIn}</>}
-              </p>
-              {topReposted.length === 0 ? (
-                <p className="text-sm text-slate-400 dark:text-slate-500 py-2">None of their live ads has been posted before.</p>
-              ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {topReposted.map((r) => (
-                    <div key={r.canonical_job_uuid} className="flex items-start justify-between gap-3 py-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate" title={r.title ?? ''}>
-                          {r.title ?? '—'}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          Posted {r.repost_count} times, {monthYear(r.first_posted) || '?'} to {monthYear(r.last_posted) || '?'}
-                          {r.distinct_companies >= 2 && <> · under {r.distinct_companies} company names</>}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        {salaryRangeText(r.latest_salary_min, r.latest_salary_max) ?? ''}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        )}
-
-        {/* What they hire for (SGSAL-026/028) */}
-        {showStatsCharts && familyMix.length > 0 && (
-          <Card>
-            <CardBody>
-              <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-1">What they hire for</h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">Live ads by job type</p>
-              <ResponsiveContainer width="100%" height={Math.max(160, familyMix.length * 28)}>
-                <BarChart data={familyMix} layout="vertical" margin={{ top: 0, right: 44, bottom: 0, left: 0 }}>
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={170}
-                    tick={{ fontSize: 11, fill: 'currentColor' }}
-                    className="text-slate-600 dark:text-slate-400"
-                  />
-                  <Tooltip formatter={(v: number) => [v, 'live ads']} contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {familyMix.map((d) => (
-                      <Cell key={d.key} fill={familyColor(d.key)} />
-                    ))}
-                    <LabelList dataKey="value" position="right" fontSize={11} fill="currentColor" formatter={(v: number) => v.toLocaleString()} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Latest openings */}
-        <Card>
-          <CardBody>
-            <h2 className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-              <Briefcase size={16} />
-              Latest openings
-              <span className="ml-auto text-xs font-normal text-slate-400">
-                {profile.active_jobs.length} role{profile.active_jobs.length !== 1 ? 's' : ''}
-              </span>
-            </h2>
-            {profile.active_jobs.length === 0 ? (
-              <p className="text-sm text-slate-400 dark:text-slate-500 py-4 text-center">
-                No active listings right now.
-              </p>
-            ) : (
-              profile.active_jobs.map((job) => <JobRow key={job.job_uuid} job={job} />)
             )}
-          </CardBody>
-        </Card>
+            {listed < open && (
+              <p className="mt-1 text-sm text-slate-600">
+                Listing the newest {count(listed)} of {count(open)}.
+              </p>
+            )}
+            <ul className="mt-2 border-t border-slate-300">
+              {visibleGroups.map((g) => (
+                <RoleRow key={g.job.job_uuid} group={g} />
+              ))}
+            </ul>
+            {roleGroups.length === 0 && <p className="mt-2 text-slate-900">None of the newest {count(listed)} ads are in this job type.</p>}
+            {!showAll && roleGroups.length > ROLES_SHOWN && (
+              <button type="button" onClick={() => setShowAll(true)} className={`mt-4 text-[15px] ${linkCls}`}>
+                Show {count(roleGroups.length - ROLES_SHOWN)} more
+              </button>
+            )}
+          </>
+        )}
+      </section>
 
-
-
-      </div>
-    </Layout>
+      {/* Ads posted more than once */}
+      {reposted.length > 0 && (
+        <section className="mt-8">
+          <h2 className={h2Cls}>Ads posted more than once</h2>
+          <p className="mt-1 max-w-2xl text-sm text-slate-600">
+            Open ads whose exact text was posted before. This can mean ongoing hiring, high turnover, or an agency re-running a
+            client&rsquo;s role.
+          </p>
+          <ul className="mt-2 border-t border-slate-300">
+            {reposted.map((r) => (
+              <li key={r.canonical_job_uuid} className="border-b border-slate-200 py-3">
+                <span className="font-medium break-words text-slate-900">{r.title ?? 'Untitled ad'}</span>
+                <div className="mt-1 text-sm text-slate-700">
+                  Posted {count(r.repost_count)} times{monthYear(r.first_posted) ? ` since ${monthYear(r.first_posted)}` : ''}
+                  {r.distinct_companies >= 2 && <> · under {r.distinct_companies} company names</>}
+                  {' · '}
+                  {adPayText(r.latest_salary_min, r.latest_salary_max)}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </Shell>
   )
 }

@@ -640,6 +640,18 @@ class Storage(ABC):
         ...
 
     @abstractmethod
+    def get_company_job_counts(self, company_name: str) -> dict:
+        """{"total": int, "active": int, "first_seen": datetime | None} for the company's ads."""
+        ...
+
+    @abstractmethod
+    def get_open_jobs_by_company(self, company_name: str) -> list[dict]:
+        """The company's open ads, newest first, with the columns the company profile shows
+        (job_uuid, title, salary_min/max, first/last_seen_at, employment_types_json,
+        min_years_experience, job_url, role_family)."""
+        ...
+
+    @abstractmethod
     def get_top_companies(self, limit: int = 20) -> list[dict]:
         """Return top companies by active job count as [{name, active_count}]."""
         ...
@@ -669,12 +681,18 @@ class Storage(ABC):
         family: str | None = None,
         category: str | None = None,
         q: str | None = None,
+        q_also: Sequence[str] = (),
         agency: str = "all",
         min_active: int = 10,
         sort: str = "openings",
         limit: int = 50,
     ) -> dict:
         """Filtered, sorted company_stats rows.
+
+        ``q`` is a name search: it matches the text anywhere in the company name or in any
+        spelling recorded in ``company_aliases``; ``q_also`` adds further name fragments (the
+        full form of a short name). With ``q`` the best name matches come first. Sorting by
+        ``median_salary`` ranks only figures backed by 10+ salaried ads; thinner rows follow.
 
         Returns {"rows": [...], "total_matching": int, "summary": {"companies", "openings",
         "median_salary"}}. Each row carries every view column plus ``family_active_count``

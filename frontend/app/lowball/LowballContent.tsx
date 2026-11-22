@@ -33,8 +33,6 @@ import {
   Building2,
   MapPin,
   Clock,
-  Users,
-  X,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -285,7 +283,7 @@ function SimilarJobCard({ job }: { job: SimilarJob }) {
               hover:bg-indigo-50 dark:hover:bg-indigo-950/30
               transition-colors"
           >
-            View on MyCareersFuture
+            {job.job_uuid.startsWith('cag:') ? 'View on Careers@Gov' : 'View on MyCareersFuture'}
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
@@ -435,14 +433,12 @@ export function LowballContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'company'>('all')
   // Client-side filters for the similar-roles list; reset on every new check / tab switch
   const [filters, setFilters] = useState<SimilarRoleFilters>(EMPTY_FILTERS)
-  const [trafficNoticeDismissed, setTrafficNoticeDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('traffic_notice_dismissed') === 'true'
-  })
-  const [findingsDismissed, setFindingsDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true
-    try { return localStorage.getItem(FINDINGS_BANNER_KEY) === 'true' } catch { return true }
-  })
+  // Hidden on the server render and the first client render (they must match); shown after
+  // mount unless it was dismissed before.
+  const [findingsDismissed, setFindingsDismissed] = useState(true)
+  useEffect(() => {
+    try { setFindingsDismissed(localStorage.getItem(FINDINGS_BANNER_KEY) === 'true') } catch {}
+  }, [])
 
   // selectedCompany: exact match OR resolved via alias map
   const selectedCompany = companies.includes(companyInput)
@@ -460,6 +456,8 @@ export function LowballContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // the hint under the field already says why; one message, not the browser's as well
+    if (description.trim().length < 20) return
     setError(null)
     setState('loading')
     try {
@@ -532,27 +530,6 @@ export function LowballContent() {
         </div>
       )}
 
-      {/* ── High-traffic notice banner ───────────────────────────────────── */}
-      {!trafficNoticeDismissed && (
-        <div className="flex items-center gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-4 py-2.5 mb-5 text-sm text-amber-700 dark:text-amber-400">
-          <Users className="w-4 h-4 shrink-0 text-amber-500 dark:text-amber-400" />
-          <p className="flex-1 leading-snug">
-            We&apos;re seeing high traffic right now — results may take a few extra seconds. Thanks for your patience!
-          </p>
-          <button
-            type="button"
-            aria-label="Dismiss notice"
-            onClick={() => {
-              localStorage.setItem('traffic_notice_dismissed', 'true')
-              setTrafficNoticeDismissed(true)
-            }}
-            className="shrink-0 rounded-md p-0.5 text-amber-500 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {/* ── Form state ───────────────────────────────────────────────────── */}
       {state === 'form' && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
@@ -621,7 +598,6 @@ export function LowballContent() {
                     onChange={(e) => setDescription(e.target.value)}
                     rows={8}
                     required
-                    minLength={20}
                     placeholder="Paste the full job description here…"
                     className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y leading-relaxed"
                   />
@@ -722,15 +698,13 @@ export function LowballContent() {
                   <strong className="text-slate-800 dark:text-slate-200">
                     {ordinalPercentile(result.percentile)} percentile
                   </strong>{' '}
-                  of {result.total_matched} similar ads posted since Mar 2026
-                  {result.open_matched != null && <> · {result.open_matched} open now</>}
+                  of {result.salary_coverage} similar ads posted since Mar 2026 that state a salary.
                 </p>
               )}
 
               {result.verdict === 'market_data' && !hasSalary && (
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  Based on {result.salary_coverage} of {result.total_matched} similar ads posted since Mar 2026 with a
-                  disclosed salary{result.open_matched != null && <> · {result.open_matched} open now</>}
+                  Based on {result.salary_coverage} similar ads posted since Mar 2026 that state a salary.
                 </p>
               )}
 
@@ -754,7 +728,7 @@ export function LowballContent() {
                         <span className="ml-1.5 text-xl font-semibold text-slate-500 dark:text-slate-400">/mo</span>
                       </p>
                       <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
-                        Median of {result.salary_coverage} similar listings · each listing&apos;s (min + max) ÷ 2, monthly base SGD
+                        Median of those ads · each ad&apos;s (min + max) ÷ 2, monthly base SGD
                       </p>
                     </div>
 
@@ -770,21 +744,13 @@ export function LowballContent() {
                         p75={result.market_p75!}
                       />
                       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        Posted ranges may be 10–20% above what employers actually offer.
+                        These are advertised ranges, not final offers.
                       </p>
                     </div>
                   </>
                 )
               })()}
             </div>
-
-            {/* Coverage note — only show separately when salary was provided */}
-            {hasSalary && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 px-1">
-                Based on {result.salary_coverage} of {result.total_matched} similar ads posted since Mar 2026 with a
-                disclosed salary. Cards below show open roles first.
-              </p>
-            )}
 
             {/* Similar jobs — single list or tabbed when company results are available */}
             {result.similar_jobs.length === 0 && result.verdict !== 'insufficient_data' && (
