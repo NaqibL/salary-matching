@@ -91,7 +91,7 @@ function groupRoles(jobs: CompanyJob[]): RoleGroup[] {
 
 function RoleRow({ group }: { group: RoleGroup }) {
   const { job, copies } = group
-  const kind = job.employment_types.find((t) => !/^(full time|permanent)$/i.test(t))
+  const kind = (job.employment_types ?? []).find((t) => !/^(full time|permanent)$/i.test(t))
   const details = [
     adPayText(job.salary_min, job.salary_max),
     job.min_years_experience != null && job.min_years_experience > 0
@@ -168,9 +168,10 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
   const isAgency = !!profile.stats?.is_agency
   const industry = industryText(profile.stats?.ssic_description)
   const open = profile.active_count
-  const payRows = profile.pay_by_family
+  // `?? []`: a response cached from before this page shipped has no per-job-type rows
+  const payRows = profile.pay_by_family ?? []
   const reposted = profile.top_reposted ?? []
-  const listed = profile.active_jobs.length
+  const listed = (profile.active_jobs ?? []).length
 
   const overallSpread = spreadText(profile.salary_p25, profile.salary_p75)
   const showOverallPay = !isAgency && profile.salary_p50 != null && profile.salary_p50 > 0 && profile.salary_sample_size >= MIN_ADS_FOR_PAY
