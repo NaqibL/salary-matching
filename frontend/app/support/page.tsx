@@ -26,7 +26,7 @@ export default function SupportPage() {
             alt="Iced teh peng"
             width={1969}
             height={3268}
-            className="w-64 md:w-96 h-auto object-contain"
+            className="w-52 sm:w-64 md:w-96 h-auto object-contain"
             style={{ transform: 'rotate(-30deg)' }}
           />
           <a
@@ -57,7 +57,7 @@ export default function SupportPage() {
               <p className="text-base text-slate-600 leading-relaxed">
                 The site costs me about $55/month, and I'm not putting anything behind a paywall.
               </p>
-              <p className="text-xs text-slate-500 italic whitespace-nowrap">
+              <p className="text-xs text-slate-500 italic sm:whitespace-nowrap">
                 If it helped you, even just a little, maybe spon me one teh peng ❤️
               </p>
             </CardBody>
