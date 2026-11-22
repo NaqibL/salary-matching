@@ -16,6 +16,9 @@ const MIN_ADS_FOR_PAY = 3
 const ROLES_SHOWN = 20
 const JOB_TYPES_SHOWN = 8
 const PER = { '/mo': 'a month', '/day': 'a day', '/hr': 'an hour' } as const
+/** Shown beside an ad whose monthly figure is not full-time pay. */
+const PAY_KIND_LABEL: Record<string, string> = { part_time: 'Part time', internship: 'Internship' } // rates already say /hr, /day
+const isOtherPay = (j: CompanyJob) => !!j.pay_kind && j.pay_kind !== 'standard'
 
 const linkCls = 'text-slate-900 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900'
 const h2Cls = 'text-lg font-semibold text-slate-900'
@@ -91,9 +94,11 @@ function groupRoles(jobs: CompanyJob[]): RoleGroup[] {
 
 function RoleRow({ group }: { group: RoleGroup }) {
   const { job, copies } = group
-  const kind = (job.employment_types ?? []).find((t) => !/^(full time|permanent)$/i.test(t))
+  const otherType = (job.employment_types ?? []).find((t) => !/^(full time|permanent)$/i.test(t))
+  // "Part Time" -> "Part time": one capitalisation for every kind label
+  const kind = PAY_KIND_LABEL[job.pay_kind ?? ''] ?? (otherType ? otherType.charAt(0) + otherType.slice(1).toLowerCase() : undefined)
   const details = [
-    adPayText(job.salary_min, job.salary_max),
+    job.pay_kind === null ? 'Pay not stated' : adPayText(job.salary_min, job.salary_max),
     job.min_years_experience != null && job.min_years_experience > 0
       ? `asks for ${job.min_years_experience}+ ${job.min_years_experience === 1 ? 'year' : 'years'}`
       : null,
@@ -138,14 +143,18 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
     { revalidateOnFocus: false },
   )
   const [familyFilter, setFamilyFilter] = useState(initialFamily)
+  const [otherPayOnly, setOtherPayOnly] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const [allJobTypes, setAllJobTypes] = useState(false)
   const backHref = initialFamily ? `/companies?family=${encodeURIComponent(initialFamily)}` : '/companies'
 
   const jobs = profile?.active_jobs
   const roleGroups = useMemo(
-    () => groupRoles((jobs ?? []).filter((j) => !familyFilter || j.role_family === familyFilter)),
-    [jobs, familyFilter],
+    () =>
+      groupRoles(
+        (jobs ?? []).filter((j) => (otherPayOnly ? isOtherPay(j) : !familyFilter || j.role_family === familyFilter)),
+      ),
+    [jobs, familyFilter, otherPayOnly],
   )
 
   if (isLoading) {
@@ -166,6 +175,8 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
   if (!profile) return <NotFound name={companyName} />
 
   const isAgency = !!profile.stats?.is_agency
+  const forClients = !isAgency && !!profile.stats?.hires_for_clients
+  const otherPay = profile.nonstandard_pay_count ?? 0
   const industry = industryText(profile.stats?.ssic_description)
   const open = profile.active_count
   // `?? []`: a response cached from before this page shipped has no per-job-type rows
@@ -185,6 +196,7 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
   const visibleGroups = showAll ? roleGroups : roleGroups.slice(0, ROLES_SHOWN)
   const selectFamily = (family: string) => {
     setFamilyFilter(family)
+    setOtherPayOnly(false)
     setShowAll(false)
     document.getElementById('open-roles')?.scrollIntoView({ block: 'start' })
   }
@@ -193,7 +205,7 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
     <Shell backHref={backHref}>
       <h1 className="mt-4 break-words text-2xl font-semibold text-slate-900 sm:text-3xl">{profile.company_name}</h1>
       <p className="mt-1 text-base text-slate-700">
-        {[isAgency ? 'Recruitment agency' : industry, open > 0 ? plural(open, 'open role', 'open roles') : 'No open roles right now']
+        {[isAgency ? 'Recruitment agency' : forClients ? 'Hires for clients' : industry, open > 0 ? plural(open, 'open role', 'open roles') : 'No open roles right now']
           .filter(Boolean)
           .join(' · ')}
       </p>
@@ -203,19 +215,42 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
           A recruitment agency advertises roles for other employers. The employer is usually not named in the ad.
         </p>
       )}
+      {forClients && (
+        <p className="mt-4 max-w-2xl text-slate-900">
+          {count(profile.stats?.client_ads ?? 0)} of its {count(profile.stats?.described_ads ?? 0)} open ads say the role is with a
+          client or that staff are placed at one. The place you would work may be another organisation.
+        </p>
+      )}
       {showOverallPay && (
         <p className="mt-4 max-w-2xl text-slate-900">
           {overallSpread ? (
             <>
-              Most of its open ads pay <strong className="font-semibold">{overallSpread}</strong> {per}. The middle is{' '}
+              Most of its full-time open ads pay <strong className="font-semibold">{overallSpread}</strong> {per}. The middle is{' '}
               <strong className="font-semibold">{money(profile.salary_p50!)}</strong>.
             </>
           ) : (
             <>
-              Its open ads typically pay <strong className="font-semibold">{money(profile.salary_p50!)}</strong> {per}.
+              Its full-time open ads typically pay <strong className="font-semibold">{money(profile.salary_p50!)}</strong> {per}.
             </>
           )}{' '}
           <span className="text-slate-600">From {plural(profile.salary_sample_size, 'open ad', 'open ads')} that state a salary.</span>
+        </p>
+      )}
+      {otherPay > 0 && (
+        <p className="mt-3 max-w-2xl text-[15px] text-slate-700">
+          {plural(otherPay, 'open ad pays', 'open ads pay')} an hourly or daily rate, part-time pay or an internship allowance.{' '}
+          {otherPay === 1 ? 'It is' : 'They are'} not counted in typical pay.{' '}
+          <button
+            type="button"
+            className={linkCls}
+            onClick={() => {
+              setOtherPayOnly(true)
+              setShowAll(false)
+              document.getElementById('open-roles')?.scrollIntoView({ block: 'start' })
+            }}
+          >
+            Show {otherPay === 1 ? 'it' : 'them'}
+          </button>
         </p>
       )}
 
@@ -267,7 +302,8 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
             </button>
           )}
           <p className="mt-3 max-w-2xl text-sm text-slate-600">
-            Advertised salaries in this company&rsquo;s open ads. Typical pay is the middle ad; “most ads” covers the middle half.
+            Advertised monthly salaries in this company&rsquo;s full-time open ads. Typical pay is the middle ad; “most ads” covers
+            the middle half.
           </p>
         </section>
       )}
@@ -290,8 +326,8 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
       {/* Open roles */}
       <section className="mt-8 scroll-mt-20" id="open-roles">
         <h2 className={h2Cls}>
-          {familyFilter ? `Open roles in ${familyLabel(familyFilter)}` : 'Open roles'}
-          {open > 0 && !familyFilter && <span className="font-normal text-slate-600"> ({count(open)})</span>}
+          {otherPayOnly ? 'Hourly, part-time and internship roles' : familyFilter ? `Open roles in ${familyLabel(familyFilter)}` : 'Open roles'}
+          {open > 0 && !familyFilter && !otherPayOnly && <span className="font-normal text-slate-600"> ({count(open)})</span>}
         </h2>
         {open === 0 ? (
           <p className="mt-2 text-slate-900">
@@ -300,7 +336,7 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
           </p>
         ) : (
           <>
-            {familyFilter && (
+            {(familyFilter || otherPayOnly) && (
               <p className="mt-1 text-[15px]">
                 <button type="button" onClick={() => selectFamily('')} className={linkCls}>
                   Show all {count(open)} open roles
@@ -317,7 +353,7 @@ export default function CompanyContent({ companyName, initialFamily = '' }: { co
                 <RoleRow key={g.job.job_uuid} group={g} />
               ))}
             </ul>
-            {roleGroups.length === 0 && <p className="mt-2 text-slate-900">None of the newest {count(listed)} ads are in this job type.</p>}
+            {roleGroups.length === 0 && <p className="mt-2 text-slate-900">None of the newest {count(listed)} ads match.</p>}
             {!showAll && roleGroups.length > ROLES_SHOWN && (
               <button type="button" onClick={() => setShowAll(true)} className={`mt-4 text-[15px] ${linkCls}`}>
                 Show {count(roleGroups.length - ROLES_SHOWN)} more

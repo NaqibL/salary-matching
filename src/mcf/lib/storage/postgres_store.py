@@ -15,6 +15,8 @@ from typing import Any, Iterable, Sequence
 import psycopg2
 import psycopg2.extras
 from pgvector.psycopg2 import register_vector
+
+from mcf.lib.companies.names import name_key, pick_display_name
 from psycopg2 import pool as pg_pool
 from psycopg2.extras import execute_values
 
@@ -61,7 +63,8 @@ SELECT content_hash,
   FROM ranked
  GROUP BY content_hash"""
 
-# SGSAL-028: must stay identical to scripts/migrations/027_company_stats_v3.sql.
+# SGSAL-032: must stay identical to scripts/migrations/029_company_stats_v4.sql
+# (tests/test_migration_029.py). Older databases are upgraded by upgrade_company_stats_view().
 _COMPANY_STATS_VIEW_SQL = r"""CREATE MATERIALIZED VIEW IF NOT EXISTS company_stats AS
 WITH base AS (
     SELECT j.job_uuid,
@@ -73,6 +76,22 @@ WITH base AS (
            CASE WHEN j.salary_min IS NOT NULL AND j.salary_max IS NOT NULL
                 THEN (j.salary_min + j.salary_max) / 2
                 ELSE j.salary_min END                           AS salary_mid,
+           -- pay kind (mcf.lib.companies.pay.pay_kind): hourly / daily rates and part-time or
+           -- internship pay are kept out of "typical pay", which is full-time monthly only
+           CASE WHEN j.salary_min IS NULL OR COALESCE(j.salary_max, j.salary_min) < 5 THEN NULL
+                WHEN COALESCE(j.salary_max, j.salary_min) < 100 THEN 'hourly'
+                WHEN COALESCE(j.salary_max, j.salary_min) < 500 THEN 'daily'
+                WHEN j.employment_types_json ~* '"(full time|permanent)"' THEN 'standard'
+                WHEN j.employment_types_json ~* '"part time"' THEN 'part_time'
+                WHEN j.employment_types_json ~* '"internship' THEN 'internship'
+                ELSE 'standard' END                             AS pay_kind,
+           -- ad text, open ads only: an employment-agency licence number, or wording that
+           -- says the role is with a client (thresholds applied per company below)
+           (j.is_active AND j.description IS NOT NULL AND length(j.description) > 100)  AS described,
+           (j.is_active AND j.description ~* '\mEA\s*(licen[cs]e|lic|reg|registration|personnel|no)\M|\m\d{2}C\d{4}\M') AS ea_ad,
+           (j.is_active AND j.description ~* '\m(our|my) client(''s|’s)?\s*(,|is|are|has|in|based|located|-|–|:|who|which|seeks|seeking|requires|needs)|\mon behalf of (our|a|the|my) client\M|\mfor (our|my) client\M|\mpersonnel (to be|will be|shall be) deployed\M|\mname of authority\M|\m(to be|will be|shall be) (deployed|seconded|stationed) (to|at)\M|\moutsourced (staff|personnel|role|position|contract)\M') AS client_ad,
+           (c.ssic_code_2020 ~ '^(72|84|85|86|91|94)'
+            OR COALESCE(j.company_canonical, j.company_name) ~* 'ministry')             AS public_body_row,
            j.categories_json,
            pg.repost_count, pg.distinct_companies,
            c.ssic_code_2020, c.ssic_description,
@@ -109,7 +128,7 @@ WITH base AS (
       FROM (SELECT company_key, role_family,
                    (percentile_cont(0.5) WITHIN GROUP (ORDER BY salary_mid))::int AS med,
                    count(*)::int AS n
-              FROM base WHERE is_active AND salary_mid IS NOT NULL GROUP BY 1, 2) x
+              FROM base WHERE is_active AND salary_mid IS NOT NULL AND pay_kind = 'standard' GROUP BY 1, 2) x
      GROUP BY company_key
 ), cat AS (
     SELECT company_key, jsonb_object_agg(category, n) AS category_counts
@@ -128,14 +147,20 @@ WITH base AS (
            (count(*) FILTER (WHERE is_active AND distinct_companies >= 2))::int         AS multi_company_count,
            COALESCE(max(repost_count) FILTER (WHERE is_active), 1)::int                 AS max_repost_count,
            (percentile_cont(0.5) WITHIN GROUP (ORDER BY salary_mid)
-                FILTER (WHERE is_active AND salary_mid IS NOT NULL))::int               AS median_salary,
-           (count(salary_mid) FILTER (WHERE is_active))::int                            AS salary_sample,
+                FILTER (WHERE is_active AND salary_mid IS NOT NULL AND pay_kind = 'standard'))::int AS median_salary,
+           (count(salary_mid) FILTER (WHERE is_active AND pay_kind = 'standard'))::int  AS salary_sample,
+           (count(*) FILTER (WHERE is_active AND pay_kind IS NOT NULL
+                                   AND pay_kind <> 'standard'))::int                    AS nonstandard_pay_count,
+           (count(*) FILTER (WHERE described))::int                                     AS described_ads,
+           (count(*) FILTER (WHERE ea_ad))::int                                         AS ea_licence_ads,
+           (count(*) FILTER (WHERE client_ad))::int                                     AS client_ads,
+           COALESCE(bool_or(public_body_row), FALSE)                                    AS public_body,
            count(*)::int                                                                AS total_seen,
            min(first_seen_at)                                                           AS first_seen,
            max(last_seen_at)                                                            AS last_seen,
            mode() WITHIN GROUP (ORDER BY ssic_code_2020)                                AS ssic_code_2020,
            mode() WITHIN GROUP (ORDER BY ssic_description)                              AS ssic_description,
-           COALESCE(bool_or(agency_row), FALSE)                                         AS is_agency
+           COALESCE(bool_or(agency_row), FALSE)                                         AS registered_agency
       FROM base
      GROUP BY company_key
 )
@@ -150,12 +175,21 @@ SELECT a.company_key, a.company, a.active_count, a.distinct_postings, a.reposted
        COALESCE(fs.family_salary_n, '{}'::jsonb)   AS family_salary_n,
        COALESCE(c.category_counts, '{}'::jsonb)    AS category_counts,
        a.total_seen, a.first_seen, a.last_seen,
-       a.ssic_code_2020, a.ssic_description, a.is_agency
+       a.ssic_code_2020, a.ssic_description,
+       -- agency: registered as one (SSIC 78 / vetted name), or its own open ads carry an
+       -- employment-agency licence number (2+ ads; public bodies never)
+       (a.registered_agency OR (a.ea_licence_ads >= 2 AND NOT a.public_body))           AS is_agency,
+       -- hires for clients: not an agency, but 30%+ of its described open ads (10+) say the
+       -- role is with a client or that staff are deployed to one
+       (NOT a.registered_agency AND NOT (a.ea_licence_ads >= 2) AND NOT a.public_body
+        AND a.described_ads >= 10 AND a.client_ads::numeric / a.described_ads >= 0.3)   AS hires_for_clients,
+       a.nonstandard_pay_count, a.described_ads, a.ea_licence_ads, a.client_ads
   FROM agg a
   LEFT JOIN fam f USING (company_key)
   LEFT JOIN famsal fs USING (company_key)
   LEFT JOIN cat c USING (company_key)
- WHERE a.active_count > 0"""
+ WHERE a.active_count > 0
+"""
 
 # SGSAL-030: must stay identical to scripts/migrations/028_market_stats.sql (tests/test_migration_028.py).
 _MARKET_STATS_VIEW_SQL = """CREATE MATERIALIZED VIEW IF NOT EXISTS market_stats AS
@@ -405,7 +439,8 @@ class PostgresStore(Storage):
             # SGSAL-028 companies registry (migration 025) — must precede company_stats, which joins it.
             _COMPANIES_DDL,
             "CREATE INDEX IF NOT EXISTS idx_companies_uen ON companies (uen)",
-            # SGSAL-026/028 company_stats (migration 026). Production migrated by hand.
+            # SGSAL-026/028/032 company_stats (migration 029). An existing older view is left
+            # alone here and rebuilt at crawl end by upgrade_company_stats_view().
             _COMPANY_STATS_VIEW_SQL,
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_company_stats_key ON company_stats (company_key)",
             "CREATE INDEX IF NOT EXISTS idx_company_stats_active ON company_stats (active_count DESC)",
@@ -3024,11 +3059,19 @@ class PostgresStore(Storage):
 
     # === Company stats (SGSAL-026) ===
 
+    # Columns added by migration 029 are read through to_jsonb(cs), which yields NULL on a view
+    # that predates it, so every query here works before and after the view is upgraded.
+    _HIRES_FOR_CLIENTS = "COALESCE((to_jsonb(cs)->>'hires_for_clients')::boolean, FALSE)"
     _COMPANY_STATS_COLS = (
-        "company_key, company, active_count, distinct_postings, reposted_count, "
-        "multi_company_count, max_repost_count, median_salary, salary_sample, "
-        "role_family_counts, family_count, top_family, top_family_share, category_counts, "
-        "total_seen, first_seen, last_seen, ssic_code_2020, ssic_description, is_agency"
+        "cs.company_key, cs.company, cs.active_count, cs.distinct_postings, cs.reposted_count, "
+        "cs.multi_company_count, cs.max_repost_count, cs.median_salary, cs.salary_sample, "
+        "cs.role_family_counts, cs.family_count, cs.top_family, cs.top_family_share, cs.category_counts, "
+        "cs.total_seen, cs.first_seen, cs.last_seen, cs.ssic_code_2020, cs.ssic_description, cs.is_agency, "
+        f"{_HIRES_FOR_CLIENTS} AS hires_for_clients, "
+        "COALESCE((to_jsonb(cs)->>'nonstandard_pay_count')::int, 0) AS nonstandard_pay_count, "
+        "COALESCE((to_jsonb(cs)->>'described_ads')::int, 0) AS described_ads, "
+        "COALESCE((to_jsonb(cs)->>'ea_licence_ads')::int, 0) AS ea_licence_ads, "
+        "COALESCE((to_jsonb(cs)->>'client_ads')::int, 0) AS client_ads"
     )
     _COMPANY_SORTS = {
         "openings": "COALESCE(%(family_count_expr)s, active_count) DESC",
@@ -3038,6 +3081,95 @@ class PostgresStore(Storage):
         # "$21,450 from 4 ads" row cannot lead; thinner rows follow in openings order.
         "median_salary": "(CASE WHEN %(pay_n_expr)s >= 10 THEN %(family_median_expr)s END) DESC NULLS LAST",
     }
+
+    def upgrade_company_stats_view(self) -> bool:
+        """Rebuild company_stats (and market_stats, which reads it) when the database still has
+        the pre-029 definition. One transaction: either both views are replaced or nothing changes.
+        Returns True when it rebuilt."""
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                "SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('company_stats') "
+                "AND attname = 'hires_for_clients' AND NOT attisdropped"
+            )
+            if cur.fetchone():
+                return False
+            cur.execute("DROP MATERIALIZED VIEW IF EXISTS market_stats")
+            cur.execute("DROP MATERIALIZED VIEW IF EXISTS company_stats")
+            cur.execute(_COMPANY_STATS_VIEW_SQL)
+            cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_company_stats_key ON company_stats (company_key)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_company_stats_active ON company_stats (active_count DESC)")
+            cur.execute(_MARKET_STATS_VIEW_SQL)
+            cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_market_stats_key ON market_stats (dimension, key)")
+            return True
+
+    def link_company_name_variants(self, dry_run: bool = False) -> list[dict]:
+        """Show spelling variants of one organisation as one company.
+
+        Groups every displayed name (``COALESCE(company_canonical, company_name)``) by
+        ``mcf.lib.companies.names.name_key``; in each group of 2+ the best spelling
+        (``pick_display_name``) becomes ``company_canonical`` for all of the group's ads and the
+        other spellings are recorded in ``company_aliases``. Job rows are never deleted. Safe to
+        re-run: a name already pointing at its group's display name is left alone.
+
+        Returns one dict per group changed: {"display", "merged": [names], "jobs": rows updated}.
+        """
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                """
+                SELECT COALESCE(company_canonical, company_name)   AS name,
+                       bool_or(company_canonical IS NOT NULL)      AS is_canonical,
+                       (count(*) FILTER (WHERE is_active))::int    AS active,
+                       count(*)::int                               AS total
+                  FROM jobs
+                 WHERE company_name IS NOT NULL
+                 GROUP BY 1
+                """
+            )
+            rows = [dict(zip(("name", "is_canonical", "active", "total"), r)) for r in cur.fetchall()]
+            cur.execute("SELECT canonical_name FROM company_aliases WHERE is_excluded = TRUE")
+            excluded = {r[0] for r in cur.fetchall()}
+
+            groups: dict[str, list[dict]] = {}
+            for r in rows:
+                key = name_key(r["name"])
+                if key and r["name"] not in excluded:
+                    groups.setdefault(key, []).append(r)
+
+            changed: list[dict] = []
+            for members in groups.values():
+                if len(members) < 2:
+                    continue
+                display = pick_display_name(members)
+                losers = [m["name"] for m in members if m["name"] != display]
+                updated = 0
+                if not dry_run:
+                    # every raw spelling behind a losing name now points at the display name
+                    cur.execute(
+                        """
+                        INSERT INTO company_aliases (raw_name, canonical_name)
+                        SELECT DISTINCT company_name, %s FROM jobs
+                         WHERE company_name IS NOT NULL
+                           AND (company_canonical = ANY(%s)
+                                OR (company_canonical IS NULL AND company_name = ANY(%s)))
+                        ON CONFLICT (raw_name) DO UPDATE SET canonical_name = EXCLUDED.canonical_name
+                        """,
+                        (display, losers, losers),
+                    )
+                    cur.execute(
+                        "UPDATE company_aliases SET canonical_name = %s WHERE canonical_name = ANY(%s)",
+                        (display, losers),
+                    )
+                    cur.execute(
+                        # written as two indexable conditions (idx on company_canonical / company_name)
+                        "UPDATE jobs SET company_canonical = %s WHERE company_name IS NOT NULL "
+                        "AND (company_canonical = ANY(%s) OR (company_canonical IS NULL AND company_name = ANY(%s)))",
+                        (display, losers, losers),
+                    )
+                    updated = cur.rowcount
+                changed.append({"display": display, "merged": losers, "jobs": updated})
+            return changed
 
     def refresh_company_stats(self) -> None:
         with self._transaction_cur() as cur:
@@ -3115,10 +3247,11 @@ class PostgresStore(Storage):
                 " WHEN company ILIKE %(q_prefix)s THEN 2"
                 " WHEN company ILIKE %(q_word)s THEN 3 ELSE 4 END), " + order
             )
+        # "direct" = hiring for itself: neither an agency nor a firm that hires for clients
         if agency == "direct":
-            where.append("is_agency = FALSE")
+            where.append(f"(is_agency = FALSE AND NOT {self._HIRES_FOR_CLIENTS})")
         elif agency == "agency":
-            where.append("is_agency = TRUE")
+            where.append(f"(is_agency = TRUE OR {self._HIRES_FOR_CLIENTS})")
         params = {
             "family": family,
             "category": category,
@@ -3140,7 +3273,7 @@ class PostgresStore(Storage):
                     SELECT {self._COMPANY_STATS_COLS}, {family_expr} AS family_active_count,
                            {family_median_expr} AS family_median_salary,
                            {family_n_expr} AS family_salary_sample
-                      FROM company_stats
+                      FROM company_stats cs
                      WHERE {where_sql}
                      ORDER BY {order}, active_count DESC, company ASC
                      LIMIT %(limit)s
@@ -3154,7 +3287,7 @@ class PostgresStore(Storage):
                     SELECT count(*)::int,
                            COALESCE(sum(COALESCE({family_expr}, active_count)), 0)::int,
                            (percentile_cont(0.5) WITHIN GROUP (ORDER BY median_salary))::int
-                      FROM company_stats
+                      FROM company_stats cs
                      WHERE {where_sql}
                     """,
                     params,
@@ -3175,7 +3308,7 @@ class PostgresStore(Storage):
                 cur.execute(
                     f"SELECT {self._COMPANY_STATS_COLS}, NULL::int AS family_active_count, "
                     "NULL::int AS family_median_salary, NULL::int AS family_salary_sample "
-                    "FROM company_stats WHERE company_key = lower(%s)",
+                    "FROM company_stats cs WHERE cs.company_key = lower(%s)",
                     (company_name,),
                 )
                 row = cur.fetchone()

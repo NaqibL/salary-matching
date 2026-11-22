@@ -111,3 +111,22 @@ def test_agency_rule_spares_public_bodies(store):
             assert row["is_agency"] is False, name
     keys = store.get_agency_company_keys()
     assert "nus" not in keys and "a*star" not in keys
+
+
+def test_client_and_pay_columns_are_consistent(store):
+    """SGSAL-032: an agency is never also "hires for clients"; "direct" shows neither; typical pay
+    counts standard ads only, so its sample and the other-pay count never exceed the open ads."""
+    rows = store.get_company_stats(min_active=1, limit=200)["rows"]
+    for r in rows:
+        assert not (r["is_agency"] and r["hires_for_clients"])
+        assert r["salary_sample"] + r["nonstandard_pay_count"] <= r["active_count"]
+        assert r["client_ads"] <= r["described_ads"] <= r["active_count"]
+    direct = store.get_company_stats(agency="direct", min_active=1, limit=200)["rows"]
+    assert all(not r["is_agency"] and not r["hires_for_clients"] for r in direct)
+    others = store.get_company_stats(agency="agency", min_active=1, limit=200)["rows"]
+    assert all(r["is_agency"] or r["hires_for_clients"] for r in others)
+
+
+def test_view_upgrade_is_a_no_op_once_current(store):
+    store.upgrade_company_stats_view()
+    assert store.upgrade_company_stats_view() is False

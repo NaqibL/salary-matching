@@ -106,7 +106,7 @@ function CompaniesExplorer() {
             disabled={!!q}
             onChange={(e) => setParam('agencies', e.target.checked ? '' : 'show')}
           />
-          Hide recruitment agencies
+          Hide recruitment agencies and firms hiring for clients
         </label>
       </div>
 
@@ -155,8 +155,9 @@ function CompaniesExplorer() {
             )}
 
             <p className="mt-6 max-w-2xl text-sm text-slate-600">
-              Typical pay is the middle advertised monthly salary across the company&rsquo;s open ads
-              {familyName ? ` for ${familyName}` : ''}, shown when at least {MIN_ADS_FOR_PAY} ads state a salary.
+              Typical pay is the middle advertised monthly salary across the company&rsquo;s full-time open ads
+              {familyName ? ` for ${familyName}` : ''}, shown when at least {MIN_ADS_FOR_PAY} state a salary. Hourly,
+              part-time and internship pay is left out.
               {sort === 'median_salary' && ' Companies are ranked by pay only when 10 or more of their ads state a salary; the rest follow.'}
             </p>
           </>

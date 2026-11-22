@@ -324,6 +324,15 @@ def run_incremental_crawl(
         except Exception as e:  # noqa: BLE001
             print(f"Warning: job_run_status prune failed, skipping: {e}")
 
+        # Spelling variants of one organisation ("X PTE. LTD." / "X (Singapore) Pte Ltd") are shown
+        # as one company (SGSAL-032). Before the views, so they count the merged names. Non-fatal.
+        try:
+            merged = store.link_company_name_variants()
+            if merged:
+                print(f"Linked {len(merged):,} company name groups ({sum(m['jobs'] for m in merged):,} ads)")
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: company name linking failed, skipping: {e}")
+
         # posting_groups feeds the repost badges / dashboard (SGSAL-024). Non-fatal.
         try:
             store.refresh_posting_groups()
@@ -331,6 +340,12 @@ def run_incremental_crawl(
             print(f"Warning: posting_groups refresh failed, skipping: {e}")
 
         # company_stats feeds /companies (SGSAL-026). Depends on posting_groups. Non-fatal.
+        # A database still on the previous view definition is rebuilt first (migration 029).
+        try:
+            if store.upgrade_company_stats_view():
+                print("Rebuilt company_stats and market_stats on the current definition")
+        except Exception as e:  # noqa: BLE001
+            print(f"Warning: company_stats upgrade failed, keeping the previous view: {e}")
         try:
             store.refresh_company_stats()
         except Exception as e:  # noqa: BLE001

@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from mcf.api.cache.response import TTL_DASHBOARD, cache_response
 from mcf.api.deps import get_store
 from mcf.api.limiter import limiter
+from mcf.lib.companies.pay import pay_kind
 from mcf.lib.storage.base import Storage
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,8 @@ class CompanyJob(BaseModel):
     min_years_experience: int | None
     job_url: str | None
     role_family: str
+    # "standard" (full-time monthly) | "hourly" | "daily" | "part_time" | "internship" | None (no pay stated)
+    pay_kind: str | None = None
 
 
 class CompanyPayRow(BaseModel):
@@ -58,11 +61,13 @@ class CompanyProfileResponse(BaseModel):
     active_count: int
     total_count: int
     first_seen: str | None = None
-    # advertised pay across the open ads (None when no open ad states a salary)
+    # advertised full-time monthly pay across the open ads (None when none states one);
+    # hourly/daily rates, part-time pay and internships are counted in nonstandard_pay_count
     salary_p25: int | None
     salary_p50: int | None
     salary_p75: int | None
     salary_sample_size: int
+    nonstandard_pay_count: int = 0
     pay_by_family: list[CompanyPayRow] = []
     # newest first, capped at OPEN_JOBS_CAP; active_count is the full number
     active_jobs: list[CompanyJob]
@@ -100,6 +105,12 @@ class CompanyStatsRow(BaseModel):
     family_active_count: int | None = None
     family_median_salary: int | None = None
     family_salary_sample: int | None = None
+    # SGSAL-032 (False / 0 until the view is on migration 029)
+    hires_for_clients: bool = False
+    nonstandard_pay_count: int = 0
+    described_ads: int = 0
+    ea_licence_ads: int = 0
+    client_ads: int = 0
 
 
 class CompanyStatsSummary(BaseModel):
@@ -241,8 +252,18 @@ def _stats_row(raw: dict | None) -> CompanyStatsRow | None:
             "category_counts": raw.get("category_counts") or {},
             "top_family_share": float(raw["top_family_share"]) if raw.get("top_family_share") is not None else None,
             "is_agency": bool(raw.get("is_agency")),
+            "hires_for_clients": bool(raw.get("hires_for_clients")),
         }
     )
+
+
+def _job_pay_kind(job: dict) -> str | None:
+    return pay_kind(job.get("salary_min"), job.get("salary_max"), _parse_json_list(job.get("employment_types_json")))
+
+
+def _standard_salary(job: dict) -> int | None:
+    """The ad's salary midpoint when it is full-time monthly pay, else None."""
+    return _effective_salary(job) if _job_pay_kind(job) == "standard" else None
 
 
 def _to_company_job(job: dict) -> CompanyJob:
@@ -257,6 +278,7 @@ def _to_company_job(job: dict) -> CompanyJob:
         min_years_experience=job.get("min_years_experience"),
         job_url=job.get("job_url"),
         role_family=job.get("role_family") or "other",
+        pay_kind=_job_pay_kind(job),
     )
 
 
@@ -354,15 +376,17 @@ def get_company_profile(
         logger.exception("company profile query failed for %r", company_name)
         raise HTTPException(status_code=500, detail="Failed to fetch company jobs")
 
-    salaries = [s for j in jobs if (s := _effective_salary(j)) is not None]
+    # typical pay counts full-time monthly ads only, the same rule as company_stats (migration 029)
+    salaries = [s for j in jobs if (s := _standard_salary(j)) is not None]
     p25, p50, p75 = _percentiles(salaries)
+    nonstandard = sum(1 for j in jobs if _job_pay_kind(j) not in (None, "standard"))
 
     by_family: dict[str, list[dict]] = {}
     for j in jobs:
         by_family.setdefault(j.get("role_family") or "other", []).append(j)
     pay_by_family = []
     for family, rows in by_family.items():
-        fam_salaries = [s for j in rows if (s := _effective_salary(j)) is not None]
+        fam_salaries = [s for j in rows if (s := _standard_salary(j)) is not None]
         f25, f50, f75 = _percentiles(fam_salaries)
         pay_by_family.append(
             CompanyPayRow(
@@ -401,6 +425,7 @@ def get_company_profile(
         salary_p50=p50,
         salary_p75=p75,
         salary_sample_size=len(salaries),
+        nonstandard_pay_count=nonstandard,
         pay_by_family=pay_by_family,
         active_jobs=[_to_company_job(j) for j in jobs[:OPEN_JOBS_CAP]],
         stats=_stats_row(store.get_company_stats_one(company_name)),
