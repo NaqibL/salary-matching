@@ -49,36 +49,43 @@ export interface TopCompany {
 
 export interface CompanyJob {
   job_uuid: string
-  title: string
+  title: string | null
   salary_min: number | null
   salary_max: number | null
   first_seen_at: string | null
-  last_seen_at: string
+  last_seen_at: string | null
   employment_types: string[]
-  position_levels: string[]
   min_years_experience: number | null
-  inferred_seniority: string | null
   job_url: string | null
+  role_family: string
 }
 
+/** One job type at one company: open ads and what they advertise. */
+export interface CompanyPayRow {
+  role_family: string
+  open_count: number
+  salary_p25: number | null
+  salary_p50: number | null
+  salary_p75: number | null
+  salary_sample: number
+}
+
+/** Every count and pay figure here comes from the company's open ads in one request. */
 export interface CompanyProfile {
   company_name: string
   active_count: number
   total_count: number
+  first_seen: string | null
   salary_p25: number | null
   salary_p50: number | null
   salary_p75: number | null
   salary_sample_size: number
-  avg_min_experience: number | null
-  position_levels: Record<string, number>
-  employment_types: Record<string, number>
-  top_skills: [string, number][]
+  pay_by_family: CompanyPayRow[]
+  /** newest first, capped at 200; active_count is the full number */
   active_jobs: CompanyJob[]
-  recent_closed: CompanyJob[]
-  // SGSAL-026 (absent on older cached responses)
+  /** company_stats row: used for the registered industry and the agency flag only */
   stats?: CompanyStatsRow | null
   top_reposted?: CompanyReposted[]
-  benchmarks?: CompanyBenchmarks | null
 }
 
 // --- Company stats (SGSAL-026) ---
@@ -108,10 +115,6 @@ export interface CompanyStatsRow {
   family_active_count: number | null
   family_median_salary: number | null
   family_salary_sample: number | null
-}
-
-export interface CompanyBenchmarks {
-  median_repost_rate: number | null
 }
 
 export interface CompanyStatsSummary {

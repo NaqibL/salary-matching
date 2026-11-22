@@ -46,13 +46,53 @@ def test_stats_agency_filter_and_sorts(store):
     by_rate = store.get_company_stats(sort="repost_rate", min_active=10, limit=5)["rows"]
     rates = [r["reposted_count"] / r["active_count"] for r in by_rate]
     assert rates == sorted(rates, reverse=True)
-    by_pay = store.get_company_stats(sort="median_salary", min_active=10, limit=5)["rows"]
-    pays = [r["median_salary"] for r in by_pay]
+    # pay ranking: figures backed by 10+ salaried ads lead, highest first; thinner rows follow
+    by_pay = store.get_company_stats(sort="median_salary", min_active=1, limit=50)["rows"]
+    solid = [r["salary_sample"] >= 10 for r in by_pay]
+    assert solid == sorted(solid, reverse=True)
+    pays = [r["median_salary"] for r in by_pay if r["salary_sample"] >= 10]
     assert pays == sorted(pays, reverse=True)
+    fam_pay = store.get_company_stats(sort="median_salary", family="healthcare_allied", min_active=1, limit=50)["rows"]
+    fam_solid = [(r["family_salary_sample"] or 0) >= 10 for r in fam_pay]
+    assert fam_solid == sorted(fam_solid, reverse=True)
+    fam_pays = [r["family_median_salary"] for r in fam_pay if (r["family_salary_sample"] or 0) >= 10]
+    assert fam_pays == sorted(fam_pays, reverse=True)
+
+
+def test_name_search_ranks_and_escapes(store):
+    top = store.get_company_stats(min_active=1, limit=1)["rows"]
+    if not top:
+        pytest.skip("company_stats empty")
+    name = top[0]["company"]
+    exact = store.get_company_stats(q=name.upper(), min_active=1, limit=5)["rows"]
+    assert exact[0]["company_key"] == top[0]["company_key"]
+    # a short name's full form (q_also) is searched as well and outranks plain substring hits
+    via_also = store.get_company_stats(q="zz-no-such-text", q_also=[name], min_active=1, limit=5)["rows"]
+    assert via_also and via_also[0]["company_key"] == top[0]["company_key"]
+    assert store.get_company_stats(q="%", min_active=1, limit=5)["rows"] == []
+    assert store.get_company_stats(q="_", min_active=1, limit=5)["total_matching"] <= store.get_company_stats(
+        min_active=1, limit=1
+    )["total_matching"]
+
+
+def test_open_jobs_and_counts_agree(store):
+    top = store.get_company_stats(min_active=1, limit=1)["rows"]
+    if not top:
+        pytest.skip("company_stats empty")
+    name = top[0]["company"]
+    counts = store.get_company_job_counts(name)
+    jobs = store.get_open_jobs_by_company(name)
+    assert counts["active"] == len(jobs) <= counts["total"]
+    assert all(j["role_family"] for j in jobs)
+    assert store.get_company_job_counts("no such company zzz") == {"total": 0, "active": 0, "first_seen": None}
+    assert store.get_open_jobs_by_company("no such company zzz") == []
 
 
 def test_one_and_top_reposted(store):
-    top = store.get_company_stats(min_active=10, limit=1)["rows"][0]
+    rows = store.get_company_stats(min_active=10, limit=1)["rows"]
+    if not rows:
+        pytest.skip("company_stats empty")
+    top = rows[0]
     one = store.get_company_stats_one(top["company"])
     assert one is not None and one["company_key"] == top["company_key"]
     assert store.get_company_stats_one("no such company zzz") is None

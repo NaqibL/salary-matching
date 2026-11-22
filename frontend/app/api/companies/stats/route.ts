@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unstable_cache } from 'next/cache'
 
 import { getApiBaseUrl } from '../../../../lib/server-fetch'
 const API_BASE_URL = getApiBaseUrl()
-const REVALIDATE_SECONDS = 900
 
-export const revalidate = REVALIDATE_SECONDS
+// Never stored in the Next.js data cache: a saved copy per filter/sort combination could be
+// days older than its neighbours, so one company showed different numbers depending on the
+// button pressed. The backend keeps its own short cache; the CDN holds a response for 5 min.
+export const dynamic = 'force-dynamic'
 
+const CDN_SECONDS = 300
 const ALLOWED = new Set(['family', 'category', 'q', 'agency', 'min_active', 'sort', 'limit'])
 
 export async function GET(request: NextRequest) {
@@ -15,21 +17,11 @@ export async function GET(request: NextRequest) {
     if (ALLOWED.has(k) && v) qs.set(k, v.slice(0, 80))
   }
   qs.sort()
-  const key = qs.toString()
   try {
-    const data = await unstable_cache(
-      async () => {
-        const res = await fetch(`${API_BASE_URL}/api/companies/stats?${key}`, {
-          next: { revalidate: REVALIDATE_SECONDS },
-        })
-        if (!res.ok) throw new Error(`Backend error: ${res.status}`)
-        return res.json()
-      },
-      [`companies-stats-v3-${key}`],
-      { revalidate: REVALIDATE_SECONDS },
-    )()
-    return NextResponse.json(data, {
-      headers: { 'Cache-Control': `public, s-maxage=${REVALIDATE_SECONDS}, stale-while-revalidate` },
+    const res = await fetch(`${API_BASE_URL}/api/companies/stats?${qs.toString()}`, { cache: 'no-store' })
+    if (!res.ok) throw new Error(`Backend error: ${res.status}`)
+    return NextResponse.json(await res.json(), {
+      headers: { 'Cache-Control': `public, s-maxage=${CDN_SECONDS}` },
     })
   } catch (err) {
     console.error('[companies/stats]', err)

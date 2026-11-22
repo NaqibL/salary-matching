@@ -405,9 +405,11 @@ export const companiesApi = {
     return res.json()
   },
 
-  getProfile: async (name: string): Promise<CompanyProfile> => {
+  /** null when no company has that exact name; throws when the lookup itself failed. */
+  getProfile: async (name: string): Promise<CompanyProfile | null> => {
     const res = await fetch(`/api/company/${encodeURIComponent(name)}`)
-    if (!res.ok) throw new Error(`Company not found: ${name}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`Failed to load company: ${name}`)
     return res.json()
   },
 }

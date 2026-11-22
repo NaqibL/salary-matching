@@ -344,6 +344,11 @@ UPDATE jobs j SET canonical_job_uuid = canon.canonical
 """
 
 
+def _like_escape(text: str | None) -> str:
+    """Escape LIKE wildcards so user-typed text matches literally."""
+    return (text or "").replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 class PostgresStore(Storage):
     """PostgreSQL-backed persistence layer (Supabase)."""
 
@@ -2972,6 +2977,34 @@ class PostgresStore(Storage):
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, row)) for row in cur.fetchall()]
 
+    def get_company_job_counts(self, company_name: str) -> dict:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                "SELECT count(*)::int, (count(*) FILTER (WHERE is_active))::int, min(first_seen_at) "
+                "FROM jobs "
+                "WHERE company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)",
+                (company_name, company_name),
+            )
+            total, active, first_seen = cur.fetchone()
+            return {"total": total or 0, "active": active or 0, "first_seen": first_seen}
+
+    def get_open_jobs_by_company(self, company_name: str) -> list[dict]:
+        with self._transaction_cur() as cur:
+            cur.execute("SET LOCAL statement_timeout = 0")
+            cur.execute(
+                "SELECT job_uuid, title, salary_min, salary_max, first_seen_at, last_seen_at, "
+                "employment_types_json, min_years_experience, job_url, "
+                "COALESCE(role_family, 'other') AS role_family "
+                "FROM jobs "
+                "WHERE is_active = TRUE "
+                "AND (company_canonical = %s OR (company_canonical IS NULL AND company_name = %s)) "
+                "ORDER BY first_seen_at DESC NULLS LAST, job_uuid",
+                (company_name, company_name),
+            )
+            cols = [d[0] for d in cur.description]
+            return [dict(zip(cols, row)) for row in cur.fetchall()]
+
     def get_top_companies(self, limit: int = 20) -> list[dict]:
         with self._transaction_cur() as cur:
             cur.execute("SET LOCAL statement_timeout = 0")
@@ -3001,7 +3034,9 @@ class PostgresStore(Storage):
         "openings": "COALESCE(%(family_count_expr)s, active_count) DESC",
         "distinct": "distinct_postings DESC",
         "repost_rate": "(reposted_count::float / NULLIF(active_count, 0)) DESC NULLS LAST",
-        "median_salary": "%(family_median_expr)s DESC NULLS LAST",
+        # Pay ranking only counts figures backed by _PAY_RANK_MIN_ADS salaried ads, so a
+        # "$21,450 from 4 ads" row cannot lead; thinner rows follow in openings order.
+        "median_salary": "(CASE WHEN %(pay_n_expr)s >= 10 THEN %(family_median_expr)s END) DESC NULLS LAST",
     }
 
     def refresh_company_stats(self) -> None:
@@ -3040,6 +3075,7 @@ class PostgresStore(Storage):
         family: str | None = None,
         category: str | None = None,
         q: str | None = None,
+        q_also: Sequence[str] = (),
         agency: str = "all",
         min_active: int = 10,
         sort: str = "openings",
@@ -3053,6 +3089,7 @@ class PostgresStore(Storage):
         order = self._COMPANY_SORTS.get(sort, self._COMPANY_SORTS["openings"]) % {
             "family_count_expr": family_expr,
             "family_median_expr": family_median_expr if family else "median_salary",
+            "pay_n_expr": f"COALESCE({family_n_expr}, 0)" if family else "salary_sample",
         }
         # The openings floor applies to the chosen job type's openings when one is picked (SGSAL-030):
         # "10+ openings" under Data & AI means 10+ data openings, not 10 openings company-wide.
@@ -3061,8 +3098,23 @@ class PostgresStore(Storage):
             where.append("role_family_counts ? %(family)s")
         if category:
             where.append("category_counts ? %(category)s")
+        # Name search: the typed text anywhere in the name, any spelling recorded for the company
+        # in company_aliases, or a known short name's full form (q_also, e.g. "NUH"). Best
+        # matches first: the exact name, a short-name expansion, a name starting with the
+        # text, a word starting with it, then the rest.
+        also = [a.strip() for a in q_also if a and a.strip()]
         if q:
-            where.append("company ILIKE %(q)s")
+            where.append(
+                "(company ILIKE ANY(%(q_pats)s::text[]) OR company_key IN ("
+                "SELECT lower(canonical_name) FROM company_aliases "
+                "WHERE raw_name ILIKE %(q_like)s AND canonical_name IS NOT NULL AND is_excluded = FALSE))"
+            )
+            order = (
+                "(CASE WHEN company_key = lower(%(q_raw)s) THEN 0"
+                " WHEN company ILIKE ANY(%(q_also_pats)s::text[]) THEN 1"
+                " WHEN company ILIKE %(q_prefix)s THEN 2"
+                " WHEN company ILIKE %(q_word)s THEN 3 ELSE 4 END), " + order
+            )
         if agency == "direct":
             where.append("is_agency = FALSE")
         elif agency == "agency":
@@ -3070,7 +3122,12 @@ class PostgresStore(Storage):
         params = {
             "family": family,
             "category": category,
-            "q": f"%{q}%" if q else None,
+            "q_raw": q,
+            "q_like": f"%{_like_escape(q)}%" if q else None,
+            "q_prefix": f"{_like_escape(q)}%" if q else None,
+            "q_word": f"% {_like_escape(q)}%" if q else None,
+            "q_also_pats": [f"%{_like_escape(a)}%" for a in also] if q else [],
+            "q_pats": [f"%{_like_escape(t)}%" for t in [q, *also]] if q else [],
             "min_active": max(1, int(min_active)),
             "limit": max(1, min(int(limit), 200)),
         }
