@@ -58,6 +58,8 @@ export interface CompanyJob {
   min_years_experience: number | null
   job_url: string | null
   role_family: string
+  /** 'standard' = full-time monthly; null = no pay stated (absent on older cached responses) */
+  pay_kind?: 'standard' | 'hourly' | 'daily' | 'part_time' | 'internship' | null
 }
 
 /** One job type at one company: open ads and what they advertise. */
@@ -80,6 +82,8 @@ export interface CompanyProfile {
   salary_p50: number | null
   salary_p75: number | null
   salary_sample_size: number
+  /** open ads paying an hourly/daily rate, part-time pay or an internship allowance: not in typical pay */
+  nonstandard_pay_count?: number
   pay_by_family: CompanyPayRow[]
   /** newest first, capped at 200; active_count is the full number */
   active_jobs: CompanyJob[]
@@ -115,6 +119,12 @@ export interface CompanyStatsRow {
   family_active_count: number | null
   family_median_salary: number | null
   family_salary_sample: number | null
+  /** SGSAL-032: not an agency, but 30%+ of its open ads say the role is with a client */
+  hires_for_clients?: boolean
+  nonstandard_pay_count?: number
+  described_ads?: number
+  ea_licence_ads?: number
+  client_ads?: number
 }
 
 export interface CompanyStatsSummary {

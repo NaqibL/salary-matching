@@ -11,6 +11,13 @@ export const MIN_ADS_FOR_PAY = 3
 
 type Pay = { text: string; ads: number } | null
 
+/** Who the ads are for, when it is not the company itself. */
+export function posterNote(r: Pick<CompanyStatsRow, 'is_agency' | 'hires_for_clients'>): string | null {
+  if (r.is_agency) return 'Recruitment agency'
+  if (r.hires_for_clients) return 'Hires for clients'
+  return null
+}
+
 function SortButton({
   label,
   value,
@@ -87,7 +94,7 @@ export function CompanyStatsTable({
                   <Link href={profileHref(r)} className={nameCls}>
                     {r.company}
                   </Link>
-                  {r.is_agency && <span className="ml-2 text-sm text-slate-500">Recruitment agency</span>}
+                  {posterNote(r) && <span className="ml-2 text-sm text-slate-500">{posterNote(r)}</span>}
                 </td>
                 <td className="py-2.5 pl-4 text-right tabular-nums text-slate-900">{count(openRoles(r))}</td>
                 <td className="py-2.5 pl-4 text-right tabular-nums">
@@ -121,7 +128,7 @@ export function CompanyStatsTable({
                 <Link href={profileHref(r)} className={`${nameCls} break-words`}>
                   {r.company}
                 </Link>
-                {r.is_agency && <span className="ml-2 text-sm text-slate-500">Recruitment agency</span>}
+                {posterNote(r) && <span className="ml-2 text-sm text-slate-500">{posterNote(r)}</span>}
                 <div className="mt-1 text-sm text-slate-700">
                   {count(openRoles(r))} open {openRoles(r) === 1 ? 'role' : 'roles'}
                   {p ? (

@@ -659,6 +659,18 @@ class Storage(ABC):
     # === Company stats (SGSAL-026, company_stats materialised view) ===
 
     @abstractmethod
+    def upgrade_company_stats_view(self) -> bool:
+        """Rebuild company_stats and market_stats when the database predates migration 029.
+        Call at crawl end before the refreshes. Returns True when it rebuilt."""
+
+    @abstractmethod
+    def link_company_name_variants(self, dry_run: bool = False) -> list[dict]:
+        """Merge spelling variants of one organisation (same ``name_key``) under one display
+        name by setting ``jobs.company_canonical`` and recording ``company_aliases``. Never
+        deletes rows; safe to re-run. Call at crawl end before the view refreshes.
+        Returns [{"display", "merged", "jobs"}] for the groups it changed."""
+
+    @abstractmethod
     def refresh_company_stats(self) -> None:
         """REFRESH MATERIALIZED VIEW CONCURRENTLY company_stats. Call at crawl end after posting_groups."""
 

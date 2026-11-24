@@ -354,7 +354,8 @@ def test_companies_stats_shape(client):
                     "multi_company_count", "max_repost_count", "median_salary", "salary_sample",
                     "role_family_counts", "family_count", "top_family", "top_family_share", "total_seen",
                     "first_seen", "is_agency", "ssic_description", "family_active_count",
-                    "family_median_salary", "family_salary_sample"):
+                    "family_median_salary", "family_salary_sample", "hires_for_clients",
+                    "nonstandard_pay_count"):
             assert key in row, key
         assert isinstance(row["role_family_counts"], dict)
 
@@ -395,7 +396,12 @@ def test_company_profile_counts_agree(client):
         else:
             assert row["salary_p50"] is None
     for job in data["active_jobs"]:
-        assert {"job_uuid", "title", "salary_min", "salary_max", "role_family", "job_url"} <= set(job)
+        assert {"job_uuid", "title", "salary_min", "salary_max", "role_family", "job_url", "pay_kind"} <= set(job)
+        assert job["pay_kind"] in (None, "standard", "hourly", "daily", "part_time", "internship")
+    if data["active_count"] <= 200:
+        assert data["nonstandard_pay_count"] == sum(
+            1 for j in data["active_jobs"] if j["pay_kind"] not in (None, "standard")
+        )
     firsts = [j["first_seen_at"] for j in data["active_jobs"] if j["first_seen_at"]]
     assert firsts == sorted(firsts, reverse=True)
 
